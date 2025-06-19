@@ -21,9 +21,9 @@ import {
 } from 'react-icons/fa';
 import { FiLogOut } from 'react-icons/fi';
 import Topup from '../Topup';
+import History from '../Transaction/History';
 import PinPage from './Pin';
 import SetupPinPage from './SetupPin';
-import History from '../Transaction/History';
 
 const menuItems = [
     {
@@ -108,10 +108,10 @@ export default function MenuDashboard() {
             </div>
             {auth.user && (
                 <>
-                    <div className="mb-4 flex w-full shadow-[0px_10px_10px_-4px_rgba(0,0,0,0.1)] shadow-black">
-                        <div className="grid w-full grid-cols-2 items-center gap-4 p-4 px-6">
+                    <div className="mb-4 w-full shadow-[0px_10px_10px_-4px_rgba(0,0,0,0.1)] shadow-black">
+                        <div className="flex w-full flex-row gap-4 p-4 justify-between items-center sm:px-6">
                             {/* Saldo Section */}
-                            <div className="space-y-2">
+                            <div className="flex flex-col space-y-4">
                                 <h1 className="text-lg font-semibold text-primary-foreground">Saldo Tabungan</h1>
                                 <div className="flex items-center gap-2 text-primary-foreground">
                                     <FaWallet className="text-xl" />
@@ -120,7 +120,7 @@ export default function MenuDashboard() {
                             </div>
 
                             {/* Tombol Aksi */}
-                            <div className="flex flex-row items-end justify-end gap-2">
+                            <div className="flex items-end flex-col space-y-4 justify-end">
                                 <button
                                     onClick={() => handlePage('topup')}
                                     className="flex items-center gap-2 rounded-md bg-primary-foreground px-4 py-2 text-primary hover:bg-accent"
@@ -180,29 +180,31 @@ export default function MenuDashboard() {
         <Topup siswa={siswa} nouid={nouid} onClose={() => setPage('index')} />
     ) : (
         page === 'riwayat' && (
-<History
-    transactions={{
-        data: [
-            {
-                id: 0,
-                nouid: '',
-                order_id: '',
-                amount: 0,
-                bank: '',
-                status: '',
-                created_at: '',
-            },
-        ],
-        links: [{
-            url: '',
-            label: '',
-            active: true,}
-        ],
-    }} // Replace with actual transactions data
-    siswa={siswa}
-    nouid={nouid}
-    onClose={() => setPage('index')}
-/>
+            <History
+                transactions={{
+                    data: [
+                        {
+                            id: 0,
+                            nouid: '',
+                            order_id: '',
+                            amount: 0,
+                            bank: '',
+                            status: '',
+                            created_at: '',
+                        },
+                    ],
+                    links: [
+                        {
+                            url: '',
+                            label: '',
+                            active: true,
+                        },
+                    ],
+                }} // Replace with actual transactions data
+                siswa={siswa}
+                nouid={nouid}
+                onClose={() => setPage('index')}
+            />
         )
     );
 }
