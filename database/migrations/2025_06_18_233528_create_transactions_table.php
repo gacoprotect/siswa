@@ -24,7 +24,7 @@ return new class extends Migration
             $table->string('payment_type');
             $table->enum('status', ['pending', 'success', 'failed'])->default('pending');
             $table->enum('type', ['topup', 'payment', 'withdraw', 'refund'])->default('topup');
-            $table->text('note')->nullable()->after('type');
+            $table->text('note')->nullable();
             $table->json('payment_data')->nullable();
             $table->text('failure_message')->nullable();
             $table->timestamp('expiry_time')->nullable();
