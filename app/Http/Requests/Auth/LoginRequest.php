@@ -49,9 +49,11 @@ class LoginRequest extends FormRequest
             ->first();
 
         // Verifikasi PIN
-        if (!$indentitas || 
-            !$indentitas->siswa || 
-            !$this->verifyPin($indentitas->siswa, $this->input('pin'))) {
+        if (
+            !$indentitas ||
+            !$indentitas->siswa ||
+            !$this->verifyPin($indentitas->siswa, $this->input('pin'))
+        ) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -59,11 +61,12 @@ class LoginRequest extends FormRequest
                 'pin' => "PIN yang Anda Masukkan Salah",
             ]);
         }
-
-        // Login menggunakan guard siswa
-        Auth::guard('siswa')->login($indentitas->siswa);
-        session(['current_nouid' => $nouid]);
-        RateLimiter::clear($this->throttleKey());
+        if (!Auth::check()) {
+            // Login menggunakan guard siswa
+            Auth::guard('siswa')->login($indentitas->siswa);
+            session(['current_nouid' => $nouid]);
+            RateLimiter::clear($this->throttleKey());
+        }
     }
 
     /**
@@ -102,6 +105,6 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->input('nouid')).'|'.$this->ip());
+        return Str::transliterate(Str::lower($this->input('nouid')) . '|' . $this->ip());
     }
 }

@@ -10,15 +10,17 @@ interface PinFormData {
 }
 
 interface PinPageProps {
+    handle: string;
+    setPage: (value: 'index' | 'topup' | 'riwayat') => void;
     setOpenSetupPin: () => void;
     hasPin: boolean;
     open: boolean;
-    onClose: () => void;
+    onClose: (v: boolean) => void;
 }
 
-const PinPage: React.FC<PinPageProps> = ({ setOpenSetupPin, hasPin, open, onClose }) => {
+const PinPage: React.FC<PinPageProps> = ({ handle, setPage, setOpenSetupPin, hasPin, open, onClose }) => {
     const { errors, nouid } = usePage<{ errors: Record<string, string>; nouid: string }>().props;
-    const { data, setData, post, processing,reset } = useForm<PinFormData>({
+    const { data, setData, post, processing, reset } = useForm<PinFormData>({
         pin: '',
         nouid: nouid ?? '',
     });
@@ -47,14 +49,18 @@ const PinPage: React.FC<PinPageProps> = ({ setOpenSetupPin, hasPin, open, onClos
             return;
         }
 
-        post(`/${data.nouid}/verify-pin`, {
+        post(route('siswa.verify-pin', nouid), {
             preserveState: true,
             onSuccess: () => {
-                onClose();
+                onClose(true);
                 reset();
+                if (handle === 'riwayat') {
+                    setPage('riwayat');
+                }
             },
             onError: () => {
                 setData('pin', '');
+                setPage('index');
                 // Refocus first input on error
                 if (inputRefs.current[0]) {
                     inputRefs.current[0]?.focus();
@@ -99,7 +105,7 @@ const PinPage: React.FC<PinPageProps> = ({ setOpenSetupPin, hasPin, open, onClos
     };
 
     return (
-        <Modal title={hasPin ? '' : 'Anda Belum Membuat PIN'} isOpen={open} onClose={onClose}>
+        <Modal title={hasPin ? '' : 'Anda Belum Membuat PIN'} isOpen={open} onClose={() => onClose(false)}>
             {hasPin ? (
                 <div className="flex items-center justify-center">
                     <Head title="Masukkan PIN" />

@@ -27,15 +27,22 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request)
     {
         $request->authenticate();
 
         $request->session()->regenerate();
-
-        return redirect()->intended(route('siswa.index', [
-            'nouid' => $request->input('nouid')
-        ], absolute: false));
+        
+        if (Auth::check()) {
+            return back()->with([
+                'success' => true,
+                'message' => 'Pin Terverifikasi'
+            ]);
+        } else {
+            return redirect()->intended(route('siswa.index', [
+                'nouid' => $request->input('nouid')
+            ], absolute: false));
+        }
     }
 
     /**
