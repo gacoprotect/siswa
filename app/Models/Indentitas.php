@@ -35,8 +35,12 @@ class Indentitas extends Model
     const CREATED_AT = 'createdat';
     const UPDATED_AT = 'updatedat';
 
-   public function siswa()
+    public function siswa()
     {
         return $this->belongsTo(Siswa::class, 'idok', 'id');
+    }
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class, 'nouid', 'nouid');
     }
 }

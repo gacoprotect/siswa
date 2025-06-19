@@ -6,7 +6,7 @@ import permata from '@/components/assets/permata.png';
 import InputGroup from '@/components/InputGroup';
 import AppLayout from '@/Layout/AppLayout';
 import { Bank, Nominal, Siswa } from '@/types';
-import axios from 'axios';
+import { router } from '@inertiajs/react';
 import React, { useState } from 'react';
 import { FaArrowAltCircleLeft } from 'react-icons/fa';
 
@@ -40,7 +40,7 @@ const Topup: React.FC<TopupProps> = ({ siswa, nouid, onClose }) => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         setError(null);
@@ -65,19 +65,25 @@ const Topup: React.FC<TopupProps> = ({ siswa, nouid, onClose }) => {
         }
 
         try {
-            const response = await axios.post(route('topup.charge', nouid), {
-                bank: bank.name,
-                amount: nominalValue,
-                phone: phoneNumber,
-                nouid: nouid, // Tambahkan nouid ke request
-            });
+            const response = router.post(
+                route('topup.charge', nouid),
+                {
+                    bank: bank.name,
+                    amount: nominalValue,
+                    phone: phoneNumber,
+                    nouid: nouid,
+                },
+                {
+                    onSuccess: () => {
+                        console.log(response);
+                    },
+                    onError: (data) => {
+                        setError(data?.message || 'Terjadi kesalahan saat memproses pembayaran');
+                    },
+                },
+            );
 
-            if (response.data.success) {
-                // Redirect ke halaman instruksi pembayaran dengan format URL yang diinginkan
-                window.location.href = `/${nouid}/payment-instruction?id=${response.data.data.order_id}`;
-            } else {
-                setError(response.data.message || 'Terjadi kesalahan saat memproses pembayaran');
-            }
+            
         } catch (err) {
             setError('Terjadi kesalahan saat memproses pembayaran');
             console.error(err);

@@ -1,30 +1,40 @@
 {
-  "_AppLayout-DM4wxu1_.js": {
-    "file": "assets/AppLayout-DM4wxu1_.js",
+  "_AppLayout-Dg7iptWn.js": {
+    "file": "assets/AppLayout-Dg7iptWn.js",
     "name": "AppLayout",
     "imports": [
       "resources/js/app.tsx"
     ]
   },
-  "_Modal-PH1r-xjZ.js": {
-    "file": "assets/Modal-PH1r-xjZ.js",
+  "_Detail-BBxkIF-L.js": {
+    "file": "assets/Detail-BBxkIF-L.js",
+    "name": "Detail",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.tsx",
+      "_x-WM5GG_zm.js"
+    ]
+  },
+  "_Modal-ZqLh34VA.js": {
+    "file": "assets/Modal-ZqLh34VA.js",
     "name": "Modal",
     "imports": [
-      "resources/js/app.tsx"
+      "resources/js/app.tsx",
+      "_x-WM5GG_zm.js"
     ]
   },
-  "_index-DrY0WNhy.js": {
-    "file": "assets/index-DrY0WNhy.js",
-    "name": "index",
-    "imports": [
-      "_index-Du5zPlFk.js"
-    ]
-  },
-  "_index-Du5zPlFk.js": {
-    "file": "assets/index-Du5zPlFk.js",
+  "_index-BSPCOrVe.js": {
+    "file": "assets/index-BSPCOrVe.js",
     "name": "index",
     "imports": [
       "resources/js/app.tsx"
+    ]
+  },
+  "_index-C6wpPvHB.js": {
+    "file": "assets/index-C6wpPvHB.js",
+    "name": "index",
+    "imports": [
+      "_index-BSPCOrVe.js"
     ]
   },
   "_permata-BbqOKftb.js": {
@@ -42,13 +52,20 @@
     "file": "assets/utils-DUjf7G_t.js",
     "name": "utils"
   },
+  "_x-WM5GG_zm.js": {
+    "file": "assets/x-WM5GG_zm.js",
+    "name": "x",
+    "imports": [
+      "resources/js/app.tsx"
+    ]
+  },
   "resources/css/app.css": {
-    "file": "assets/app-DAZfQXcq.css",
+    "file": "assets/app-B09h-X5l.css",
     "src": "resources/css/app.css",
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-IDY8YGkk.js",
+    "file": "assets/app-N9lrZz2o.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -59,12 +76,12 @@
       "resources/js/pages/Siswa/SetupPin.tsx",
       "resources/js/pages/Siswa/lupa-pin.tsx",
       "resources/js/pages/Topup.tsx",
-      "resources/js/pages/Transaction/Detail.tsx",
+      "_Detail-BBxkIF-L.js",
       "resources/js/pages/Transaction/History.tsx",
       "resources/js/pages/welcome.tsx"
     ],
     "css": [
-      "assets/app-DAZfQXcq.css"
+      "assets/app-B09h-X5l.css"
     ]
   },
   "resources/js/components/assets/bca.png": {
@@ -88,69 +105,73 @@
     "src": "resources/js/components/assets/permata.png"
   },
   "resources/js/pages/PaymentInstruction.tsx": {
-    "file": "assets/PaymentInstruction-Hx48-aOu.js",
+    "file": "assets/PaymentInstruction-Cyg8VPAP.js",
     "name": "PaymentInstruction",
     "src": "resources/js/pages/PaymentInstruction.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-DM4wxu1_.js",
-      "_index-Du5zPlFk.js"
+      "_AppLayout-Dg7iptWn.js",
+      "_index-BSPCOrVe.js"
     ]
   },
   "resources/js/pages/Siswa/Index.tsx": {
-    "file": "assets/Index-BsNKTvUy.js",
+    "file": "assets/Index-BENUcWi3.js",
     "name": "Index",
     "src": "resources/js/pages/Siswa/Index.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_index-Du5zPlFk.js",
-      "_AppLayout-DM4wxu1_.js",
+      "_index-BSPCOrVe.js",
+      "_AppLayout-Dg7iptWn.js",
       "resources/js/pages/Topup.tsx",
       "resources/js/pages/Transaction/History.tsx",
       "resources/js/pages/Siswa/Pin.tsx",
       "resources/js/pages/Siswa/SetupPin.tsx",
       "_permata-BbqOKftb.js",
       "_utils-DUjf7G_t.js",
-      "_Modal-PH1r-xjZ.js"
+      "_Detail-BBxkIF-L.js",
+      "_x-WM5GG_zm.js",
+      "_Modal-ZqLh34VA.js"
     ]
   },
   "resources/js/pages/Siswa/Pin.tsx": {
-    "file": "assets/Pin-BljJuasX.js",
+    "file": "assets/Pin-DxXwCADu.js",
     "name": "Pin",
     "src": "resources/js/pages/Siswa/Pin.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_Modal-PH1r-xjZ.js",
-      "_index-Du5zPlFk.js"
+      "_Modal-ZqLh34VA.js",
+      "_index-BSPCOrVe.js",
+      "_x-WM5GG_zm.js"
     ]
   },
   "resources/js/pages/Siswa/SetupPin.tsx": {
-    "file": "assets/SetupPin-GIAq9kbt.js",
+    "file": "assets/SetupPin-Bq9oG-BC.js",
     "name": "SetupPin",
     "src": "resources/js/pages/Siswa/SetupPin.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_Modal-PH1r-xjZ.js",
-      "_utils-DUjf7G_t.js"
+      "_Modal-ZqLh34VA.js",
+      "_utils-DUjf7G_t.js",
+      "_x-WM5GG_zm.js"
     ]
   },
   "resources/js/pages/Siswa/lupa-pin.tsx": {
-    "file": "assets/lupa-pin-UkXIbTlP.js",
+    "file": "assets/lupa-pin-CfZj-PRc.js",
     "name": "lupa-pin",
     "src": "resources/js/pages/Siswa/lupa-pin.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_index-Du5zPlFk.js",
-      "_index-DrY0WNhy.js"
+      "_index-BSPCOrVe.js",
+      "_index-C6wpPvHB.js"
     ]
   },
   "resources/js/pages/Topup.tsx": {
-    "file": "assets/Topup-DnnGRUNO.js",
+    "file": "assets/Topup-goGc1h0r.js",
     "name": "Topup",
     "src": "resources/js/pages/Topup.tsx",
     "isDynamicEntry": true,
@@ -158,43 +179,34 @@
       "resources/js/app.tsx",
       "_permata-BbqOKftb.js",
       "_utils-DUjf7G_t.js",
-      "_index-Du5zPlFk.js",
-      "_AppLayout-DM4wxu1_.js"
-    ]
-  },
-  "resources/js/pages/Transaction/Detail.tsx": {
-    "file": "assets/Detail-Z_BOZOxK.js",
-    "name": "Detail",
-    "src": "resources/js/pages/Transaction/Detail.tsx",
-    "isDynamicEntry": true,
-    "imports": [
-      "resources/js/app.tsx",
-      "_AppLayout-DM4wxu1_.js",
-      "_index-Du5zPlFk.js"
+      "_index-BSPCOrVe.js",
+      "_AppLayout-Dg7iptWn.js"
     ]
   },
   "resources/js/pages/Transaction/History.tsx": {
-    "file": "assets/History-a5Eu7jwy.js",
+    "file": "assets/History-7svK3rro.js",
     "name": "History",
     "src": "resources/js/pages/Transaction/History.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_AppLayout-DM4wxu1_.js",
-      "_index-Du5zPlFk.js"
+      "_Detail-BBxkIF-L.js",
+      "_AppLayout-Dg7iptWn.js",
+      "_index-BSPCOrVe.js",
+      "_x-WM5GG_zm.js"
     ]
   },
   "resources/js/pages/welcome.tsx": {
-    "file": "assets/welcome-DVWwjN3a.js",
+    "file": "assets/welcome-CaGLw5US.js",
     "name": "welcome",
     "src": "resources/js/pages/welcome.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
       "_utils-DUjf7G_t.js",
-      "_index-Du5zPlFk.js",
+      "_index-BSPCOrVe.js",
       "_permata-BbqOKftb.js",
-      "_index-DrY0WNhy.js"
+      "_index-C6wpPvHB.js"
     ]
   }
 }

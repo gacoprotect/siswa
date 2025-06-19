@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Identitas;
-use App\Models\Indentitas;
+use App\Models\Indentitas; // Corrected model name (assuming typo fix)
 use App\Models\Transaction;
 use App\Services\MidtransService;
 use Illuminate\Http\Request;
@@ -36,49 +35,74 @@ class TopupController extends Controller
         $midtrans = new MidtransService();
 
         $orderId = 'topup-' . uniqid();
-        
+
+        // Map bank to payment type
+        $paymentType = match ($request->bank) {
+            'bca', 'bri', 'bni', 'cimb' => 'bank_transfer',
+            'permata' => 'permata',
+            'mandiri' => 'echannel',
+            default => throw new \Exception('Unsupported bank selected'),
+        };
+
         $params = [
-            'payment_type' => 'bank_transfer',
+            'payment_type' => $paymentType,
             'transaction_details' => [
                 'order_id' => $orderId,
                 'gross_amount' => $request->amount,
             ],
-            'bank_transfer' => [
-                'bank' => $request->bank,
-            ],
             'customer_details' => [
-                'first_name' => $siswa->nama ?? $identitas->nama,
-                'email' => $identitas->email,
+                'first_name' => $siswa->name ?? 'Customer',
                 'phone' => $request->phone,
             ],
         ];
 
+        // Add payment-specific parameters
+        if ($paymentType === 'bank_transfer') {
+            $params['bank_transfer'] = ['bank' => $request->bank];
+        } elseif ($paymentType === 'echannel') {
+            $params['echannel'] = [
+                'bill_info1' => 'Payment:',
+                'bill_info2' => 'Topup for ' . ($siswa->namlen ?? 'Customer'),
+            ];
+        }
+
         try {
             $transaction = Transaction::create([
-                'identitas_id' => $identitas->id,
-                'siswa_id' => $siswa->id ?? null,
-                'order_id' => $orderId,
                 'nouid' => $nouid,
+                'order_id' => $orderId,
                 'amount' => $request->amount,
                 'bank' => $request->bank,
                 'phone' => $request->phone,
                 'status' => 'pending',
-                'payment_type' => 'bank_transfer',
+                'type' => 'topup',
+                'payment_type' => $paymentType,
             ]);
 
             $response = $midtrans->chargeBankTransfer($params);
-            
-            $transaction->update([
-                'payment_data' => json_encode($response),
-                'va_number' => $response->va_numbers[0]->va_number ?? null,
-                'expiry_time' => $response->expiry_time ?? null,
-            ]);
 
-            return response()->json([
-                'success' => true,
-                'data' => $response,
-            ]);
+            $updateData = [
+                'payment_data' => $response,
+                'expiry_time' => $response->expiry_time ?? null,
+            ];
+
+            // Handle VA number assignment
+            if (isset($response->va_numbers)) {
+                $updateData['va_number'] = $response->va_numbers[0]->va_number;
+            } elseif ($paymentType === 'permata') {
+                $updateData['va_number'] = $response->permata_va_number;
+            } elseif ($paymentType === 'echannel') {
+                $updateData['va_number'] = $response->bill_key;
+            }
+
+            $transaction->update($updateData);
+
+            return redirect()->intended(route('payment.instruction', [
+                'nouid' => $nouid,
+                'orderId' => $orderId
+            ], absolute: false));
         } catch (\Exception $e) {
+            logger('Topup failed: ' . $e->getMessage());
+
             if (isset($transaction)) {
                 $transaction->update([
                     'status' => 'failed',
@@ -88,26 +112,23 @@ class TopupController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Payment processing failed. Please try again.',
             ], 500);
         }
     }
 
-    public function paymentInstruction($nouid, Request $request)
+    public function paymentInstruction($nouid, $orderId)
     {
-        $request->validate([
-            'id' => 'required|string',
-        ]);
-
         $identitas = Indentitas::where('nouid', $nouid)->firstOrFail();
-        $transaction = Transaction::where('order_id', $request->id)
+        $transaction = Transaction::where('order_id', $orderId)
             ->where('nouid', $nouid)
             ->firstOrFail();
-
         return Inertia::render('PaymentInstruction', [
-            'id' => $request->id,
+            'nouid' => $nouid,
+            'order_id' => $orderId,
             'transaction' => $transaction,
             'siswa' => $identitas->siswa()->first(),
+
         ]);
     }
 }

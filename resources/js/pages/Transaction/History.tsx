@@ -1,48 +1,137 @@
+import { TransactionDetail } from '@/types';
+import { ArrowDown, ArrowUp, Banknote, CheckCircle, Clock, CreditCard, ShoppingCart, Wallet, XCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import Detail from './Detail';
 import AppLayout from '@/Layout/AppLayout';
-import { Siswa } from '@/types';
-import { Link } from '@inertiajs/react';
-import React from 'react';
 import { FaArrowAltCircleLeft } from 'react-icons/fa';
 
-interface HistoryProps {
-    siswa: Siswa;
-    nouid: string;
-    onClose: () => void;
-    transactions: {
-        data: Array<{
-            id: number;
-            nouid: string;
-            order_id: string;
-            amount: number;
-            bank: string;
-            status: string;
-            created_at: string;
-        }>;
-        links: Array<{
-            url: string | null;
-            label: string;
-            active: boolean;
-        }>;
-    };
-}
 
-const History: React.FC<HistoryProps> = ({ siswa, nouid, onClose, transactions }) => {
-    const getStatusColor = (status: string) => {
+
+type HistoryProps = { onClose: () => void };
+
+const History: React.FC<HistoryProps> = ({ onClose }) => {
+    const [selectedTransaction, setSelectedTransaction] = useState<TransactionDetail | null>(null);
+
+    const transactions: TransactionDetail[] = [
+        {
+            id: 1,
+            nouid: '12345',
+            order_id: 'ORDER-123',
+            amount: '500000.00',
+            bank: 'bca',
+            phone: '08123456789',
+            va_number: '1234567890',
+            payment_type: 'bank_transfer',
+            status: 'pending',
+            type: 'topup',
+            note: 'Top up saldo',
+            payment_data: {
+                currency: 'IDR',
+                order_id: 'ORDER-123',
+                va_numbers: [{ bank: 'bca', va_number: '1234567890' }],
+                expiry_time: '2023-08-17 23:59:59',
+                merchant_id: 'M123',
+                status_code: '201',
+                fraud_status: 'pending',
+                gross_amount: '500000.00',
+                payment_type: 'bank_transfer',
+                status_message: 'Success',
+                transaction_id: 'T123',
+                transaction_time: '2023-08-15 10:30:00',
+                transaction_status: 'pending',
+            },
+            failure_message: null,
+            expiry_time: '2023-08-17T23:59:59Z',
+            created_at: '2023-08-15T10:30:00Z',
+            updated_at: '2023-08-15T10:30:00Z',
+        },
+        {
+            id: 2,
+            nouid: '12346',
+            order_id: 'ORDER-124',
+            amount: '-150000.00',
+            bank: '',
+            phone: '',
+            va_number: '',
+            payment_type: 'credit_card',
+            status: 'success',
+            type: 'payment',
+            note: 'Pembelian makanan',
+            payment_data: {
+                currency: 'IDR',
+                order_id: 'ORDER-124',
+                expiry_time: '',
+                merchant_id: 'M124',
+                status_code: '200',
+                fraud_status: 'accept',
+                gross_amount: '150000.00',
+                payment_type: 'credit_card',
+                status_message: 'Success',
+                transaction_id: 'T124',
+                transaction_time: '2023-08-14 19:45:00',
+                transaction_status: 'capture',
+            },
+            failure_message: null,
+            expiry_time: '',
+            created_at: '2023-08-14T19:45:00Z',
+            updated_at: '2023-08-14T19:45:00Z',
+        },
+    ];
+    const getStatusIcon = (status: 'success' | 'pending' | 'failed') => {
         switch (status) {
             case 'success':
-                return 'bg-green-100 text-green-800';
+                return <CheckCircle className="text-green-500" size={16} />;
             case 'pending':
-                return 'bg-yellow-100 text-yellow-800';
+                return <Clock className="text-yellow-500" size={16} />;
             case 'failed':
-                return 'bg-red-100 text-red-800';
+                return <XCircle className="text-red-500" size={16} />;
             default:
-                return 'bg-gray-100 text-gray-800';
+                return null;
         }
     };
 
+    const getTypeIcon = (type: string) => {
+        switch (type) {
+            case 'topup':
+            case 'deposit':
+                return <ArrowDown className="text-blue-500" size={20} />;
+            case 'payment':
+            case 'purchase':
+                return <ShoppingCart className="text-purple-500" size={20} />;
+            case 'transfer':
+                return <ArrowUp className="text-orange-500" size={20} />;
+            case 'withdraw':
+                return <Wallet className="text-amber-500" size={20} />;
+            case 'bank_transfer':
+            case 'credit_card':
+                return <CreditCard className="text-indigo-500" size={20} />;
+            default:
+                return <Banknote className="text-gray-500" size={20} />;
+        }
+    };
+
+    const formatCurrency = (amount: string) => {
+        const num = parseFloat(amount);
+        return num.toLocaleString('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+        });
+    };
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
+
     return (
-        <AppLayout title="Riwayat Transaksi">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <AppLayout title="Top Up">
+            <div className="overflow-hidden rounded-lg bg-white shadow-md">
                 <div className="flex items-center justify-between bg-primary px-4 py-4 text-primary-foreground">
                     <button onClick={() => onClose()} className="flex items-center space-x-2">
                         <FaArrowAltCircleLeft className="text-primary-foreground" />
@@ -50,57 +139,38 @@ const History: React.FC<HistoryProps> = ({ siswa, nouid, onClose, transactions }
                     </button>
                     <h1 className="text-2xl font-bold text-white">Riwayat Transaksi</h1>
                 </div>
+            <div className="divide-y">
+                {transactions.map((transaction) => (
+                    <div
+                        key={transaction.id}
+                        className="flex cursor-pointer items-center p-4 transition-colors hover:bg-gray-50"
+                        onClick={() => setSelectedTransaction(transaction)}
+                    >
+                        <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
+                            {getTypeIcon(transaction.type || transaction.payment_type)}
+                        </div>
 
-                <div className="overflow-hidden rounded-lg bg-white shadow">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Order ID</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Jumlah</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Bank</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Tanggal</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 bg-white">
-                                {transactions.data.map((transaction) => (
-                                    <tr key={transaction.id}>
-                                        <td className="px-6 py-4 text-sm font-medium whitespace-nowrap text-gray-900">{transaction.order_id}</td>
-                                        <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            Rp {transaction.amount.toLocaleString('id-ID')}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-500">{transaction.bank.toUpperCase()}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span
-                                                className={`inline-flex rounded-full px-2 text-xs leading-5 font-semibold ${getStatusColor(
-                                                    transaction.status,
-                                                )}`}
-                                            >
-                                                {transaction.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            {new Date(transaction.created_at).toLocaleString('id-ID')}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm font-medium whitespace-nowrap">
-                                            <Link
-                                                href={`/${transaction.nouid}/transactions/${transaction.order_id}`}
-                                                className="text-blue-600 hover:text-blue-900"
-                                            >
-                                                Detail
-                                            </Link>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        <div className="flex-1">
+                            <h3 className="font-medium capitalize">{transaction.type || transaction.payment_type.replace('_', ' ')}</h3>
+                            <p className="text-sm text-gray-500">{transaction.note || `Order: ${transaction.order_id}`}</p>
+                            <div className="mt-1 flex items-center text-sm">
+                                {getStatusIcon(transaction.status)}
+                                <span className="ml-1 text-gray-500 capitalize">{transaction.status}</span>
+                            </div>
+                        </div>
+
+                        <div className={`text-right ${parseFloat(transaction.amount) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <div className="font-medium">
+                                {parseFloat(transaction.amount) > 0 ? '+' : ''}
+                                {formatCurrency(transaction.amount)}
+                            </div>
+                            <div className="mt-1 text-xs text-gray-400">{formatDate(transaction.created_at)}</div>
+                        </div>
                     </div>
-
-                    {/* <Pagination links={transactions.links} className="px-6 py-4" /> */}
-                </div>
+                ))}
             </div>
+            {selectedTransaction && <Detail transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} />}
+        </div>
         </AppLayout>
     );
 };

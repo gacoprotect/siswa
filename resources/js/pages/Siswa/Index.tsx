@@ -109,7 +109,7 @@ export default function MenuDashboard() {
             {auth.user && (
                 <>
                     <div className="mb-4 w-full shadow-[0px_10px_10px_-4px_rgba(0,0,0,0.1)] shadow-black">
-                        <div className="flex w-full flex-row gap-4 p-4 justify-between items-center sm:px-6">
+                        <div className="flex w-full flex-row items-center justify-between gap-4 p-4 sm:px-6">
                             {/* Saldo Section */}
                             <div className="flex flex-col space-y-4">
                                 <h1 className="text-lg font-semibold text-primary-foreground">Saldo Tabungan</h1>
@@ -120,7 +120,7 @@ export default function MenuDashboard() {
                             </div>
 
                             {/* Tombol Aksi */}
-                            <div className="flex items-end flex-col space-y-4 justify-end">
+                            <div className="flex flex-col items-end justify-end space-y-4">
                                 <button
                                     onClick={() => handlePage('topup')}
                                     className="flex items-center gap-2 rounded-md bg-primary-foreground px-4 py-2 text-primary hover:bg-accent"
@@ -179,32 +179,6 @@ export default function MenuDashboard() {
     ) : page === 'topup' ? (
         <Topup siswa={siswa} nouid={nouid} onClose={() => setPage('index')} />
     ) : (
-        page === 'riwayat' && (
-            <History
-                transactions={{
-                    data: [
-                        {
-                            id: 0,
-                            nouid: '',
-                            order_id: '',
-                            amount: 0,
-                            bank: '',
-                            status: '',
-                            created_at: '',
-                        },
-                    ],
-                    links: [
-                        {
-                            url: '',
-                            label: '',
-                            active: true,
-                        },
-                    ],
-                }} // Replace with actual transactions data
-                siswa={siswa}
-                nouid={nouid}
-                onClose={() => setPage('index')}
-            />
-        )
+        page === 'riwayat' && <History onClose={() => setPage('index')} />
     );
 }

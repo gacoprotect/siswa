@@ -1,30 +1,19 @@
 import AppLayout from '@/Layout/AppLayout';
+import { PaymentDataResponse } from '@/types';
 import { router } from '@inertiajs/react';
 import React, { useEffect } from 'react';
 import { FaArrowLeft, FaCheckCircle } from 'react-icons/fa';
 
-interface PaymentInstructionProps {
-    id: string;
-    paymentData: {
-        order_id: string;
-        gross_amount: string;
-        payment_type: string;
-        transaction_status: string;
-        va_numbers?: Array<{
-            bank: string;
-            va_number: string;
-        }>;
-        permata_va_number?: string;
-    };
-}
 
-const PaymentInstruction: React.FC<PaymentInstructionProps> = ({ id, paymentData }) => {
+
+const PaymentInstruction: React.FC<PaymentDataResponse> = ({order_id, nouid, transaction }) => {
+    console.log(transaction);
     useEffect(() => {
         // Jika tidak ada ID, redirect kembali
-        if (!id) {
+        if (!order_id) {
             router.visit(route('siswa.index'));
         }
-    }, [id]);
+    }, [order_id]);
     const getBankName = (bankCode: string) => {
         const banks: Record<string, string> = {
             bca: 'BCA',
@@ -37,18 +26,18 @@ const PaymentInstruction: React.FC<PaymentInstructionProps> = ({ id, paymentData
     };
 
     const getVaNumber = () => {
-        if (paymentData.va_numbers) {
-            return paymentData.va_numbers[0].va_number;
+        if (transaction.payment_data?.va_numbers) {
+            return transaction.payment_data?.va_numbers[0].va_number;
         }
-        if (paymentData.permata_va_number) {
-            return paymentData.permata_va_number;
+        if (transaction.payment_data?.permata_va_number) {
+            return transaction.payment_data?.permata_va_number;
         }
         return '-';
     };
 
     const getBankCode = () => {
-        if (paymentData.va_numbers) {
-            return paymentData.va_numbers[0].bank;
+        if (transaction.payment_data?.va_numbers) {
+            return transaction.payment_data?.va_numbers[0].bank;
         }
         return 'permata';
     };
@@ -57,7 +46,7 @@ const PaymentInstruction: React.FC<PaymentInstructionProps> = ({ id, paymentData
         <AppLayout title="Instruksi Pembayaran">
             <div className="mx-auto max-w-2xl overflow-hidden rounded-lg bg-white shadow-md">
                 <div className="flex items-center justify-between bg-primary px-4 py-4 text-primary-foreground">
-                    <button onClick={() => router.visit(route('siswa.index'))} className="flex items-center space-x-2">
+                    <button onClick={() => router.visit(route('siswa.index', nouid))} className="flex items-center space-x-2">
                         <FaArrowLeft className="text-primary-foreground" />
                         <span>Kembali ke Dashboard</span>
                     </button>
@@ -76,15 +65,19 @@ const PaymentInstruction: React.FC<PaymentInstructionProps> = ({ id, paymentData
                         <div className="space-y-2">
                             <div className="flex justify-between">
                                 <span className="text-gray-600">Order ID</span>
-                                <span className="font-medium">{paymentData.order_id}</span>
+                                <span className="font-medium">{transaction.payment_data.order_id}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-gray-600">Jumlah</span>
-                                <span className="font-medium">Rp {parseInt(paymentData.gross_amount).toLocaleString('id-ID')}</span>
+                                <span className="font-medium">Rp {parseInt(transaction.payment_data.gross_amount).toLocaleString('id-ID')}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-gray-600">Metode Pembayaran</span>
                                 <span className="font-medium">Transfer Bank {getBankName(getBankCode())}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-600">Nomor Virtual Account (VA)</span>
+                                <span className="font-medium"> {getVaNumber()}</span>
                             </div>
                         </div>
                     </div>

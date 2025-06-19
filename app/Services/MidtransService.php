@@ -19,7 +19,9 @@ class MidtransService
     public function chargeBankTransfer(array $params)
     {
         try {
-            return CoreApi::charge($params);
+            $api = CoreApi::charge($params);
+            logger('CoreAoi Response : ' , [$api]);
+            return $api;
         } catch (\Exception $e) {
             throw new \Exception($e->getMessage());
         }

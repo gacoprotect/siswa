@@ -34,22 +34,18 @@ Route::middleware(['web', 'verify.nouid'])->group(function () {
         Route::post('/otp/verify', [OtpController::class, 'verifyOtp'])->name('otp.verif');
 
 
-
-
-        Route::get('/transactions/{orderId}/status', [TransactionController::class, 'checkStatus'])->name('transactions.status');
-
-
         Route::get('/topup', [TopupController::class, 'index'])->name('topup');
         Route::post('/topup/charge', [TopupController::class, 'charge'])->name('topup.charge');
-        Route::get('/payment-instruction', [TopupController::class, 'paymentInstruction'])->name('payment.instruction');
+        Route::get('/payment/{orderId}', [TopupController::class, 'paymentInstruction'])->name('payment.instruction');
 
-        // Transaction history
+        // Transaction history        
+        Route::get('/transactions/{orderId}/status', [TransactionController::class, 'checkStatus'])->name('transactions.status');
+
         Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions');
         Route::get('/transactions/{orderId}', [TransactionController::class, 'show'])->name('transactions.show');
     });
 });
 
 
-require __DIR__ . '/settings.php';
 // require __DIR__ . '/auth.php';
 require __DIR__ . '/api.php';

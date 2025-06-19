@@ -87,3 +87,52 @@ export interface PaymentData {
     }>;
     permata_va_number?: string;
 }
+
+export interface PaymentDataResponse {
+    nouid: string;
+    order_id: string;
+    transaction: TransactionDetail;
+}
+
+export interface TransactionDetail {
+    id: number;
+    nouid: string;
+    order_id: string;
+    amount: string;
+    bank: string;
+    phone: string;
+    va_number: string;
+    payment_type: string;
+    status: 'success'|'pending'|'failed';
+    type: string;
+    note: string;
+    payment_data: MidtransPaymentData;
+    failure_message: string | null;
+    expiry_time: string; // ISO timestamp
+    created_at: string; // ISO timestamp
+    updated_at: string; // ISO timestamp
+}
+
+export interface MidtransPaymentData {
+    currency: string;
+    order_id: string;
+    bill_key?:string;
+    biller_code?:string;
+    va_numbers?: VirtualAccount[];
+    permata_va_number?:string
+    expiry_time: string; // format: YYYY-MM-DD HH:mm:ss
+    merchant_id: string;
+    status_code: string;
+    fraud_status: string;
+    gross_amount: string;
+    payment_type: string;
+    status_message: string;
+    transaction_id: string;
+    transaction_time: string; // format: YYYY-MM-DD HH:mm:ss
+    transaction_status: string;
+}
+
+export interface VirtualAccount {
+    bank: string;
+    va_number: string;
+}

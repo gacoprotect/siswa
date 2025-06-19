@@ -2,16 +2,16 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Transaction extends Model
 {
     use HasFactory;
 
+    protected $table = 'transactions';
+
     protected $fillable = [
-        'identitas_id',
-        'siswa_id',
         'nouid',
         'order_id',
         'amount',
@@ -20,24 +20,28 @@ class Transaction extends Model
         'va_number',
         'payment_type',
         'status',
+        'type',
+        'note',
         'payment_data',
         'failure_message',
-        'expiry_time'
+        'expiry_time',
     ];
 
     protected $casts = [
         'payment_data' => 'array',
-        'amount' => 'decimal:2',
         'expiry_time' => 'datetime',
+        'amount' => 'decimal:2',
+        'type' => 'string',
+        'note' => 'string',
     ];
+    
 
-    public function identitas()
+    /**
+     * Relasi ke model Tindentitas
+     * Menggunakan foreign key 'nouid' yang unik
+     */
+    public function indentitas()
     {
-        return $this->belongsTo(Indentitas::class);
-    }
-
-    public function siswa()
-    {
-        return $this->belongsTo(Siswa::class);
+        return $this->belongsTo(Indentitas::class, 'nouid', 'nouid');
     }
 }

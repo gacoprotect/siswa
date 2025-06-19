@@ -1,140 +1,237 @@
-import AppLayout from '@/Layout/AppLayout';
-import { router } from '@inertiajs/react';
-import React, { useState } from 'react';
-import { FaArrowLeft, FaCheckCircle, FaClock, FaTimesCircle } from 'react-icons/fa';
+import { TransactionDetail } from '@/types';
+import {
+    AlertCircle,
+    ArrowDown,
+    ArrowUp,
+    Banknote,
+    CheckCircle,
+    Clock,
+    Copy,
+    CreditCard,
+    Landmark,
+    Share2,
+    ShoppingCart,
+    Smartphone,
+    Wallet,
+    X,
+    XCircle,
+} from 'lucide-react';
+import React from 'react';
 
-interface DetailProps {
-    transaction: {
-        order_id: string;
-        nouid: string;
-        amount: number;
-        bank: string;
-        va_number: string;
-        status: string;
-        created_at: string;
-        expiry_time: string;
-        payment_data: object;
-    };
+interface TransactionDetailProps {
+    transaction: TransactionDetail;
+    onClose: () => void;
 }
 
-const Detail: React.FC<DetailProps> = ({ transaction }) => {
-    const [isChecking, setIsChecking] = useState(false);
-
-    const getStatusIcon = () => {
-        switch (transaction.status) {
+const Detail: React.FC<TransactionDetailProps> = ({ transaction, onClose }) => {
+    const getStatusIcon = (status: 'success' | 'pending' | 'failed') => {
+        switch (status) {
             case 'success':
-                return <FaCheckCircle className="text-4xl text-green-500" />;
+                return <CheckCircle className="text-green-500" size={24} />;
+            case 'pending':
+                return <Clock className="text-yellow-500" size={24} />;
             case 'failed':
-                return <FaTimesCircle className="text-4xl text-red-500" />;
+                return <XCircle className="text-red-500" size={24} />;
             default:
-                return <FaClock className="text-4xl text-yellow-500" />;
+                return null;
         }
     };
 
-    const checkStatus = async () => {
-        setIsChecking(true);
-        try {
-            await router.reload();
-        } finally {
-            setIsChecking(false);
+    const getTypeIcon = (type: string) => {
+        switch (type) {
+            case 'topup':
+            case 'deposit':
+                return <ArrowDown className="rounded-full bg-blue-100 p-2 text-blue-500" size={40} />;
+            case 'payment':
+            case 'purchase':
+                return <ShoppingCart className="rounded-full bg-purple-100 p-2 text-purple-500" size={40} />;
+            case 'transfer':
+                return <ArrowUp className="rounded-full bg-orange-100 p-2 text-orange-500" size={40} />;
+            case 'withdraw':
+                return <Wallet className="rounded-full bg-amber-100 p-2 text-amber-500" size={40} />;
+            case 'bank_transfer':
+            case 'credit_card':
+                return <CreditCard className="rounded-full bg-indigo-100 p-2 text-indigo-500" size={40} />;
+            default:
+                return <Banknote className="rounded-full bg-gray-100 p-2 text-gray-500" size={40} />;
         }
     };
+
+    const formatCurrency = (amount: string) => {
+        const num = parseFloat(amount);
+        return num.toLocaleString('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+        });
+    };
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('id-ID', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
+
+    const getVaInfo = () => {
+        if (transaction.payment_data.va_numbers && transaction.payment_data.va_numbers.length > 0) {
+            const va = transaction.payment_data.va_numbers[0];
+            return {
+                bank: va.bank.toUpperCase(),
+                number: va.va_number,
+            };
+        } else if (transaction.payment_data.permata_va_number) {
+            return {
+                bank: 'Permata',
+                number: transaction.payment_data.permata_va_number,
+            };
+        }
+        return null;
+    };
+
+    const vaInfo = getVaInfo();
 
     return (
-        <AppLayout title="Detail Transaksi">
-            <div className="mx-auto max-w-2xl overflow-hidden rounded-lg bg-white shadow-md">
-                <div className="flex items-center justify-between bg-primary px-4 py-4 text-primary-foreground">
-                    <button onClick={() => router.visit('/transactions')} className="flex items-center space-x-2">
-                        <FaArrowLeft className="text-primary-foreground" />
-                        <span>Kembali ke Riwayat</span>
-                    </button>
-                    <h1 className="text-2xl font-bold text-white">Detail Transaksi</h1>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-white">
+            <div className="sticky top-0 flex items-center justify-between border-b bg-white p-4">
+                <button onClick={onClose}>
+                    <X size={24} />
+                </button>
+                <h2 className="text-lg font-bold">Detail Transaksi</h2>
+                <div className="w-6"></div>
+            </div>
+
+            <div className="p-6">
+                <div className="mb-8 flex flex-col items-center">
+                    <div className="mb-4">{getTypeIcon(transaction.type || transaction.payment_type)}</div>
+                    <div className={`text-2xl font-bold ${parseFloat(transaction.amount) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {parseFloat(transaction.amount) > 0 ? '+' : ''}
+                        {formatCurrency(transaction.amount)}
+                    </div>
+                    <div className="mt-4 flex items-center rounded-full bg-gray-100 px-4 py-2">
+                        {getStatusIcon(transaction.status)}
+                        <span className="ml-2 font-medium capitalize">
+                            {transaction.status === 'pending' ? 'Menunggu Pembayaran' : transaction.status}
+                        </span>
+                    </div>
                 </div>
 
-                <div className="p-6">
-                    <div className="mb-6 flex flex-col items-center justify-center">
-                        <div className="mb-2 rounded-full bg-gray-100 p-3">{getStatusIcon()}</div>
-                        <span className="text-lg font-semibold capitalize">{transaction.status}</span>
-                    </div>
+                <div className="mb-6 rounded-xl bg-gray-50 p-4">
+                    <h3 className="mb-3 font-bold">Detail Transaksi</h3>
 
-                    <div className="mb-6 rounded-lg border border-gray-200 p-4">
-                        <h2 className="mb-3 text-lg font-semibold">Informasi Transaksi</h2>
-                        <div className="space-y-3">
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Order ID</span>
-                                <span className="font-medium">{transaction.order_id}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Jumlah</span>
-                                <span className="font-medium">Rp {transaction.amount.toLocaleString('id-ID')}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Metode Pembayaran</span>
-                                <span className="font-medium">Transfer Bank {transaction.bank.toUpperCase()}</span>
-                            </div>
-                            {transaction.va_number && (
+                    <div className="space-y-3">
+                        <div className="flex justify-between">
+                            <span className="flex items-center text-gray-500">
+                                <Landmark className="mr-2" size={16} />
+                                Metode Pembayaran
+                            </span>
+                            <span className="font-medium capitalize">{transaction.payment_type.replace('_', ' ')}</span>
+                        </div>
+
+                        {vaInfo && (
+                            <>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600">Nomor VA</span>
-                                    <span className="font-medium">{transaction.va_number}</span>
+                                    <span className="flex items-center text-gray-500">
+                                        <Landmark className="mr-2" size={16} />
+                                        Bank
+                                    </span>
+                                    <span className="font-medium">{vaInfo.bank}</span>
                                 </div>
-                            )}
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Tanggal Transaksi</span>
-                                <span className="font-medium">{new Date(transaction.created_at).toLocaleString('id-ID')}</span>
-                            </div>
-                            {transaction.expiry_time && (
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600">Batas Pembayaran</span>
-                                    <span className="font-medium">{new Date(transaction.expiry_time).toLocaleString('id-ID')}</span>
+                                    <span className="flex items-center text-gray-500">
+                                        <CreditCard className="mr-2" size={16} />
+                                        Nomor Virtual Account
+                                    </span>
+                                    <div className="flex items-center">
+                                        <span className="mr-2 font-medium">{vaInfo.number}</span>
+                                        <Copy size={16} className="text-gray-400" />
+                                    </div>
                                 </div>
-                            )}
+                            </>
+                        )}
+
+                        {transaction.phone && (
+                            <div className="flex justify-between">
+                                <span className="flex items-center text-gray-500">
+                                    <Smartphone className="mr-2" size={16} />
+                                    Nomor Telepon
+                                </span>
+                                <span className="font-medium">{transaction.phone}</span>
+                            </div>
+                        )}
+
+                        <div className="flex justify-between">
+                            <span className="text-gray-500">Tanggal Transaksi</span>
+                            <span className="font-medium">{formatDate(transaction.created_at)}</span>
+                        </div>
+
+                        <div className="flex justify-between">
+                            <span className="text-gray-500">ID Transaksi</span>
+                            <div className="flex items-center">
+                                <span className="mr-2 font-medium">{transaction.id}</span>
+                                <Copy size={16} className="text-gray-400" />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-between">
+                            <span className="text-gray-500">Order ID</span>
+                            <div className="flex items-center">
+                                <span className="mr-2 font-medium">{transaction.order_id}</span>
+                                <Copy size={16} className="text-gray-400" />
+                            </div>
+                        </div>
+
+                        <div className="mt-3 flex justify-between border-t border-gray-200 pt-3">
+                            <span className="font-bold">Total</span>
+                            <span className="text-lg font-bold">{formatCurrency(transaction.payment_data.gross_amount)}</span>
                         </div>
                     </div>
+                </div>
 
-                    {transaction.status === 'pending' && (
-                        <div className="mb-6">
-                            <button
-                                onClick={checkStatus}
-                                disabled={isChecking}
-                                className="flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-white transition duration-200 hover:bg-blue-700 disabled:bg-blue-400"
-                            >
-                                {isChecking ? (
-                                    <>
-                                        <svg
-                                            className="mr-3 -ml-1 h-5 w-5 animate-spin text-white"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path
-                                                className="opacity-75"
-                                                fill="currentColor"
-                                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                            ></path>
-                                        </svg>
-                                        Memeriksa Status...
-                                    </>
-                                ) : (
-                                    'Periksa Status Terbaru'
-                                )}
-                            </button>
+                {transaction.status === 'pending' && transaction.expiry_time && (
+                    <div className="mb-6 border-l-4 border-yellow-500 bg-yellow-50 p-4">
+                        <div className="flex">
+                            <AlertCircle className="mr-2 text-yellow-500" />
+                            <p className="text-yellow-700">
+                                Batas pembayaran sampai{' '}
+                                {new Date(transaction.expiry_time).toLocaleString('id-ID', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                })}
+                            </p>
                         </div>
-                    )}
-
-                    <div className="rounded-lg bg-gray-50 p-4 text-gray-800">
-                        <h3 className="mb-2 font-semibold">Catatan</h3>
-                        <p>
-                            {transaction.status === 'pending'
-                                ? 'Silakan selesaikan pembayaran sebelum waktu yang ditentukan.'
-                                : transaction.status === 'success'
-                                  ? 'Pembayaran telah berhasil diterima.'
-                                  : 'Transaksi gagal atau telah kedaluwarsa.'}
-                        </p>
                     </div>
+                )}
+
+                {transaction.status === 'failed' && transaction.failure_message && (
+                    <div className="mb-6 border-l-4 border-red-500 bg-red-50 p-4">
+                        <div className="flex">
+                            <AlertCircle className="mr-2 text-red-500" />
+                            <p className="text-red-700">{transaction.failure_message}</p>
+                        </div>
+                    </div>
+                )}
+
+                <div className="flex justify-between">
+                    <button className="mr-2 flex flex-1 items-center justify-center rounded-lg bg-gray-100 py-3">
+                        <Share2 className="mr-2" size={18} />
+                        Bagikan
+                    </button>
+                    <button className="ml-2 flex flex-1 items-center justify-center rounded-lg bg-gray-100 py-3">
+                        <Copy className="mr-2" size={18} />
+                        Salin ID
+                    </button>
                 </div>
             </div>
-        </AppLayout>
+        </div>
     );
 };
 
