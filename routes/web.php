@@ -5,17 +5,20 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\SiswaController;
+use App\Http\Controllers\TopupController;
+use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::middleware('guest')->get('/', function () {
+Route::get('/', function () {
     return Inertia::render('welcome');
-})->name('dashboard');
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
 });
+
+// Route::middleware(['auth', 'verified'])->group(function () {
+//     Route::get('dashboard', function () {
+//         return Inertia::render('dashboard');
+//     })->name('dashboard');
+// });
 
 Route::middleware(['web', 'verify.nouid'])->group(function () {
     Route::prefix('/{nouid}')->group(function () {
@@ -29,6 +32,20 @@ Route::middleware(['web', 'verify.nouid'])->group(function () {
         Route::post('/lupa-pin', [OtpController::class, 'forgotRequestOtp'])->name('siswa.forgot-pin');
         Route::post('/otp/send', [OtpController::class, 'sendOtp'])->name('otp.send');
         Route::post('/otp/verify', [OtpController::class, 'verifyOtp'])->name('otp.verif');
+
+
+
+
+        Route::get('/transactions/{orderId}/status', [TransactionController::class, 'checkStatus'])->name('transactions.status');
+
+
+        Route::get('/topup', [TopupController::class, 'index'])->name('topup');
+        Route::post('/topup/charge', [TopupController::class, 'charge'])->name('topup.charge');
+        Route::get('/payment-instruction', [TopupController::class, 'paymentInstruction'])->name('payment.instruction');
+
+        // Transaction history
+        Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions');
+        Route::get('/transactions/{orderId}', [TransactionController::class, 'show'])->name('transactions.show');
     });
 });
 

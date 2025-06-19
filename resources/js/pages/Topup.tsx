@@ -1,29 +1,30 @@
+import bca from '@/components/assets/bca.png';
+import bni from '@/components/assets/bni.png';
+import bri from '@/components/assets/bri.png';
+import mandiri from '@/components/assets/mandiri.png';
+import permata from '@/components/assets/permata.png';
 import InputGroup from '@/components/InputGroup';
 import AppLayout from '@/Layout/AppLayout';
-import { Bank, Nominal, PaymentMethod } from '@/types'; // Anda perlu membuat types.ts untuk tipe data ini
+import { Bank, Nominal, Siswa } from '@/types';
+import axios from 'axios';
 import React, { useState } from 'react';
 import { FaArrowAltCircleLeft } from 'react-icons/fa';
-import bca from '@/components/assets/bca.png'
-import bri from '@/components/assets/bri.png'
-import bni from '@/components/assets/bni.png'
-import mandiri from '@/components/assets/mandiri.png'
-import permata from '@/components/assets/permata.png'
 
 interface TopupProps {
+    siswa: Siswa;
+    nouid: string;
     onClose: () => void;
 }
 
-const Topup: React.FC<TopupProps> = ({ onClose }) => {
-    // Daftar bank Indonesia
+const Topup: React.FC<TopupProps> = ({ siswa, nouid, onClose }) => {
     const banks: Bank[] = [
-        { id: 1, name: 'BCA', logo: bca },
-        { id: 2, name: 'Mandiri', logo: mandiri },
-        { id: 3, name: 'BNI', logo: bni },
-        { id: 4, name: 'BRI', logo: bri },
-        { id: 5, name: 'Permata', logo: permata },
+        { id: 1, title: 'BCA', name: 'bca', logo: bca, payment_type: 'bank_transfer' },
+        { id: 2, title: 'BNI', name: 'bni', logo: bni, payment_type: 'bank_transfer' },
+        { id: 3, title: 'BRI', name: 'bri', logo: bri, payment_type: 'bank_transfer' },
+        { id: 4, title: 'Mandiri', name: 'mandiri', logo: mandiri, payment_type: 'bank_transfer' },
+        { id: 5, title: 'Permata', name: 'permata', logo: permata, payment_type: 'bank_transfer' },
     ];
 
-    // Daftar nominal topup
     const nominals: Nominal[] = [
         { id: 1, amount: 50000 },
         { id: 2, amount: 100000 },
@@ -32,44 +33,57 @@ const Topup: React.FC<TopupProps> = ({ onClose }) => {
         { id: 5, amount: 1000000 },
     ];
 
-    // Daftar metode pembayaran
-    const paymentMethods: PaymentMethod[] = [
-        { id: 1, name: 'Transfer Bank', code: 'bank_transfer' },
-        { id: 2, name: 'Virtual Account', code: 'virtual_account' },
-        { id: 3, name: 'E-Wallet', code: 'ewallet' },
-    ];
-
-    // State untuk form
-    const [selectedBank, setSelectedBank] = useState<number | null>(null);
+    const [selectedBank, setSelectedBank] = useState<string | null>(null);
     const [selectedNominal, setSelectedNominal] = useState<number | null>(null);
-    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<number | null>(null);
     const [phoneNumber, setPhoneNumber] = useState<string>('');
     const [customNominal, setCustomNominal] = useState<string>('');
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setIsLoading(true);
+        setError(null);
 
-        // Cek apakah memilih nominal fixed atau custom
+        const bank = banks.find((bank) => bank.name === selectedBank);
         const nominalValue = customNominal
             ? parseInt(customNominal)
             : selectedNominal
               ? nominals.find((n) => n.id === selectedNominal)?.amount
               : null;
 
-        if (!selectedBank || !nominalValue || !selectedPaymentMethod || !phoneNumber) {
-            alert('Harap lengkapi semua data!');
+        if (!bank || !nominalValue || !phoneNumber) {
+            setError('Harap lengkapi semua data!');
+            setIsLoading(false);
             return;
         }
 
-        // Proses pembayaran
-        console.log({
-            bank: selectedBank,
-            nominal: nominalValue,
-            paymentMethod: selectedPaymentMethod,
-            phoneNumber,
-        });
+        if (nominalValue < 10000) {
+            setError('Nominal minimal Rp 10.000');
+            setIsLoading(false);
+            return;
+        }
 
-        alert('Proses topup berhasil!');
+        try {
+            const response = await axios.post(route('topup.charge', nouid), {
+                bank: bank.name,
+                amount: nominalValue,
+                phone: phoneNumber,
+                nouid: nouid, // Tambahkan nouid ke request
+            });
+
+            if (response.data.success) {
+                // Redirect ke halaman instruksi pembayaran dengan format URL yang diinginkan
+                window.location.href = `/${nouid}/payment-instruction?id=${response.data.data.order_id}`;
+            } else {
+                setError(response.data.message || 'Terjadi kesalahan saat memproses pembayaran');
+            }
+        } catch (err) {
+            setError('Terjadi kesalahan saat memproses pembayaran');
+            console.error(err);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -84,6 +98,25 @@ const Topup: React.FC<TopupProps> = ({ onClose }) => {
                 </div>
 
                 <div className="p-6">
+                    <div className="mb-6 rounded-lg bg-gray-50 p-4">
+                        <h2 className="mb-2 text-lg font-semibold">Informasi Siswa</h2>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div>
+                                <p className="text-sm text-gray-600">Nama</p>
+                                <p className="font-medium">{siswa.namlen}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600">NISN</p>
+                                <p className="font-medium">{siswa.nis}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600">Kelas</p>
+                                <p className="font-medium">{siswa.kel}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {error && <div className="mb-4 rounded-lg bg-red-100 p-3 text-red-700">{error}</div>}
+
                     <form onSubmit={handleSubmit}>
                         {/* Pilih Bank */}
                         <div className="mb-6">
@@ -93,11 +126,13 @@ const Topup: React.FC<TopupProps> = ({ onClose }) => {
                                     <button
                                         key={bank.id}
                                         type="button"
-                                        className={`flex flex-col items-center rounded-lg border p-3 ${selectedBank === bank.id ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}
-                                        onClick={() => setSelectedBank(bank.id)}
+                                        className={`flex flex-col items-center rounded-lg border p-3 ${
+                                            selectedBank === bank.name ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+                                        }`}
+                                        onClick={() => setSelectedBank(bank.name)}
                                     >
                                         <img src={bank.logo} alt={bank.name} className="mb-1 h-8" />
-                                        <span className="text-sm">{bank.name}</span>
+                                        <span className="text-sm">{bank.title}</span>
                                     </button>
                                 ))}
                             </div>
@@ -118,7 +153,7 @@ const Topup: React.FC<TopupProps> = ({ onClose }) => {
                                         }`}
                                         onClick={() => {
                                             setSelectedNominal(nominal.id);
-                                            setCustomNominal(''); // Reset custom nominal ketika pilih nominal fixed
+                                            setCustomNominal('');
                                         }}
                                     >
                                         <div className="font-medium">Rp {nominal.amount.toLocaleString('id-ID')}</div>
@@ -129,7 +164,7 @@ const Topup: React.FC<TopupProps> = ({ onClose }) => {
                                 <InputGroup
                                     onChange={(value) => {
                                         setCustomNominal(value ? String(value) : '');
-                                        setSelectedNominal(null); // Reset selected nominal ketika input custom
+                                        setSelectedNominal(null);
                                     }}
                                     name="nominal"
                                     placeholder="Masukkan Nominal Topup Anda"
@@ -137,23 +172,8 @@ const Topup: React.FC<TopupProps> = ({ onClose }) => {
                                     prefix="Rp"
                                     className="col-span-2"
                                     type="number"
+                                    min="10000"
                                 />
-                            </div>
-                        </div>
-
-                        {/* Pilih Metode Pembayaran */}
-                        <div className="mb-6">
-                            <h2 className="mb-3 text-lg font-semibold">Metode Pembayaran</h2>
-                            <div className="space-y-2">
-                                {paymentMethods.map((method) => (
-                                    <div
-                                        key={method.id}
-                                        className={`cursor-pointer rounded-lg border p-3 ${selectedPaymentMethod === method.id ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}
-                                        onClick={() => setSelectedPaymentMethod(method.id)}
-                                    >
-                                        {method.name}
-                                    </div>
-                                ))}
                             </div>
                         </div>
 
@@ -169,15 +189,17 @@ const Topup: React.FC<TopupProps> = ({ onClose }) => {
                                 placeholder="Contoh: 081234567890"
                                 value={phoneNumber}
                                 onChange={(e) => setPhoneNumber(e.target.value)}
+                                required
                             />
                         </div>
 
                         {/* Tombol Submit */}
                         <button
                             type="submit"
-                            className="w-full rounded-lg bg-blue-600 px-4 py-3 text-white transition duration-200 hover:bg-blue-700"
+                            className="w-full rounded-lg bg-blue-600 px-4 py-3 text-white transition duration-200 hover:bg-blue-700 disabled:bg-blue-400"
+                            disabled={isLoading}
                         >
-                            Lanjutkan Pembayaran
+                            {isLoading ? 'Memproses...' : 'Lanjutkan Pembayaran'}
                         </button>
                     </form>
                 </div>
@@ -190,6 +212,7 @@ const Topup: React.FC<TopupProps> = ({ onClose }) => {
                     <li>Pastikan nomor handphone yang dimasukkan benar</li>
                     <li>Proses topup membutuhkan waktu 1-5 menit</li>
                     <li>Jika mengalami kendala, hubungi customer service kami</li>
+                    <li>Minimal topup Rp 10.000</li>
                 </ul>
             </div>
         </AppLayout>

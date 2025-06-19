@@ -18,6 +18,7 @@ interface InputGroupProps {
     subfix?: string | ReactNode;
     rows?: number;
     tsize?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+    min?: string | number;
 }
 
 const InputGroup: React.FC<InputGroupProps> = ({
@@ -36,6 +37,7 @@ const InputGroup: React.FC<InputGroupProps> = ({
     subfix = '',
     rows = 4,
     tsize,
+    min,
 }) => {
     const commonClass = `
     [type='number']::-webkit-outer-spin-button,
@@ -137,12 +139,16 @@ const InputGroup: React.FC<InputGroupProps> = ({
                 value={value as string | number}
                 onChange={handleChange}
                 placeholder={placeholder ? placeholder : label ? `Ketik ${label?.toLowerCase()}` : `Ketik ${name?.toLowerCase()}`}
-                className={cn(commonClass, 'appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none')}
+                className={cn(
+                    commonClass,
+                    'appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                )}
                 required={required}
                 disabled={disabled}
                 aria-invalid={!!error}
                 aria-describedby={error ? `${name}-error` : undefined}
                 step={type === 'currency' ? '0.01' : undefined}
+                min={min}
             />
         );
     };

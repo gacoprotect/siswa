@@ -183,7 +183,7 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                 <p className="mt-2 text-center text-sm text-gray-600">Masukkan 6 digit kode OTP yang dikirim ke +62{data.phone}</p>
             </div>
 
-            {errors.otp && <div className="text-center text-sm text-red-500">{errors.otp}</div>}
+            {errors && <div className="text-center text-sm text-red-500">{errors.message}</div>}
 
             <form onSubmit={handleOtpSubmit} className="space-y-6">
                 <div className="flex justify-center space-x-2">

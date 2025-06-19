@@ -1,43 +1,39 @@
 {
-  "_Modal-Cgz21vyp.js": {
-    "file": "assets/Modal-Cgz21vyp.js",
+  "_AppLayout-BSDNZDCF.js": {
+    "file": "assets/AppLayout-BSDNZDCF.js",
+    "name": "AppLayout",
+    "imports": [
+      "resources/js/app.tsx"
+    ]
+  },
+  "_Modal-DBdhza_E.js": {
+    "file": "assets/Modal-DBdhza_E.js",
     "name": "Modal",
     "imports": [
       "resources/js/app.tsx"
     ]
   },
-  "_Topup-O7Jx4yZz.js": {
-    "file": "assets/Topup-O7Jx4yZz.js",
-    "name": "Topup",
-    "isDynamicEntry": true,
-    "imports": [
-      "resources/js/app.tsx",
-      "_utils-DUjf7G_t.js",
-      "_index-PxO_MBF7.js",
-      "_permata-BEvEWPRj.js"
-    ]
-  },
-  "_index-PxO_MBF7.js": {
-    "file": "assets/index-PxO_MBF7.js",
+  "_index-Cj7ZUeWm.js": {
+    "file": "assets/index-Cj7ZUeWm.js",
     "name": "index",
     "imports": [
       "resources/js/app.tsx"
     ]
   },
-  "_index-_DsM7v27.js": {
-    "file": "assets/index-_DsM7v27.js",
+  "_index-x-QM6ko1.js": {
+    "file": "assets/index-x-QM6ko1.js",
     "name": "index",
     "imports": [
-      "_index-PxO_MBF7.js"
+      "_index-Cj7ZUeWm.js"
     ]
   },
-  "_permata-BEvEWPRj.js": {
-    "file": "assets/permata-BEvEWPRj.js",
+  "_permata-BbqOKftb.js": {
+    "file": "assets/permata-BbqOKftb.js",
     "name": "permata",
     "assets": [
       "assets/bca-CXlvtI0u.png",
-      "assets/bri-BXRv0Xd6.png",
       "assets/bni-DlAVTlcR.png",
+      "assets/bri-BXRv0Xd6.png",
       "assets/mandiri-BBbXHIh_.png",
       "assets/permata-ChONe3TI.png"
     ]
@@ -47,25 +43,28 @@
     "name": "utils"
   },
   "resources/css/app.css": {
-    "file": "assets/app-DgDU0QQa.css",
+    "file": "assets/app-DAZfQXcq.css",
     "src": "resources/css/app.css",
     "isEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-D8DIyLmv.js",
+    "file": "assets/app-ChFVCQOq.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
     "dynamicImports": [
+      "resources/js/pages/PaymentInstruction.tsx",
       "resources/js/pages/Siswa/Index.tsx",
       "resources/js/pages/Siswa/Pin.tsx",
       "resources/js/pages/Siswa/SetupPin.tsx",
       "resources/js/pages/Siswa/lupa-pin.tsx",
-      "_Topup-O7Jx4yZz.js",
+      "resources/js/pages/Topup.tsx",
+      "resources/js/pages/Transaction/Detail.tsx",
+      "resources/js/pages/Transaction/History.tsx",
       "resources/js/pages/welcome.tsx"
     ],
     "css": [
-      "assets/app-DgDU0QQa.css"
+      "assets/app-DAZfQXcq.css"
     ]
   },
   "resources/js/components/assets/bca.png": {
@@ -88,66 +87,114 @@
     "file": "assets/permata-ChONe3TI.png",
     "src": "resources/js/components/assets/permata.png"
   },
+  "resources/js/pages/PaymentInstruction.tsx": {
+    "file": "assets/PaymentInstruction-H9N1FoSf.js",
+    "name": "PaymentInstruction",
+    "src": "resources/js/pages/PaymentInstruction.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.tsx",
+      "_AppLayout-BSDNZDCF.js",
+      "_index-Cj7ZUeWm.js"
+    ]
+  },
   "resources/js/pages/Siswa/Index.tsx": {
-    "file": "assets/Index-BUUh4FCX.js",
+    "file": "assets/Index-BUnrmQfP.js",
     "name": "Index",
     "src": "resources/js/pages/Siswa/Index.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_index-PxO_MBF7.js",
-      "_Topup-O7Jx4yZz.js",
+      "_index-Cj7ZUeWm.js",
+      "_AppLayout-BSDNZDCF.js",
+      "resources/js/pages/Topup.tsx",
       "resources/js/pages/Siswa/Pin.tsx",
       "resources/js/pages/Siswa/SetupPin.tsx",
+      "resources/js/pages/Transaction/History.tsx",
+      "_permata-BbqOKftb.js",
       "_utils-DUjf7G_t.js",
-      "_permata-BEvEWPRj.js",
-      "_Modal-Cgz21vyp.js"
+      "_Modal-DBdhza_E.js"
     ]
   },
   "resources/js/pages/Siswa/Pin.tsx": {
-    "file": "assets/Pin-DE7ofAUT.js",
+    "file": "assets/Pin-Gwj4jMdX.js",
     "name": "Pin",
     "src": "resources/js/pages/Siswa/Pin.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_Modal-Cgz21vyp.js",
-      "_index-PxO_MBF7.js"
+      "_Modal-DBdhza_E.js",
+      "_index-Cj7ZUeWm.js"
     ]
   },
   "resources/js/pages/Siswa/SetupPin.tsx": {
-    "file": "assets/SetupPin-TI93LH6O.js",
+    "file": "assets/SetupPin-BOyN0SoE.js",
     "name": "SetupPin",
     "src": "resources/js/pages/Siswa/SetupPin.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_Modal-Cgz21vyp.js",
+      "_Modal-DBdhza_E.js",
       "_utils-DUjf7G_t.js"
     ]
   },
   "resources/js/pages/Siswa/lupa-pin.tsx": {
-    "file": "assets/lupa-pin-dMVEnOZr.js",
+    "file": "assets/lupa-pin-Dfit6Lvb.js",
     "name": "lupa-pin",
     "src": "resources/js/pages/Siswa/lupa-pin.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
-      "_index-PxO_MBF7.js",
-      "_index-_DsM7v27.js"
+      "_index-Cj7ZUeWm.js",
+      "_index-x-QM6ko1.js"
+    ]
+  },
+  "resources/js/pages/Topup.tsx": {
+    "file": "assets/Topup-Ccw8eiBi.js",
+    "name": "Topup",
+    "src": "resources/js/pages/Topup.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.tsx",
+      "_permata-BbqOKftb.js",
+      "_utils-DUjf7G_t.js",
+      "_index-Cj7ZUeWm.js",
+      "_AppLayout-BSDNZDCF.js"
+    ]
+  },
+  "resources/js/pages/Transaction/Detail.tsx": {
+    "file": "assets/Detail-DeBkjPrE.js",
+    "name": "Detail",
+    "src": "resources/js/pages/Transaction/Detail.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.tsx",
+      "_AppLayout-BSDNZDCF.js",
+      "_index-Cj7ZUeWm.js"
+    ]
+  },
+  "resources/js/pages/Transaction/History.tsx": {
+    "file": "assets/History-Ber7Wwmh.js",
+    "name": "History",
+    "src": "resources/js/pages/Transaction/History.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.tsx",
+      "_AppLayout-BSDNZDCF.js",
+      "_index-Cj7ZUeWm.js"
     ]
   },
   "resources/js/pages/welcome.tsx": {
-    "file": "assets/welcome-DBY9n3-s.js",
+    "file": "assets/welcome-Dy62mckp.js",
     "name": "welcome",
     "src": "resources/js/pages/welcome.tsx",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.tsx",
       "_utils-DUjf7G_t.js",
-      "_index-PxO_MBF7.js",
-      "_permata-BEvEWPRj.js",
-      "_index-_DsM7v27.js"
+      "_index-Cj7ZUeWm.js",
+      "_permata-BbqOKftb.js",
+      "_index-x-QM6ko1.js"
     ]
   }
 }

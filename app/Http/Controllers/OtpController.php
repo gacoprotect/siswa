@@ -135,9 +135,9 @@ class OtpController extends Controller
 
         ];
         try {
-            $response = Http::timeout(10)->post($this->WAPI_URL, $payload);
+            $response = Http::timeout(30)->post($this->WAPI_URL, $payload);
             if (!$response) {
-                return back()->withErrors(['message' => 'Gagal mengirim OTP Request Timeout']);
+                return back()->withErrors(['message' => 'Gagal mengirim OTP Request Timeout. Silahkan Coba lagi']);
             }
             RateLimiter::hit('send-otp:' . $phone, $this->decayMinutes * 60);
             // Logging yang lebih baik

@@ -42,42 +42,48 @@ export interface User {
     [key: string]: unknown; // This allows for additional properties...
 }
 
-export interface Siswa {
-  id: number;
-  nis: string;
-  nisn: string | null;
-  nampan: string | null;
-  namman: string | null;
-  namlen: string;
-  jenkel: string;
-  temlah: string;
-  tgllah: string;
-  tel: string | null;
-  kel: string;
-  ket: string | null;
-  sta: number;
-  staqd: number;
-  rev: number;
-  createdby: number;
-  createdat: string;
-  updatedby: number;
-  updatedat: string;
+interface Siswa {
+    nis?: string;
+    nisn?: string;
+    namlen?: string;
+    nampan?: string;
+    namman?: string;
+    temlah?: string;
+    tgllah?: string;
+    jenkel?: string;
+    tel?: string;
+    ket?: string;
+    sta?: string;
+    staqd?: string;
+    rev?: string;
+    createdby?: string;
+    updatedby?: string;
+    kel?: string;
+    ala?: string;
+    pin?: string;
 }
 
-
 export interface Bank {
-  id: number;
-  name: string;
-  logo: string;
+    id: number;
+    title: string;
+    name: string;
+    logo: string;
+    payment_type: string;
 }
 
 export interface Nominal {
-  id: number;
-  amount: number;
+    id: number;
+    amount: number;
 }
 
-export interface PaymentMethod {
-  id: number;
-  name: string;
-  code: string;
+export interface PaymentData {
+    order_id: string;
+    gross_amount: string;
+    payment_type: string;
+    transaction_status: string;
+    va_numbers?: Array<{
+        bank: string;
+        va_number: string;
+    }>;
+    permata_va_number?: string;
 }
