@@ -4,15 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class TransactionController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, $nouid)
     {
-        $transactions = Transaction::where('user_id', auth('siswa')->id())
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        if (!Auth::check()) {
+            return redirect()->intended(route('siswa.index', $nouid));
+        }
+        $transactions = Transaction::where('nouid', $nouid)
+            ->orderBy('created_at', 'desc')->get();
 
         return Inertia::render('Transaction/History', [
             'transactions' => $transactions,

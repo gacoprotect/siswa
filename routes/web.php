@@ -43,6 +43,7 @@ Route::middleware(['web', 'verify.nouid'])->group(function () {
 
         Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions');
         Route::get('/transactions/{orderId}', [TransactionController::class, 'show'])->name('transactions.show');
+        // Route::get('/history/transaction', [HistoryController::class, 'transaction'])->name('history.trx');
     });
 });
 

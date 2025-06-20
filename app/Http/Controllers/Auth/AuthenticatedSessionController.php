@@ -32,12 +32,11 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
 
         $request->session()->regenerate();
-        
-        if (Auth::check()) {
-            return back()->with([
-                'success' => true,
-                'message' => 'Pin Terverifikasi'
-            ]);
+        $page = $request->input('p');
+        if (Auth::check() && $page === 'riwayat') {
+            return redirect()->intended(route('transactions', [
+                'nouid' => $request->input('nouid')
+            ], absolute: false));
         } else {
             return redirect()->intended(route('siswa.index', [
                 'nouid' => $request->input('nouid')

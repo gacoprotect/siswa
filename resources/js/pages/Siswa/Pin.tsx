@@ -49,7 +49,7 @@ const PinPage: React.FC<PinPageProps> = ({ handle, setPage, setOpenSetupPin, has
             return;
         }
 
-        post(route('siswa.verify-pin', nouid), {
+        post(route('siswa.verify-pin', { nouid: nouid, p: handle }), {
             preserveState: true,
             onSuccess: () => {
                 onClose(true);

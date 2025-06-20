@@ -21,7 +21,6 @@ import {
 } from 'react-icons/fa';
 import { FiLogOut } from 'react-icons/fi';
 import Topup from '../Topup';
-import History from '../Transaction/History';
 import PinPage from './Pin';
 import SetupPinPage from './SetupPin';
 
@@ -50,7 +49,9 @@ export default function MenuDashboard() {
     const { auth, nouid, siswa, hasPin } = usePage<{ auth: Auth; nouid: string; siswa: Siswa; hasPin: boolean }>().props;
     const [activeItem, setActiveItem] = useState<number | null>(null);
     const [page, setPage] = useState<'index' | 'topup' | 'riwayat'>('index');
+
     const [openPin, setOpenPin] = useState(false);
+    const [isHistory, setisHistory] = useState(false);
     const [hasPined, setHasPined] = useState(hasPin);
     const [openSetupPin, setOpenSetupPin] = useState(false);
     const handleMasukPin = () => {
@@ -61,9 +62,12 @@ export default function MenuDashboard() {
     };
     const handlePage = (page: 'index' | 'topup' | 'riwayat') => {
         if (page === 'riwayat') {
+            setisHistory(true);
             setOpenPin(true);
+            setPage('index');
+        } else {
+            setPage(page);
         }
-        setPage(page);
     };
     return (
         <>
@@ -174,7 +178,7 @@ export default function MenuDashboard() {
             )}
 
             {page === 'topup' && <Topup siswa={siswa} nouid={nouid} onClose={() => setPage('index')} />}
-            {page === 'riwayat' && <History onClose={() => setPage('index')} />}
+            {/* {page === 'riwayat' && <History onClose={() => setPage('index')} />} */}
             <PinPage
                 setOpenSetupPin={() => {
                     setOpenSetupPin(true);
@@ -182,10 +186,11 @@ export default function MenuDashboard() {
                 }}
                 hasPin={hasPined}
                 open={openPin}
-                handle={page}
+                handle={isHistory ? 'riwayat' : page}
                 setPage={(page: 'index' | 'topup' | 'riwayat') => setPage(page)}
                 onClose={(v: boolean) => {
                     if (!v) {
+                        setisHistory(false);
                         setPage('index');
                     }
                     setOpenPin(false);
