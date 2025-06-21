@@ -1,21 +1,20 @@
+import AppLayout from '@/Layout/AppLayout';
 import { TransactionDetail } from '@/types';
+import { router, usePage } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, Banknote, CheckCircle, Clock, CreditCard, ShoppingCart, Wallet, XCircle } from 'lucide-react';
 import React, { useState } from 'react';
-import Detail from './Detail';
-import AppLayout from '@/Layout/AppLayout';
 import { FaArrowAltCircleLeft } from 'react-icons/fa';
-import { router, usePage } from '@inertiajs/react';
-
+import Detail from './Detail';
 
 type PageProps = {
-  transactions: TransactionDetail[];
-  nouid: string;
+    transactions: TransactionDetail[];
+    nouid: string;
 };
 type HistoryProps = { onClose: () => void };
 
 const History: React.FC<HistoryProps> = ({ onClose }) => {
     const { transactions, nouid } = usePage<PageProps>().props;
-  const [selectedTransaction, setSelectedTransaction] = useState<TransactionDetail | null>(null);
+    const [selectedTransaction, setSelectedTransaction] = useState<TransactionDetail | null>(null);
     const getStatusIcon = (status: 'success' | 'pending' | 'failed') => {
         switch (status) {
             case 'success':
@@ -69,67 +68,67 @@ const History: React.FC<HistoryProps> = ({ onClose }) => {
     };
 
     return (
-    <AppLayout title="Riwayat Transaksi">
-      <div className="overflow-hidden rounded-lg bg-white shadow-md">
-        <div className="flex items-center justify-between bg-primary px-4 py-4 text-primary-foreground">
-          <button onClick={() => window.history.back()} className="flex items-center space-x-2">
-            <FaArrowAltCircleLeft className="text-primary-foreground" />
-            <span>Kembali</span>
-          </button>
-          <h1 className="text-2xl font-bold text-white">Riwayat Transaksi</h1>
-        </div>
-
-        <div className="divide-y">
-          {transactions.map((trx) => (
-            <div
-              key={trx.id}
-              className="flex cursor-pointer items-center p-4 transition-colors hover:bg-gray-50"
-              onClick={() => setSelectedTransaction(trx)}
-            >
-              {/* ikon jenis transaksi */}
-              <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
-                {getTypeIcon(trx.type || trx.payment_type)}
-              </div>
-
-              {/* info singkat */}
-              <div className="flex-1">
-                <h3 className="font-medium capitalize">
-                  {trx.type || trx.payment_type.replace('_', ' ')}
-                </h3>
-                <p className="text-sm text-gray-500">
-                  {trx.note || `Order: ${trx.order_id}`}
-                </p>
-                <div className="mt-1 flex items-center text-sm">
-                  {getStatusIcon(trx.status)}
-                  <span className="ml-1 text-gray-500 capitalize">{trx.status}</span>
+        <AppLayout title="Riwayat Transaksi">
+            <div className="overflow-hidden rounded-lg bg-white shadow-md">
+                <div className="flex items-center justify-between bg-primary px-4 py-4 text-primary-foreground">
+                    <button onClick={() => window.history.back()} className="flex items-center space-x-2">
+                        <FaArrowAltCircleLeft className="text-primary-foreground" />
+                        <span>Kembali</span>
+                    </button>
+                    <h1 className="text-2xl font-bold text-white">Riwayat Transaksi</h1>
                 </div>
-              </div>
 
-              {/* jumlah & tanggal */}
-              <div className={`text-right ${parseFloat(trx.amount) > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                <div className="font-medium">
-                  {parseFloat(trx.amount) > 0 ? '+' : ''}
-                  {formatCurrency(trx.amount)}
+                <div className="divide-y">
+                    {transactions.map((trx) => (
+                        <div
+                            key={trx.id}
+                            className="flex cursor-pointer items-center p-4 transition-colors hover:bg-gray-50"
+                            onClick={() => setSelectedTransaction(trx)}
+                        >
+                            {/* ikon jenis transaksi */}
+                            <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
+                                {getTypeIcon(trx.type || trx.payment_type)}
+                            </div>
+
+                            {/* info singkat */}
+                            <div className="flex-1">
+                                <h3 className="font-medium capitalize">{trx.type || trx.payment_type.replace('_', ' ')}</h3>
+                                <p className="text-sm text-gray-500">{trx.note || `Order: ${trx.order_id}`}</p>
+                                <div className="mt-1 flex items-center text-sm">
+                                    {getStatusIcon(trx.status)}
+                                    <span className="ml-1 text-gray-500 capitalize">{trx.status}</span>
+                                </div>
+                            </div>
+
+                            {/* jumlah & tanggal */}
+                            <div className={`text-right ${parseFloat(trx.amount) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                <div className="font-medium">
+                                    {parseFloat(trx.amount) > 0 ? '+' : ''}
+                                    {formatCurrency(trx.amount)}
+                                </div>
+                                <div className="mt-1 text-xs text-gray-400">{formatDate(trx.created_at)}</div>
+
+                                {trx.status === 'pending' && (
+                                    <button
+                                        className="mt-2 inline-block rounded-lg bg-blue-500 px-3 py-1 text-xs font-medium text-white transition hover:bg-blue-600"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            router.get(`/${nouid}/payment/${trx.order_id}`);
+                                        }} // cegah pemilihan modal
+                                    >
+                                        Bayar Sekarang
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
                 </div>
-                <div className="mt-1 text-xs text-gray-400">
-                  {formatDate(trx.created_at)}
-                </div>
-              </div>
+
+                {/* modal detail */}
+                {selectedTransaction && <Detail transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} />}
             </div>
-          ))}
-        </div>
-
-        {/* modal detail */}
-        {selectedTransaction && (
-          <Detail
-            transaction={selectedTransaction}
-            onClose={() => setSelectedTransaction(null)}
-          />
-        )}
-      </div>
-    </AppLayout>
-  );
+        </AppLayout>
+    );
 };
-
 
 export default History;

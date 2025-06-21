@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
@@ -14,10 +15,22 @@ class TransactionController extends Controller
         if (!Auth::check()) {
             return redirect()->intended(route('siswa.index', $nouid));
         }
+
+        Transaction::where('nouid', $nouid)
+            ->where('status', 'pending')
+            ->where('expiry_time', '<', Carbon::now())
+            ->update([
+                'status'          => 'failed',
+                'failure_message' => 'Pembayaran melebihi batas waktu.',
+                'updated_at'      => Carbon::now(),
+            ]);
+
+
         $transactions = Transaction::where('nouid', $nouid)
             ->orderBy('created_at', 'desc')->get();
 
         return Inertia::render('Transaction/History', [
+            'nouid' => $nouid,
             'transactions' => $transactions,
         ]);
     }

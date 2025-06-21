@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Helpers\MaskingHelper;
 use App\Models\Indentitas;
 use App\Models\Siswa;
+use App\Models\Transaction;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -18,6 +20,22 @@ class SiswaController extends Controller
     {
         $indentitas = Indentitas::where('nouid', $nouid)->firstOrFail();
         $siswa = $indentitas->siswa()->first();
+
+        $baseQuery = Transaction::where('nouid', $nouid)
+            ->where('status', 'success');
+
+        // 2. Hitung total topup + refund (positif)
+        $totalMasuk = (float) $baseQuery
+            ->whereIn('type', ['topup', 'refund'])
+            ->sum('amount');
+
+        // 3. Hitung total keluar: payment + withdraw (negatif)
+        $totalKeluar = (float) $baseQuery
+            ->whereIn('type', ['payment', 'withdraw'])
+            ->sum('amount');
+
+        // 4. Saldo bersih
+        $saldo = $totalMasuk - $totalKeluar;
 
         // Jika siswa tidak ditemukan
         if (!$siswa) {
@@ -58,6 +76,7 @@ class SiswaController extends Controller
             }
 
             return Inertia::render('Siswa/Index', [
+                'saldo' => $saldo,
                 "hasPin" => true,
                 'toggle' => null,
                 'siswa' => $siswa,
@@ -67,6 +86,7 @@ class SiswaController extends Controller
         session(['current_nouid' => $nouid]);
         // Jika belum login, tampilkan form PIN
         return Inertia::render('Siswa/Index', [
+            
             'nouid' => $nouid,
             "hasPin" => true,
             'siswa' => [

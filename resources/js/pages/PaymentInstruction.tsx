@@ -78,7 +78,7 @@ const PaymentInstruction: React.FC<PaymentDataResponse> = ({ order_id, nouid, tr
         <AppLayout title="Instruksi Pembayaran">
             <div className="mx-auto max-w-2xl overflow-hidden rounded-lg bg-white shadow-md">
                 <div className="flex items-center justify-between bg-primary px-4 py-4 text-primary-foreground">
-                    <button onClick={() => router.visit(route('siswa.index', nouid))} className="flex items-center space-x-2">
+                    <button onClick={() => window.history.back()} className="flex items-center space-x-2">
                         <FaArrowLeft /> <span>Dashboard</span>
                     </button>
                 </div>

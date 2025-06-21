@@ -23,6 +23,7 @@ import { FiLogOut } from 'react-icons/fi';
 import Topup from '../Topup';
 import PinPage from './Pin';
 import SetupPinPage from './SetupPin';
+import { formatIDR } from '@/lib/utils';
 
 const menuItems = [
     {
@@ -46,7 +47,9 @@ const menuItems = [
 ];
 
 export default function MenuDashboard() {
-    const { auth, nouid, siswa, hasPin } = usePage<{ auth: Auth; nouid: string; siswa: Siswa; hasPin: boolean }>().props;
+    const { saldo, auth, nouid, siswa, hasPin } = usePage<{ saldo: string | number; auth: Auth; nouid: string; siswa: Siswa; hasPin: boolean }>()
+        .props;
+        
     const [activeItem, setActiveItem] = useState<number | null>(null);
     const [page, setPage] = useState<'index' | 'topup' | 'riwayat'>('index');
 
@@ -124,7 +127,7 @@ export default function MenuDashboard() {
                                         <h1 className="text-lg font-semibold text-primary-foreground">Saldo Tabungan</h1>
                                         <div className="flex items-center gap-2 text-primary-foreground">
                                             <FaWallet className="text-xl" />
-                                            <span className="text-xl font-bold">Rp. 500.000</span>
+                                            <span className="text-xl font-bold">{saldo ? formatIDR(saldo) : formatIDR(0)}</span>
                                         </div>
                                     </div>
 
