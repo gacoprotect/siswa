@@ -44,4 +44,10 @@ class Transaction extends Model
     {
         return $this->belongsTo(Indentitas::class, 'nouid', 'nouid');
     }
+     public function getAmountAttribute($value): float
+    {
+        return in_array($this->type, ['payment', 'withdraw']) 
+            ? -1 * abs($value) 
+            : abs($value);
+    }
 }

@@ -24,8 +24,10 @@ class Indentitas extends Model
     protected $visible = [
         'idok',
         'nouid',
-        'sta',
+        'spr_tagihan',
         'total_tagihan',
+        'tah_tagihan',
+        'bulan_tagihan',
         'tagihan',
         'siswa',
         'transactions'

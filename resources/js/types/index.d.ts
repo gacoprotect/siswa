@@ -43,6 +43,7 @@ export interface User {
 }
 
 interface Siswa {
+    saldo:number;
     nis?: string;
     nisn?: string;
     namlen?: string;
@@ -105,6 +106,9 @@ export interface TransactionDetail {
     payment_type: string;
     status: 'success'|'pending'|'failed'|'canceled';
     type: string;
+    tah: string;
+    month: string;
+    spr: number[];
     note: string;
     // payment_data: MidtransPaymentData;
     failure_message: string | null;

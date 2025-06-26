@@ -4,7 +4,7 @@ import AppLayout from '@/Layout/AppLayout';
 import { formatIDR } from '@/lib/utils';
 import { Auth, Siswa } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     FaExchangeAlt,
     FaFileInvoiceDollar,
@@ -27,8 +27,7 @@ import SetupPinPage from './SetupPin';
 import TagihanContent from './TagihanContent';
 
 export default function MenuDashboard() {
-    const { saldo, auth, nouid, siswa, hasPin } = usePage<{ saldo: string | number; auth: Auth; nouid: string; siswa: Siswa; hasPin: boolean }>()
-        .props;
+    const { auth, nouid, siswa, hasPin } = usePage<{ auth: Auth; nouid: string; siswa: Siswa; hasPin: boolean }>().props;
     const menuItems = [
         {
             title: 'Tagihan',
@@ -56,6 +55,12 @@ export default function MenuDashboard() {
     const [isHistory, setisHistory] = useState(false);
     const [hasPined, setHasPined] = useState(hasPin);
     const [openSetupPin, setOpenSetupPin] = useState(false);
+    const [siswaData, setSiswaData] = useState(siswa);
+
+    useEffect(() => {
+        setSiswaData(siswa);
+    }, [siswa]);
+
     const handleMasukPin = () => {
         setOpenPin(true);
     };
@@ -74,19 +79,19 @@ export default function MenuDashboard() {
     return (
         <>
             {page === 'index' && (
-                <AppLayout title={siswa?.namlen ?? 'Login'}>
+                <AppLayout title={siswaData?.namlen ?? 'Login'}>
                     <div className="flex w-full flex-col items-start rounded-t-lg bg-white p-4 px-6">
                         <div className="flex items-center space-x-3">
                             <FaUser className="flex-shrink-0 text-xl text-primary" />
-                            <h2 className="truncate text-3xl font-semibold text-primary">{siswa ? siswa.namlen : '******'}</h2>
+                            <h2 className="truncate text-3xl font-semibold text-primary">{siswaData ? siswaData.namlen : '******'}</h2>
                         </div>
                         <div className="flex items-center space-x-3">
                             <FaIdCard className="flex-shrink-0 text-lg text-primary" />
-                            <p className="text-primary md:text-lg">NIS: {siswa ? siswa.nis : '*****'}</p>
+                            <p className="text-primary md:text-lg">NIS: {siswaData ? siswaData.nis : '*****'}</p>
                         </div>
                         <div className="flex items-center space-x-3">
                             <FaGraduationCap className="flex-shrink-0 text-lg text-primary" />
-                            <p className="text-primary md:text-lg">Kelas: {siswa ? siswa.kel : '******'}</p>
+                            <p className="text-primary md:text-lg">Kelas: {siswaData ? siswaData.kel : '******'}</p>
                         </div>
                     </div>
                     <div className="grid w-full grid-cols-2 items-center gap-4 border-b-2 p-2 px-6">
@@ -126,7 +131,7 @@ export default function MenuDashboard() {
                                         <h1 className="text-lg font-semibold text-primary-foreground">Saldo Tabungan</h1>
                                         <div className="flex items-center gap-2 text-primary-foreground">
                                             <FaWallet className="text-xl" />
-                                            <span className="text-xl font-bold">{saldo ? formatIDR(saldo) : formatIDR(0)}</span>
+                                            <span className="text-xl font-bold">{siswaData.saldo ? formatIDR(siswaData.saldo) : formatIDR(0)}</span>
                                         </div>
                                     </div>
 
@@ -179,7 +184,7 @@ export default function MenuDashboard() {
                 </AppLayout>
             )}
 
-            {page === 'topup' && <Topup siswa={siswa} nouid={nouid} onClose={() => setPage('index')} />}
+            {page === 'topup' && <Topup siswa={siswaData} nouid={nouid} onClose={() => setPage('index')} />}
             {/* {page === 'riwayat' && <History onClose={() => setPage('index')} />} */}
             <PinPage
                 setOpenSetupPin={() => {

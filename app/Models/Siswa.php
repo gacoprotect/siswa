@@ -83,9 +83,12 @@ class Siswa extends Authenticatable
             ->whereIn('type', ['topup', 'refund'])
             ->sum('amount');
         $totalKeluar = (float) Transaction::whereIn('nouid', $nouids)
-            ->where('status', 'success')
-            ->whereIn('type', ['payment', 'withdraw'])
-            ->sum('amount');
+        ->where('status', 'success')
+        ->where(function($query) {
+            $query->whereIn('type', ['payment', 'withdraw'])
+                  ->where('payment_type', 'saldo');
+        })
+        ->sum('amount');
         $saldo = $totalMasuk - $totalKeluar;
 
         return $saldo;

@@ -119,6 +119,11 @@ const PaymentInstruction: React.FC<PaymentDataResponse> = ({ order_id, transacti
                     nouid,
                     order_id: transaction.order_id,
                     va_number: va,
+                    amount: transaction.amount,
+                    type: transaction.type,
+                    tah : transaction.tah,
+                    month: transaction.month,
+                    spr: transaction.spr
                 },
                 {
                     onBefore: () => {

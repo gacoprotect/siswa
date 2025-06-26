@@ -44,12 +44,12 @@ Route::middleware(['web', 'verify.nouid'])->group(function () {
 
         // Transaction history        
         Route::get('/transactions/{orderId}/status', [TransactionController::class, 'checkStatus'])->name('transactions.status');
-
         Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions');
         Route::get('/transactions/{orderId}', [TransactionController::class, 'show'])->name('transactions.show');
         
         Route::get('/tagihan', [TagihanController::class, 'index'])->name('tagihan.index');
-        Route::get('/pay-tagihan', [TagihanController::class, 'show'])->name('tagihan.show');
+        Route::get('/tagihan/pay', [TagihanController::class, 'show'])->name('tagihan.show');
+        Route::post('/tagihan/pay', [TagihanController::class, 'pay'])->name('tagihan.pay');
     });
 });
 

@@ -21,16 +21,6 @@ class SiswaController extends Controller
 
         $indentitas = Indentitas::where('nouid', $nouid)->firstOrFail();
         $siswa = $indentitas->siswa()->first();
-
-        $baseQuery = Transaction::where('nouid', $nouid)
-            ->where('status', 'success');
-        $totalMasuk = (float) $baseQuery
-            ->whereIn('type', ['topup', 'refund'])
-            ->sum('amount');
-        $totalKeluar = (float) $baseQuery
-            ->whereIn('type', ['payment', 'withdraw'])
-            ->sum('amount');
-        $saldo = $totalMasuk - $totalKeluar;
         if (!$siswa) {
             abort(404, 'Data siswa tidak ditemukan');
         }
@@ -69,7 +59,6 @@ class SiswaController extends Controller
             }
 
             return Inertia::render('Siswa/Index', [
-                'saldo' => $saldo,
                 "hasPin" => true,
                 'toggle' => null,
                 'siswa' => $siswa,

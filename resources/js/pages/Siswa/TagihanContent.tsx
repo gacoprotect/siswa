@@ -36,8 +36,6 @@ const StatCard = ({ title, value, icon, bgColor }: { title: string; value: strin
 
 const TagihanContent = ({ nouid }: { nouid: string }) => {
     const isMobile = useIsMobile();
-    console.log(isMobile);
-
     const [isLoading, setIsLoading] = useState(true);
     const [groupedData, setGroupedData] = useState<GroupedData>({});
     const [error, setError] = useState<string | null>(null);
@@ -69,7 +67,7 @@ const TagihanContent = ({ nouid }: { nouid: string }) => {
                 const years = Object.keys(data.data);
                 const initialExpanded = years.reduce(
                     (acc, year) => {
-                        acc[year] = false;
+                        acc[year] = true;
                         return acc;
                     },
                     {} as Record<string, boolean>,
@@ -205,21 +203,24 @@ const TagihanContent = ({ nouid }: { nouid: string }) => {
                                                               : getStatusBadge(0)}
                                                     </div>
                                                 </div>
-                                                <div
-                                                    className={`mb-3 flex items-center ${monthData.transactions.some((t) => t.sta === 0) ? 'justify-between' : 'justify-end'} `}
-                                                >
-                                                    {monthData.transactions.some((t) => t.sta === 0) && (
-                                                        <PaymentButton monthData={monthData} nouid={nouid} month={month} />
-                                                    )}
-                                                    <div className="flex items-center space-x-2">
-                                                        <span className="text-sm font-medium text-gray-500">Tagihan:</span>
-                                                        <span
-                                                            className={`text-lg font-bold ${monthData.tagihan > 0 ? 'text-red-600' : 'text-green-600'}`}
-                                                        >
-                                                            Rp {Math.abs(monthData.tagihan).toLocaleString('id-ID')}
-                                                        </span>
+                                                
+                                                {monthData.transactions.some((t) => t.jen === 0 && (t.sta === 0 || t.sta === 1)) && (
+                                                    <div
+                                                        className={`mb-3 flex items-center ${monthData.transactions.some((t) => t.sta === 0) ? 'justify-between' : 'justify-end'} `}
+                                                    >
+                                                        {monthData.transactions.some((t) => t.sta === 0) && (
+                                                            <PaymentButton monthData={monthData} nouid={nouid} month={month} />
+                                                        )}
+                                                        <div className="flex items-center space-x-2">
+                                                            <span className="text-sm font-medium text-gray-500">Tagihan:</span>
+                                                            <span
+                                                                className={`text-lg font-bold ${monthData.tagihan > 0 ? 'text-red-600' : 'text-green-600'}`}
+                                                            >
+                                                                Rp {Math.abs(monthData.tagihan).toLocaleString('id-ID')}
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                </div>
+                                                )}
                                             </div>
                                         ) : (
                                             <div className="flex-col">
@@ -232,6 +233,7 @@ const TagihanContent = ({ nouid }: { nouid: string }) => {
                                                               ? getStatusBadge(2)
                                                               : getStatusBadge(0)}
                                                     </div>
+                                                {monthData.transactions.some((t) => t.jen === 0 && (t.sta === 0 || t.sta === 1)) && (
 
                                                     <div className="flex items-center space-x-2">
                                                         <span className="text-sm font-medium text-gray-500">Total Tagihan:</span>
@@ -240,13 +242,17 @@ const TagihanContent = ({ nouid }: { nouid: string }) => {
                                                         >
                                                             Rp {Math.abs(monthData.tagihan).toLocaleString('id-ID')}
                                                         </span>
-                                                    </div>
+                                                    </div> )}
                                                 </div>
-                                                {monthData.transactions.some((t) => t.sta === 0) && (
-                                                    <button className="mb-3 flex items-center gap-2 rounded-lg bg-green-600 p-2 text-sm text-white transition-colors hover:bg-green-700">
-                                                        <FaFileInvoiceDollar className="text-lg" />
-                                                        Bayar Sekarang
-                                                    </button>
+                                                {monthData.transactions.some((t) => t.jen === 0 && (t.sta === 0 || t.sta === 1)) && (
+                                                    <div
+                                                        className={`mb-3 flex items-center ${monthData.transactions.some((t) => t.sta === 0) ? 'justify-between' : 'justify-end'} `}
+                                                    >
+                                                        {monthData.transactions.some((t) => t.sta === 0) && (
+                                                            <PaymentButton monthData={monthData} nouid={nouid} month={month} />
+                                                        )}
+                                                        
+                                                    </div>
                                                 )}
                                             </div>
                                         )}
