@@ -29,7 +29,7 @@ export default function Welcome() {
                         </p>
                         <div className="pt-6 flex flex-col sm:flex-row gap-4 justify-center">
                             <Button asChild variant="secondary" size="lg" className="shadow-md hover:shadow-lg transition-all">
-                                <Link href="/a70c1330">Coba Sekarang</Link>
+                                <Link href="/a70c621c">Coba Sekarang</Link>
                             </Button>
                             <Button asChild variant="outline" size="lg" className="bg-transparent text-white border-white hover:bg-white/10">
                                 <Link href="#payment-methods">Metode Pembayaran</Link>
