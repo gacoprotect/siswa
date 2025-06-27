@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 import React, { ReactNode, useEffect } from "react";
 
@@ -11,6 +12,7 @@ interface ModalProps {
   closeOnEsc?: boolean;
   overlayClassName?: string;
   className?: string;
+  header?:boolean
 }
 
 const sizeMap = {
@@ -31,6 +33,7 @@ export const Modal: React.FC<ModalProps> = ({
   closeOnEsc = true,
   overlayClassName = "",
   className = "",
+  header = true
 }) => {
   // Close with ESC key
   useEffect(() => {
@@ -59,9 +62,13 @@ export const Modal: React.FC<ModalProps> = ({
       onClick={handleOverlayClick}
     >
       <div
-        className={`bg-secondary text-secondary-foreground rounded-lg shadow-lg overflow-auto w-full ${sizeMap[size]} ${className}`}
+        className={cn(
+          `bg-secondary text-secondary-foreground rounded-lg shadow-lg overflow-auto w-full ${sizeMap[size]}`,
+       `${className}` )} 
       >
+        {header &&(
         <ModalHeader onClose={onClose}>{title}</ModalHeader>
+        )}
         <ModalBody>{children}</ModalBody>
       </div>
     </div>

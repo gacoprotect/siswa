@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
-use App\Models\Indentitas;
+use App\Models\Datmas\Indentitas;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;

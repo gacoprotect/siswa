@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Indentitas;
+use App\Models\Datmas\Indentitas;
 use App\Models\Siswa;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

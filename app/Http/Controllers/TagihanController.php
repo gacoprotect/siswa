@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Indentitas;
-use App\Models\Transaction;
-use App\Models\Tsalpenrut;
+use App\Models\Datmas\Indentitas;
+use App\Models\Trx\Ttrx;
+use App\Models\Spp\Tsalpenrut;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -158,7 +158,7 @@ class TagihanController extends Controller
             ];
 
             // Create transaction
-            $transaction = Transaction::create($transactionData);
+            $transaction = Ttrx::create($transactionData);
 
             if ($validated['payment_method'] === 'virtual_account') {
                 DB::commit();

@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Indentitas; // Corrected model name (assuming typo fix)
-use App\Models\Transaction;
-use App\Models\Tsalpenrut;
+use App\Models\Datmas\Indentitas; // Corrected model name (assuming typo fix)
+use App\Models\Trx\Ttrx;
+use App\Models\Spp\Tsalpenrut;
 use App\Services\MidtransService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rules\Exists;
 use Inertia\Inertia;
 
 class TopupController extends Controller
@@ -28,17 +29,18 @@ class TopupController extends Controller
     {
         $request->validate([
             'amount' => 'required|numeric|min:10000',
-            'va_number' => 'required|numeric|unique:transactions,va_number',
+            'va_number' => 'required|numeric|unique:mai4.ttrx,va_number',
         ]);
 
         $identitas = Indentitas::where('nouid', $nouid)->firstOrFail();
-        $hasPending = Transaction::where('nouid', $nouid)
+        $hasPending = Ttrx::where('nouid', $nouid)
             ->where('status', 'pending')
             ->where('expiry_time', '>', now())
             ->exists();
 
         if ($hasPending) {
-            return back()->withErrors([
+            return back()->with([
+                'success' => false,
                 'message' => 'Masih ada transaksi yang sedang diproses. Harap selesaikan atau batalkan transaksi sebelumnya terlebih dahulu.',
             ]);
         }
@@ -46,14 +48,14 @@ class TopupController extends Controller
         $orderId = 'topup-' . uniqid();
 
         try {
-            $transaction = Transaction::create([
+            $transaction = Ttrx::create([
                 'phone' => $siswa->tel,
                 'nouid' => $nouid,
                 'order_id' => $orderId,
                 'amount' => $request->amount,
                 'status' => 'pending',
                 'type' => 'topup',
-                'payment_type' => 'bank_transfer',
+                'pt_id' => 1,
                 'va_number' => $request->va_number,
                 'expiry_time' => now()->addMinutes(6 * 60),
             ]);
@@ -88,7 +90,7 @@ class TopupController extends Controller
             'nouid' => ['required', 'string'],
         ]);
 
-        $transaction = Transaction::where('nouid', $nouid)
+        $transaction = Ttrx::where('nouid', $nouid)
             ->where('order_id', $request->order_id)
             ->first();
 
@@ -112,37 +114,42 @@ class TopupController extends Controller
             ->intended(route('siswa.index', ['nouid' => $nouid]))
             ->with('success', 'Transaksi berhasil dibatalkan');
     }
-    public function paymentInstruction(Request $req, $nouid, $orderId)
-    {
-        $validated = $req->validate([
-            'type' => 'sometimes|string|in:payment,topup',
-            'tah' => 'sometimes|string',
-            'month' => 'sometimes|string',
-            'spr' => 'sometimes|array',
-            'spr.*' => 'sometimes|integer',
-        ]);
-        $identitas = Indentitas::with('siswa')
-            ->where('nouid', $nouid)
-            ->firstOrFail();
+   public function paymentInstruction(Request $req, $nouid, $orderId)
+{
+    $validated = $req->validate([
+        'type' => 'sometimes|string|in:payment,topup',
+        'tah' => 'sometimes|string',
+        'month' => 'sometimes|string',
+        'spr' => 'sometimes|array',
+        'spr.*' => 'sometimes|integer',
+    ]);
 
-        $transaction = Transaction::where('order_id', $orderId)
-            ->where('nouid', $nouid)
-            ->firstOrFail();
+    $identitas = Indentitas::with('siswa')
+        ->where('nouid', $nouid)
+        ->firstOrFail();
 
-        $transactionData = $transaction->toArray();
-        $transactionData['spr'] = $req->spr;
-        $transactionData['tah'] = $req->tah;
-        $transactionData['month'] = $req->month;
-        $transactionData['type'] = $req->type;
-        $transactionData['amount'] = abs($transaction->amount);
-        $transactionData['formatted_amount'] = abs($transaction->amount);
-        return Inertia::render('PaymentInstruction', [
-            'nouid' => $nouid,
-            'order_id' => $orderId,
-            'transaction' => $transactionData,
-            'siswa' => $identitas->siswa()->first(),
-        ]);
-    }
+    $transaction = Ttrx::where('order_id', $orderId)
+        ->where('nouid', $nouid)
+        ->firstOrFail();
+
+    $transactionData = $transaction->toArray();
+
+    // Tambahan parameter untuk instruction page
+    $transactionData['spr'] = $validated['spr'] ?? [];
+    $transactionData['tah'] = $validated['tah'] ?? null;
+    $transactionData['month'] = $validated['month'] ?? null;
+    $transactionData['type'] = $validated['type'] ?? $transaction->type;
+    $transactionData['amount'] = abs($transaction->amount);
+    $transactionData['formatted_amount'] = number_format(abs($transaction->amount), 0, ',', '.'); // jika butuh
+
+    return Inertia::render('PaymentInstruction', [
+        'nouid' => $nouid,
+        'order_id' => $orderId,
+        'transaction' => $transactionData,
+        'siswa' => $identitas->siswa,
+    ]);
+}
+
 
     public function simulate(Request $request, $nouid)
     {
@@ -153,14 +160,14 @@ class TopupController extends Controller
             'tah' => 'required_if:type,payment|string|nullable',
             'month' => 'required_if:type,payment|string|nullable',
             'spr' => 'required_if:type,payment|array',
-            'spr.*' => 'required_if:type,payment|integer|exists:mysql2.tsalpenrut,id',
+            'spr.*' => 'required_if:type,payment|integer|exists:mai3.tsalpenrut,id',
             'amount' => 'sometimes|numeric|min:0'
         ]);
 
         DB::beginTransaction();
 
         try {
-            $transaction = Transaction::where('nouid', $nouid)
+            $transaction = Ttrx::where('nouid', $nouid)
                 ->where('order_id', $validated['order_id'])
                 ->where('va_number', $validated['va_number'])
                 ->firstOrFail();

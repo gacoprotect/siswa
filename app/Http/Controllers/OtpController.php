@@ -3,11 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\MaskingHelper;
-use App\Models\Indentitas;
+use App\Models\Datmas\Indentitas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Carbon;
-use App\Models\Otp;
+use App\Models\Admin\Totps;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
@@ -116,7 +116,7 @@ class OtpController extends Controller
         $expiresAt = now()->addMinutes(5);
 
         try {
-            Otp::updateOrCreate(
+            Totps::updateOrCreate(
                 ['phone' => $phone],
                 ['otp' => $otp, 'expires_at' => $expiresAt]
             );
@@ -177,7 +177,7 @@ class OtpController extends Controller
             ]);
         }
 
-        $record = Otp::where('phone', $phone)->first();
+        $record = Totps::where('phone', $phone)->first();
 
         if (!$record) {
             RateLimiter::hit('verify-otp:' . $phone, $this->decayMinutes * 60);
@@ -206,7 +206,7 @@ class OtpController extends Controller
         try {
             $record->update(['verified_at' => now()]);
             RateLimiter::clear('verify-otp:' . $phone);
-            Otp::where('expires_at', '<', now())->delete();
+            Totps::where('expires_at', '<', now())->delete();
             $record->delete();
 
             return back()->with([

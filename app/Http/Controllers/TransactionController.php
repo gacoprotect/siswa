@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Transaction;
+use App\Models\Trx\Ttrx;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +16,7 @@ class TransactionController extends Controller
             return redirect()->intended(route('siswa.index', $nouid));
         }
 
-        Transaction::where('nouid', $nouid)
+        Ttrx::where('nouid', $nouid)
             ->where('status', 'pending')
             ->where('expiry_time', '<', Carbon::now())
             ->update([
@@ -26,7 +26,7 @@ class TransactionController extends Controller
             ]);
 
 
-        $transactions = Transaction::where('nouid', $nouid)
+        $transactions = Ttrx::where('nouid', $nouid)
             ->orderBy('created_at', 'desc')->get();
 
         return Inertia::render('Transaction/History', [
@@ -37,7 +37,7 @@ class TransactionController extends Controller
 
     public function show($nouid, $orderId)
     {
-        $transaction = Transaction::where('order_id', $orderId)
+        $transaction = Ttrx::where('order_id', $orderId)
             ->where('nouid', $nouid)
             ->where('user_id', auth('siswa')->id())
             ->firstOrFail();
@@ -49,7 +49,7 @@ class TransactionController extends Controller
 
     public function checkStatus($orderId)
     {
-        $transaction = Transaction::where('order_id', $orderId)
+        $transaction = Ttrx::where('order_id', $orderId)
             ->where('user_id', auth('siswa')->id())
             ->firstOrFail();
 
@@ -84,7 +84,7 @@ class TransactionController extends Controller
         $fraudStatus = $payload['fraud_status'] ?? null;
 
         // Cari transaksi
-        $transaction = Transaction::where('order_id', $orderId)->first();
+        $transaction = Ttrx::where('order_id', $orderId)->first();
 
         if (!$transaction) {
             return response()->json(['message' => 'Transaction not found'], 404);

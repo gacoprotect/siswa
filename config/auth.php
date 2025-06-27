@@ -69,13 +69,13 @@ return [
     */
 
     'providers' => [
-        'users' => [
-            'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
-        ],
+        // 'users' => [
+        //     'driver' => 'eloquent',
+        //     'model' => env('AUTH_MODEL', App\Models\User::class),
+        // ],
         'siswas' => [
             'driver' => 'eloquent',
-            'model' => App\Models\Siswa::class,
+            'model' => App\Models\Datmas\Siswa::class,
         ],
 
         // 'users' => [

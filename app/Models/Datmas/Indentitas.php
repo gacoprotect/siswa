@@ -1,13 +1,17 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Datmas;
 
+use App\Models\Trx\Ttrx;
+use App\Models\Spp\Tsalpenrut;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Indentitas extends Model
 {
     use HasFactory;
+    
+    protected $connection = 'mai2';
     protected $table = 'tindentitas';
     protected $primaryKey = ['idmen', 'idok', 'tip'];
     public $incrementing = false;
@@ -50,9 +54,9 @@ class Indentitas extends Model
     {
         return $this->belongsTo(Siswa::class, 'idok', 'id');
     }
-    public function transactions()
+    public function trx()
     {
-        return $this->hasMany(Transaction::class, 'nouid', 'nouid');
+        return $this->hasMany(Ttrx::class, 'nouid', 'nouid');
     }
     public function tagihan()
     {

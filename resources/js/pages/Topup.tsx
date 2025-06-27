@@ -5,13 +5,17 @@ import { router, usePage } from '@inertiajs/react';
 import { Check, Copy, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FaArrowAltCircleLeft, FaSpinner } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 
 interface TopupProps {
     siswa: Siswa;
     nouid: string;
     onClose: () => void;
 }
-
+interface Flash {
+    success: boolean;
+    message: string;
+}
 const MINIMAL_TOPUP = 10000;
 const NOMINALS: Nominal[] = [
     { id: 1, amount: 50000 },
@@ -23,7 +27,7 @@ const NOMINALS: Nominal[] = [
 ];
 
 const Topup: React.FC<TopupProps> = ({ siswa, nouid, onClose }) => {
-    const { errors } = usePage().props;
+    const { errors, flash } = usePage<{ flash: Flash }>().props;
     const [va, setVa] = useState<string | null>(null);
     const [selectedNominal, setSelectedNominal] = useState<number | null>(null);
     const [customNominal, setCustomNominal] = useState<string>('');
@@ -147,6 +151,8 @@ const Topup: React.FC<TopupProps> = ({ siswa, nouid, onClose }) => {
 
     return (
         <AppLayout title="Top Up">
+            {Array.isArray(errors) && errors.length > 0 && errors.map((error: string) => toast.error(error))}
+            {flash.success && toast.success(flash.message)}
             <div className="min-h-screen overflow-hidden rounded-lg bg-white shadow-md">
                 <div className="flex items-center justify-between bg-primary px-4 py-4 text-primary-foreground">
                     <button onClick={onClose} className="flex items-center space-x-2 transition-opacity hover:opacity-80" aria-label="Kembali">

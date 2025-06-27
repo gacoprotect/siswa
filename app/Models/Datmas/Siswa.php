@@ -1,15 +1,21 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Datmas;
 
+use App\Helpers\MaskingHelper;
+use App\Models\Trx\Ttrx;
+use App\Models\Spp\Tsalpenrut;
+use App\Models\Trx\Tbalance;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class Siswa extends Authenticatable
 {
     use HasFactory;
-    protected $connection = 'mysql';
+
+    protected $connection = 'mai2';
     protected $table = 'tsiswa';
     protected $primaryKey = 'nis';
     protected $keyType = 'string';
@@ -17,15 +23,16 @@ class Siswa extends Authenticatable
     public $timestamps = true;
     const CREATED_AT = 'createdat';
     const UPDATED_AT = 'updatedat';
-    protected $appends =['saldo'];
+    protected $appends = ['has_pin'];
     protected $visible = [
+        'balance',
+        'has_pin',
         'nis',
         'namlen',
         'temlah',
         'tgllah',
         'tel',
         'kel',
-        'saldo',
     ];
     protected $fillable = [
         'nis',
@@ -72,28 +79,13 @@ class Siswa extends Authenticatable
 
     public function indentitas()
     {
-        return $this->hasMany(Indentitas::class, 'idok', 'id');
+        return $this->belongsTo(Indentitas::class, 'idok', 'id');
     }
-    public function getSaldoAttribute()
+
+    public function balance()
     {
-        $nouids = $this->indentitas()->pluck('nouid');
-        $baseQuery = Transaction::whereIn('nouid', $nouids)
-            ->where('status', 'success');
-        $totalMasuk = (float) $baseQuery
-            ->whereIn('type', ['topup', 'refund'])
-            ->sum('amount');
-        $totalKeluar = (float) Transaction::whereIn('nouid', $nouids)
-        ->where('status', 'success')
-        ->where(function($query) {
-            $query->whereIn('type', ['payment', 'withdraw'])
-                  ->where('payment_type', 'saldo');
-        })
-        ->sum('amount');
-        $saldo = $totalMasuk - $totalKeluar;
-
-        return $saldo;
+        return $this->belongsTo(Tbalance::class, 'nis', 'nis');
     }
-
     public function getAuthPassword()
     {
         return $this->password;
@@ -104,6 +96,10 @@ class Siswa extends Authenticatable
     {
         $this->attributes['pin'] = Hash::make($value);
     }
+    public function getHasPinAttribute(): bool
+    {
+        return !is_null($this->pin);
+    }
 
     public function verifyPin($pin)
     {
@@ -113,5 +109,19 @@ class Siswa extends Authenticatable
     public function salpenruts()
     {
         return $this->hasMany(Tsalpenrut::class, 'idsis', 'id');
+    }
+
+    public function masked(): array
+    {
+        if (Auth::check()) {
+            return [];
+        }
+        return [
+            'has_pin' => $this->has_pin,
+            'namlen' => MaskingHelper::maskString($this->namlen),
+            'nis'    => MaskingHelper::maskNumber($this->nis),
+            'kel'    => MaskingHelper::maskClass($this->kel),
+            'tel'    => MaskingHelper::maskPhone($this->tel),
+        ];
     }
 }

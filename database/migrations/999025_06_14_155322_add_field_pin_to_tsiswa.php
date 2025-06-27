@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('tsiswa', function (Blueprint $table) {
-            $table->string('pin', 255)->nullable()->after('ala');
-        });
+        // Schema::connection('mai2')->table('tsiswa', function (Blueprint $table) {
+        //     $table->string('pin', 255)->nullable()->after('ala');
+        // });
     }
 
     /**
@@ -21,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('tsiswa', function (Blueprint $table) {
-            //
-        });
+        // Schema::connection('mai2')->table('tsiswa', function (Blueprint $table) {
+        //     //
+        // });
     }
 };

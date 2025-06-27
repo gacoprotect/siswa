@@ -3,51 +3,27 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\MaskingHelper;
-use App\Models\Indentitas;
-use App\Models\Siswa;
-use App\Models\Transaction;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use App\Models\Datmas\Indentitas;
+use App\Models\Trx\Tbalance;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Symfony\Component\HttpKernel\Exception\HttpException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class SiswaController extends Controller
 {
     public function index($nouid)
     {
 
-        $indentitas = Indentitas::where('nouid', $nouid)->firstOrFail();
-        $siswa = $indentitas->siswa()->first();
-        if (!$siswa) {
+        $ident = Tbalance::with('siswa')->where('nouid', $nouid)->firstOrFail();
+        if (!$ident) {
             abort(404, 'Data siswa tidak ditemukan');
         }
-
-        
-        if (empty($siswa->pin)) {
-            return Inertia::render('Siswa/Index', [
-                'nouid' => $nouid,
-                "hasPin" => false,
-                'siswa' => [
-                    "namlen" => MaskingHelper::maskString($siswa->namlen),
-                    "nis" => MaskingHelper::maskNumber($siswa->nis),
-                    "kel" => MaskingHelper::maskClass($siswa->kel),
-                    "tel" => MaskingHelper::maskPhone($siswa->tel),
-                ],
-                'error' => session('error'),
-            ]);
-        }
-
 
         if (session()->has('current_nouid') && session('current_nouid') !== $nouid) {
             Auth::guard('siswa')->logout();
             session()->forget('current_nouid');
             return Inertia::render('Siswa/Index', [
-                'toggle' => 'log',
-                'nouid' => $nouid,
-                'error' => 'Sesi sebelumnya telah berakhir, silakan login kembali'
+                'data' => $ident
             ]);
         }
 
@@ -59,25 +35,16 @@ class SiswaController extends Controller
             }
 
             return Inertia::render('Siswa/Index', [
-                "hasPin" => true,
-                'toggle' => null,
-                'siswa' => $siswa,
-                'nouid' => $nouid,
+                'data' => $ident
             ]);
         }
         session(['current_nouid' => $nouid]);
         // Jika belum login, tampilkan form PIN
         return Inertia::render('Siswa/Index', [
-
-            'nouid' => $nouid,
-            "hasPin" => true,
-            'siswa' => [
-                "namlen" => MaskingHelper::maskString($siswa->namlen),
-                "nis" => MaskingHelper::maskNumber($siswa->nis),
-                "kel" => MaskingHelper::maskClass($siswa->kel),
-                "tel" => MaskingHelper::maskPhone($siswa->tel),
-            ],
-            'error' => session('error'),
+            'data' => [
+                ...$ident->toArray(),
+                'siswa' => $ident->siswa->masked(), // timpa siswa asli dengan versi masked
+            ]
         ]);
     }
 

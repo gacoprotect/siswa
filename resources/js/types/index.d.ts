@@ -41,9 +41,15 @@ export interface User {
     updated_at: string;
     [key: string]: unknown; // This allows for additional properties...
 }
-
-interface Siswa {
-    saldo:number;
+export interface DataSiswa {
+    idok: number;
+    nouid: string;
+    balance: number;
+    siswa: Siswa;
+}
+export interface Siswa {
+    has_pin: boolean;
+    balance: number;
     nis?: string;
     nisn?: string;
     namlen?: string;
@@ -104,7 +110,7 @@ export interface TransactionDetail {
     phone: string;
     va_number: string;
     payment_type: string;
-    status: 'success'|'pending'|'failed'|'canceled';
+    status: 'success' | 'pending' | 'failed' | 'canceled';
     type: string;
     tah: string;
     month: string;
@@ -120,10 +126,10 @@ export interface TransactionDetail {
 export interface MidtransPaymentData {
     currency: string;
     order_id: string;
-    bill_key?:string;
-    biller_code?:string;
+    bill_key?: string;
+    biller_code?: string;
     va_numbers?: VirtualAccount[];
-    permata_va_number?:string
+    permata_va_number?: string;
     expiry_time: string; // format: YYYY-MM-DD HH:mm:ss
     merchant_id: string;
     status_code: string;

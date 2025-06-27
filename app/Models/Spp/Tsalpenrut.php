@@ -1,13 +1,18 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Spp;
 
+use App\Models\Datmas\Indentitas;
+use App\Models\Datmas\Siswa;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 class Tsalpenrut extends Model
 {
-    protected $connection = 'mysql2';
+    use HasFactory;
+
+    protected $connection = 'mai3';
     protected $table = 'tsalpenrut';
 
     // protected $primaryKey = ['idset', 'idsis', 'bulid', 'tah', 'nmr', 'jen'];
@@ -58,13 +63,13 @@ class Tsalpenrut extends Model
             ->value('bul');
     }
     public function getNoprAttribute()
-{
-    $tahun = date('Y'); // Tahun sekarang (2024)
-    $idLength = 4; // Panjang digit ID (contoh: 0013)
-    $paddedId = str_pad($this->id, $idLength, '0', STR_PAD_LEFT);
-    
-    return "PR{$tahun}.{$paddedId}";
-}
+    {
+        $tahun = date('Y'); // Tahun sekarang (2024)
+        $idLength = 4; // Panjang digit ID (contoh: 0013)
+        $paddedId = str_pad($this->id, $idLength, '0', STR_PAD_LEFT);
+
+        return "PR{$tahun}.{$paddedId}";
+    }
     public function scopeSaringKetJum($query, int $idsis, int $tahun, int $maxBulan)
     {
         return $query

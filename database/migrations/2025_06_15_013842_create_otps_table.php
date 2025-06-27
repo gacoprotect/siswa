@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('totps', function (Blueprint $table) {
+        Schema::connection('mai1')->create('totps', function (Blueprint $table) {
             $table->id();
             $table->string('phone'); 
             $table->unsignedInteger('attempts')->default(0);
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('totps');
+        Schema::connection('mai1')->dropIfExists('totps');
     }
 };

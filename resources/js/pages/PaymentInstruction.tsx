@@ -12,14 +12,15 @@ const PaymentInstruction: React.FC<PaymentDataResponse> = ({ order_id, transacti
     const { nouid, errors } = usePage<{ nouid: string }>().props;
     const [countdown, setCountdown] = useState('');
     const [simulating, setSimulating] = useState(false);
+    const [cancelButton, setCancelButon] = useState(true);
     const [errorCancel, setErrorCancel] = useState<string | null>(null);
     const [errorSimulate, setErrorSimulate] = useState<string | null>(null);
 
     const expiry = dayjs(transaction.expiry_time);
 
     useEffect(() => {
-        if (!order_id) {
-            router.visit(route('siswa.index'));
+        if (!order_id || transaction.status === 'success') {
+            router.visit(route('siswa.index', nouid));
             return;
         }
 
@@ -44,7 +45,7 @@ const PaymentInstruction: React.FC<PaymentDataResponse> = ({ order_id, transacti
             const interval = setInterval(updateCountdown, 1000);
             return () => clearInterval(interval);
         }
-    }, [order_id, transaction.expiry_time, expiry]);
+    }, [order_id, transaction, expiry]);
 
     const getStatusBadge = useCallback(() => {
         const statusConfig = {
@@ -84,7 +85,17 @@ const PaymentInstruction: React.FC<PaymentDataResponse> = ({ order_id, transacti
             </span>
         );
     }, [transaction.status]);
+    useEffect(() => {
+        const btn = () => {
+            if (['success', 'failed', 'canceled'].includes(transaction.status)) {
+                setCancelButon(false);
+            } else {
+                setCancelButon(true);
+            }
+        };
 
+        btn();
+    }, [transaction.status]);
     const handleCancel = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -121,9 +132,9 @@ const PaymentInstruction: React.FC<PaymentDataResponse> = ({ order_id, transacti
                     va_number: va,
                     amount: transaction.amount,
                     type: transaction.type,
-                    tah : transaction.tah,
+                    tah: transaction.tah,
                     month: transaction.month,
-                    spr: transaction.spr
+                    spr: transaction.spr,
                 },
                 {
                     onBefore: () => {
@@ -236,19 +247,21 @@ const PaymentInstruction: React.FC<PaymentDataResponse> = ({ order_id, transacti
                         </ol>
                     </div>
 
-                    <div className="mb-6 flex flex-col items-center justify-center space-y-2">
-                        {errorCancel && <p className="text-center text-sm text-red-500">{errorCancel}</p>}
+                    {cancelButton && (
+                        <div className="mb-6 flex flex-col items-center justify-center space-y-2">
+                            {errorCancel && <p className="text-center text-sm text-red-500">{errorCancel}</p>}
 
-                        <button
-                            disabled={transaction.status === 'canceled'}
-                            onClick={handleCancel}
-                            className={`rounded-lg px-4 py-2 font-bold text-white transition-colors ${
-                                transaction.status === 'canceled' ? 'cursor-not-allowed bg-red-300' : 'bg-red-700 hover:bg-red-800'
-                            }`}
-                        >
-                            Batalkan Transaksi
-                        </button>
-                    </div>
+                            <button
+                                disabled={transaction.status === 'canceled'}
+                                onClick={handleCancel}
+                                className={`rounded-lg px-4 py-2 font-bold text-white transition-colors ${
+                                    transaction.status === 'canceled' ? 'cursor-not-allowed bg-red-300' : 'bg-red-700 hover:bg-red-800'
+                                }`}
+                            >
+                                Batalkan Transaksi
+                            </button>
+                        </div>
+                    )}
 
                     <div className="rounded-lg bg-yellow-50 p-4 text-yellow-800">
                         <h3 className="mb-2 font-semibold">Perhatian!</h3>

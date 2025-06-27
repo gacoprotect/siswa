@@ -1,4 +1,5 @@
 import { Modal } from '@/components/ui/Modal';
+import { DataSiswa } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { FaKey } from 'react-icons/fa';
@@ -19,10 +20,10 @@ interface PinPageProps {
 }
 
 const PinPage: React.FC<PinPageProps> = ({ handle, setPage, setOpenSetupPin, hasPin, open, onClose }) => {
-    const { errors, nouid } = usePage<{ errors: Record<string, string>; nouid: string }>().props;
+    const { errors, data: pageData } = usePage<{ errors: Record<string, string>; data: DataSiswa }>().props;
     const { data, setData, post, processing, reset } = useForm<PinFormData>({
         pin: '',
-        nouid: nouid ?? '',
+        nouid: pageData.nouid ?? '',
     });
     const [inputType, setInputType] = useState<'password' | 'text'>('password');
 
@@ -49,7 +50,7 @@ const PinPage: React.FC<PinPageProps> = ({ handle, setPage, setOpenSetupPin, has
             return;
         }
 
-        post(route('siswa.verify-pin', { nouid: nouid, p: handle }), {
+        post(route('siswa.verify-pin', { nouid: pageData.nouid, p: handle }), {
             preserveState: true,
             onSuccess: () => {
                 onClose(true);
