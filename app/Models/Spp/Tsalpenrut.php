@@ -57,7 +57,7 @@ class Tsalpenrut extends Model
     }
     public function getBulanAttribute()
     {
-        return DB::connection('mysql')
+        return DB::connection('mai2')
             ->table('tbulan')
             ->where('bulid', $this->bulid)
             ->value('bul');

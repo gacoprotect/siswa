@@ -20,7 +20,7 @@ const PaymentInstruction: React.FC<PaymentDataResponse> = ({ order_id, transacti
 
     useEffect(() => {
         if (!order_id || transaction.status === 'success') {
-            router.visit(route('siswa.index', nouid));
+            // router.visit(route('siswa.index', nouid));
             return;
         }
 
@@ -45,7 +45,7 @@ const PaymentInstruction: React.FC<PaymentDataResponse> = ({ order_id, transacti
             const interval = setInterval(updateCountdown, 1000);
             return () => clearInterval(interval);
         }
-    }, [order_id, transaction, expiry]);
+    }, [order_id, transaction, expiry, nouid]);
 
     const getStatusBadge = useCallback(() => {
         const statusConfig = {

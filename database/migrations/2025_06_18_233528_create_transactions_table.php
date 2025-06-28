@@ -51,10 +51,13 @@ return new class extends Migration
             $table->enum('status', ['pending', 'success', 'failed'])->default('pending');
             $table->enum('type', ['topup', 'payment', 'withdraw', 'refund'])->default('topup');
 
+            $table->json('spr_id')->nullable();
+            $table->json('jen1')->nullable();
             $table->text('note')->nullable();
             $table->json('pay_data')->nullable();
             $table->text('failure_message')->nullable();
-            $table->timestamp('expiry_time')->nullable();
+            $table->timestamp('expiry_time');
+            $table->timestamp('created_by');
             $table->timestamp('paid_at')->nullable();
 
             $table->timestamps();
@@ -70,12 +73,13 @@ return new class extends Migration
         Schema::connection('mai4')->create('ttrxlog', function (Blueprint $table) {
             $table->id();
             $table->string('nouid', 50)->collation('utf8mb3_general_ci');
-
+            $table->decimal('bb', 16,2);
+            $table->decimal('bb', 16,2);
             $table->unsignedBigInteger('trx_id');
             $table->foreign('trx_id')->references('id')->on('ttrx')->onDelete('cascade');
-
+            $table->string('created_by');
             $table->decimal('amount', 16, 2);
-            $table->enum('action', ['increase', 'decrease']); // untuk mencatat perubahan
+            $table->enum('action', ['increase', 'decrease']);
             $table->text('description')->nullable();
 
             $table->timestamps();

@@ -51,8 +51,11 @@ class OtpController extends Controller
                 ]);
 
                 return back()->withErrors([
-                    'phone' => 'Nomor telepon tidak sesuai dengan data kami',
-                ])->withInput();
+                    'phone' => 'Nomor telepon tidak sesuai',
+                ])->withInput()->with([
+                    'success' => false,
+                    'message' => 'Nomor telepon tidak sesuai'
+                ]);
             }
 
             // Panggil sendOtp langsung dengan membuat request baru
@@ -70,9 +73,11 @@ class OtpController extends Controller
                 ]);
 
                 return back()->with([
+                    'success' => true,
                     'message' => 'Kode OTP telah dikirim ke nomor Anda',
                     'phone' => MaskingHelper::maskPhone($phone)
                 ]);
+               
             }
 
             throw new \Exception('Gagal mengirim OTP: ' . $response->getData()->message);
@@ -82,9 +87,12 @@ class OtpController extends Controller
                 'error' => $e->getMessage()
             ]);
 
-            return back()->withErrors([
+            return back()->withErrors([                
                 'message' => 'Data siswa tidak ditemukan'
-            ])->withInput();
+            ])->withInput()->with([
+                'success' => false,
+                'message' => 'Data siswa tidak ditemukan',
+            ]);
         } catch (\Exception $e) {
             Log::error('Gagal memproses permintaan OTP', [
                 'nouid' => $nouid,
@@ -94,7 +102,10 @@ class OtpController extends Controller
 
             return back()->withErrors([
                 'message' => 'Terjadi kesalahan saat mengirim OTP: ' . $e->getMessage()
-            ])->withInput();
+            ])->withInput()->with([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengirim OTP',
+            ]);
         }
     }
 
@@ -122,7 +133,10 @@ class OtpController extends Controller
             );
         } catch (\Exception $e) {
             Log::error('Gagal menyimpan OTP', ['error' => $e->getMessage()]);
-            return back()->withErrors(['message' => 'Gagal menghasilkan OTP']);
+            return back()->withErrors(['message' => 'Gagal menghasilkan OTP'])->withInput()->with([
+                'success' => false,
+                'message' => 'Terjadi kesalahan server',
+            ]);;
         }
 
         $message = "Kode OTP Anda: $otp, berlaku 5 menit.";
@@ -137,7 +151,10 @@ class OtpController extends Controller
         try {
             $response = Http::timeout(30)->post($this->WAPI_URL, $payload);
             if (!$response) {
-                return back()->withErrors(['message' => 'Gagal mengirim OTP Request Timeout. Silahkan Coba lagi']);
+                return back()->withErrors(['message' => 'Gagal mengirim OTP Request Timeout. Silahkan Coba lagi'])->withInput()->with([
+                'success' => false,
+                'message' => 'Request Timeout. Silakan coba lagi',
+            ]);;
             }
             RateLimiter::hit('send-otp:' . $phone, $this->decayMinutes * 60);
             // Logging yang lebih baik
@@ -148,6 +165,7 @@ class OtpController extends Controller
                 'phone' => $phone
             ]);            // Return Inertia response with flash message
             return back()->with([
+                'success' => true,
                 'message' => 'OTP berhasil dikirim',
                 'expiresAt' => $expiresAt->toDateTimeString()
             ]);
@@ -158,7 +176,10 @@ class OtpController extends Controller
                 'phone' => $phone,
                 'trace' => $e->getTraceAsString()
             ]);
-            return back()->withErrors(['message' => 'Gagal mengirim OTP']);
+            return back()->withErrors(['message' => 'Gagal mengirim OTP'])->withInput()->with([
+                'success' => false,
+                'message' => 'Gagal Mengirim Otp',
+            ]);;
         }
     }
 
@@ -210,11 +231,15 @@ class OtpController extends Controller
             $record->delete();
 
             return back()->with([
-                'message' => 'OTP berhasil diverifikasi'
+                'success' => true,
+                'message' => 'OTP berhasil diverifikasi',
             ]);
         } catch (\Exception $e) {
             Log::error('Gagal verifikasi OTP', ['error' => $e->getMessage()]);
-            return back()->withErrors(['message' => 'Gagal verifikasi OTP']);
+            return back()->withErrors(['message' => 'Gagal verifikasi OTP'])->withInput()->with([
+                'success' => false,
+                'message' => 'Gagal Verifikasi OTP',
+            ]);;
         }
     }
 

@@ -6,7 +6,7 @@ import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () => void; hasPin: boolean; open: boolean; onClose: () => void }) => {
-    const { data: pageData , message, errors, nouid } = usePage<{ message: string; data: DataSiswa; errors: Record<string, string>; nouid: string }>().props;
+    const { data: pageData, errors } = usePage<{ data: DataSiswa; errors: Record<string, string>; nouid: string }>().props;
     const [step, setStep] = useState<'phone' | 'otp' | 'pin'>('phone');
     const [countdown, setCountdown] = useState(0);
     const { data, setData, post, processing, reset } = useForm({
@@ -30,7 +30,7 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
 
     const handlePhoneSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const url = hasPin ? route('siswa.forgot-pin', { nouid: nouid as string }) : route('otp.send', { nouid: nouid as string });
+        const url = hasPin ? route('siswa.forgot-pin', pageData.nouid) : route('otp.send', pageData.nouid);
         post(url, {
             onSuccess: () => {
                 setStep('otp');
@@ -44,7 +44,7 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
 
     const handleOtpSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(`/${nouid}/otp/verify`, {
+        post(route('otp.verif', pageData.nouid), {
             onSuccess: () => {
                 setStep('pin');
                 if (pinRefs.current[0]) {
@@ -56,7 +56,7 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
 
     const handlePinSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(`/${nouid}/setup-pin`, {
+        post(route('siswa.process-setup-pin', pageData.nouid), {
             onSuccess: () => {
                 onClose();
                 setHasPined();
@@ -67,7 +67,7 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
     };
 
     const resendOtp = () => {
-        post(`/${nouid}/otp/send`, {
+        post(route('otp.send', pageData.nouid), {
             onSuccess: () => {
                 setCountdown(60);
             },
@@ -147,7 +147,7 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                             id="phone"
                             name="phone"
                             autoComplete="tel"
-                            className="block w-full rounded-md border border-gray-300 py-2 pl-12 focus:border-blue-500 focus:ring-blue-500"
+                            className={`block w-full rounded-md border-2 ${errors.phone ? 'border-red-500' : 'border-gray-300'} py-2 pl-12 focus:border-blue-500 focus:ring-blue-500`}
                             placeholder="8123456789"
                             value={data.phone}
                             onChange={(e) => setData('phone', e.target.value.replace(/\D/g, ''))}
@@ -183,7 +183,7 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                 <p className="mt-2 text-center text-sm text-gray-600">Masukkan 6 digit kode OTP yang dikirim ke +62{data.phone}</p>
             </div>
 
-            {errors && <div className="text-center text-sm text-red-500">{errors.message}</div>}
+            {errors.message && <div className="text-center text-sm text-red-500">{errors.message}</div>}
 
             <form onSubmit={handleOtpSubmit} className="space-y-6">
                 <div className="flex justify-center space-x-2">
@@ -200,7 +200,7 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                             required
                             autoComplete="off"
                             className={`h-12 w-12 rounded-md border text-center text-2xl focus:ring-1 focus:outline-none ${
-                                errors.otp ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                                errors ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
                             }`}
                             value={data.otp[index] || ''}
                             onChange={(e) => handleOtpChange(e, index)}
@@ -347,17 +347,11 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
     );
 
     return (
-        <Modal isOpen={open} onClose={onClose}>
+        <Modal isOpen={open} onClose={onClose} header={false}>
             <div className="flex items-center justify-center">
                 <Head title={step === 'phone' ? 'Daftar Nomor HP' : step === 'otp' ? 'Verifikasi OTP' : 'Buat PIN'} />
 
                 <div className="w-full max-w-md rounded-lg">
-                    {message && (
-                        <div className={`mb-4 text-center text-sm ${message.includes('berhasil') ? 'text-green-600' : 'text-red-500'}`}>
-                            {message}
-                        </div>
-                    )}
-
                     {step === 'phone' && renderPhoneStep()}
                     {step === 'otp' && renderOtpStep()}
                     {step === 'pin' && renderPinStep()}

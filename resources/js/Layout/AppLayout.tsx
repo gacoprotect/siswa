@@ -1,6 +1,7 @@
-import { Head } from '@inertiajs/react';
-import React from 'react';
-import { ToastContainer } from 'react-toastify';
+import { SharedData } from '@/types';
+import { Head, usePage } from '@inertiajs/react';
+import React, { useEffect } from 'react';
+import { toast, ToastContainer } from 'react-toastify';
 
 type AppLayoutProps = {
     children: React.ReactNode;
@@ -9,6 +10,23 @@ type AppLayoutProps = {
 };
 
 const AppLayout = ({ children, title, className = '' }: AppLayoutProps) => {
+    const { errors, flash} = usePage<SharedData>().props
+     useEffect(() => {
+            const allErrors = Object.values(errors || {});
+            allErrors.forEach((err) => {
+                console.log(err);
+                // toast.error(err, { toastId: `err-${err}` });
+            });
+        }, [errors]);
+        useEffect(() => {
+            if (flash?.message) {
+                if (flash.success === true) {
+                    toast.success(flash.message, { toastId: `flash-${flash.message}` });
+                } else if (flash.success === false) {
+                    toast.error(flash.message, { toastId: `flash-${flash.message}` });
+                }
+            }
+        }, [flash]);
     return (
         <div className="min-h-screen">
             <Head title={title} />

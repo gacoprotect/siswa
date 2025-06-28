@@ -90,25 +90,35 @@ class TagihanController extends Controller
             'bul' => 'required|string',
             'tah' => 'required|string',
         ]);
-        $bulan = DB::connection('mysql')->table('tbulan')
-            ->where('bul', $request->bul)
-            ->first();
-        $identitas = Indentitas::with('siswa')->with([
-            'tagihan' => function ($q) use ($bulan, $request) {
-                $q->where('bulid', $bulan->bulid)->where('tah', $request->tah);
+        try {
+
+            $bulan = DB::connection('mai2')->table('tbulan')
+                ->where('bul', $request->bul)
+                ->first();
+            $identitas = Indentitas::with('siswa')->with([
+                'tagihan' => function ($q) use ($bulan, $request) {
+                    $q->where('bulid', $bulan->bulid)->where('tah', $request->tah);
+                }
+            ])->where('nouid', $nouid)->firstOrFail();
+            if (!$identitas) {
+                abort(404, 'Tagihan tidak ditemukan');
             }
-        ])->where('nouid', $nouid)->firstOrFail();
-        if (!$identitas) {
-            abort(404, 'Tagihan tidak ditemukan');
+            $spr = $identitas->tagihan->where('jen', 0)->pluck('id')->toArray();
+            $tahTagihan = $identitas->tagihan->pluck('tah')->first();
+            $totalTagihan = $identitas->tagihan->sum('jumlah');
+            $identitas['total_tagihan'] = $totalTagihan;
+            $identitas['tah_tagihan'] = $tahTagihan;
+            $identitas['bulan_tagihan'] = $bulan->bul;
+            $identitas['spr_tagihan'] = $spr;
+            
+            return Inertia::render('Transaction/Tagihan', ['data' => $identitas]);
+        
+        } catch (\Throwable $th) {
+             return back()->with([
+                'success' => false,
+                'data' => []
+            ]);
         }
-        $spr = $identitas->tagihan->where('jen', 0)->pluck('id')->toArray();
-        $tahTagihan = $identitas->tagihan->pluck('tah')->first();
-        $totalTagihan = $identitas->tagihan->sum('jumlah');
-        $identitas['total_tagihan'] = $totalTagihan;
-        $identitas['tah_tagihan'] = $tahTagihan;
-        $identitas['bulan_tagihan'] = $bulan->bul;
-        $identitas['spr_tagihan'] = $spr;
-        return Inertia::render('Transaction/Tagihan', ['data' => $identitas]);
     }
 
     public function pay(Request $request, $nouid)
@@ -119,15 +129,15 @@ class TagihanController extends Controller
             // Validate input
             $validated = $request->validate([
                 'spr' => 'required|array',
-                'spr.*' => 'integer|exists:mysql2.tsalpenrut,id',
+                'spr.*' => 'integer|exists:mai3.tsalpenrut,id',
                 'tah' => 'required|string',
                 'month' => 'required|string',
-                'payment_method' => 'required|in:saldo,virtual_account',
+                'payment_method' => 'required|exists:mai3.tpt,code',
                 'amount' => 'required|numeric|min:1'
             ]);
 
             // Get month data
-            $bulan = DB::connection('mysql')->table('tbulan')
+            $bulan = DB::connection('mai2')->table('tbulan')
                 ->where('bul', $validated['month'])
                 ->firstOrFail();
 
@@ -148,11 +158,11 @@ class TagihanController extends Controller
                 'phone' => $identitas->siswa->tel,
                 'nouid' => $nouid,
                 'order_id' => $orderId,
+                'pt_id' => getPtId($validated['payment_method']),
                 'amount' => $validated['amount'],
                 'status' => 'pending',
                 'type' => 'payment',
-                'payment_type' => $validated['payment_method'],
-                'va_number' => $validated['payment_method'] === 'virtual_account' ? generateVaNumber() : null,
+                'va_number' => $validated['payment_method'] === 'va' ? generateVaNumber() : null,
                 'note' => $identitas->tagihan->where('jen', 0)->pluck('ket')->implode(', '),
                 'expiry_time' => now()->addHours(6),
             ];
@@ -160,7 +170,7 @@ class TagihanController extends Controller
             // Create transaction
             $transaction = Ttrx::create($transactionData);
 
-            if ($validated['payment_method'] === 'virtual_account') {
+            if ($validated['payment_method'] === 'va') {
                 DB::commit();
                 return redirect()->route('payment.instruction', [
                     'tah' => $request->tah,
@@ -183,9 +193,8 @@ class TagihanController extends Controller
                 throw new \Exception("Failed to update all SPR records");
             }
 
-            // Prepare payment data for mysql2
             $currentDate = now()->format('Y-m-d');
-            $tprId = DB::connection('mysql2')
+            $tprId = DB::connection('mai3')
                 ->table('ttpenrut')
                 ->insertGetId([
                     'nopr' => 'PR' . date('Y') . str_pad($transaction->id, 4, '0', STR_PAD_LEFT),
@@ -206,9 +215,8 @@ class TagihanController extends Controller
                     'updatedby' => 0,
                 ]);
 
-            // Insert payment details for each SPR
             foreach ($sprDetails as $index => $spr) {
-                DB::connection('mysql2')
+                DB::connection('mai3')
                     ->table('ttpenrut1')
                     ->insert([
                         'idpr' => $tprId,

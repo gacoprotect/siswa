@@ -24,13 +24,22 @@ export interface NavItem {
 
 export interface SharedData {
     name: string;
-    quote: { message: string; author: string };
+    errors: Record<string, string[]>;
+    flash: Flash;
     auth: Auth;
     ziggy: Config & { location: string };
     sidebarOpen: boolean;
+    data: { [key: string]: unknown };
     [key: string]: unknown;
 }
-
+export interface Page {
+    component: string;
+    props: ShareData;
+    uri: string;
+    version: string;
+    clearHistory: boolean;
+    encryptHistory: boolean;
+}
 export interface User {
     id: number;
     name: string;
@@ -52,7 +61,7 @@ export interface Siswa {
     balance: number;
     nis?: string;
     nisn?: string;
-    namlen?: string;
+    namlen: string;
     nampan?: string;
     namman?: string;
     temlah?: string;
@@ -159,4 +168,8 @@ export interface BillTagihan {
 export interface BillData {
     tagihan: number;
     transactions: BillTagihan[];
+}
+export interface Flash {
+    success: boolean;
+    message: string;
 }

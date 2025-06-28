@@ -21,7 +21,13 @@ interface Summary {
     total_pembayaran: number;
     sisa_tagihan: number;
 }
-
+interface TagihanParam {
+    nouid: string;
+    bul: string;
+    tah: string;
+    spr: number[];
+    tagihan: number;
+}
 const StatCard = ({ title, value, icon, bgColor }: { title: string; value: string; icon: React.ReactNode; bgColor: string }) => (
     <div className={`${bgColor} rounded-lg p-4 shadow-sm`}>
         <div className="flex items-center justify-between">
@@ -34,7 +40,7 @@ const StatCard = ({ title, value, icon, bgColor }: { title: string; value: strin
     </div>
 );
 
-const TagihanContent = ({ nouid }: { nouid: string }) => {
+const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanParam: (v: TagihanParam) => void }) => {
     const isMobile = useIsMobile();
     const [isLoading, setIsLoading] = useState(true);
     const [groupedData, setGroupedData] = useState<GroupedData>({});
@@ -203,13 +209,13 @@ const TagihanContent = ({ nouid }: { nouid: string }) => {
                                                               : getStatusBadge(0)}
                                                     </div>
                                                 </div>
-                                                
+
                                                 {monthData.transactions.some((t) => t.jen === 0 && (t.sta === 0 || t.sta === 1)) && (
                                                     <div
                                                         className={`mb-3 flex items-center ${monthData.transactions.some((t) => t.sta === 0) ? 'justify-between' : 'justify-end'} `}
                                                     >
                                                         {monthData.transactions.some((t) => t.sta === 0) && (
-                                                            <PaymentButton monthData={monthData} nouid={nouid} month={month} />
+                                                            <PaymentButton setparam={(v)=>setTagihanParam(v)} monthData={monthData} nouid={nouid} month={month} />
                                                         )}
                                                         <div className="flex items-center space-x-2">
                                                             <span className="text-sm font-medium text-gray-500">Tagihan:</span>
@@ -233,25 +239,24 @@ const TagihanContent = ({ nouid }: { nouid: string }) => {
                                                               ? getStatusBadge(2)
                                                               : getStatusBadge(0)}
                                                     </div>
-                                                {monthData.transactions.some((t) => t.jen === 0 && (t.sta === 0 || t.sta === 1)) && (
-
-                                                    <div className="flex items-center space-x-2">
-                                                        <span className="text-sm font-medium text-gray-500">Total Tagihan:</span>
-                                                        <span
-                                                            className={`text-lg font-bold ${monthData.tagihan > 0 ? 'text-red-600' : 'text-green-600'}`}
-                                                        >
-                                                            Rp {Math.abs(monthData.tagihan).toLocaleString('id-ID')}
-                                                        </span>
-                                                    </div> )}
+                                                    {monthData.transactions.some((t) => t.jen === 0 && (t.sta === 0 || t.sta === 1)) && (
+                                                        <div className="flex items-center space-x-2">
+                                                            <span className="text-sm font-medium text-gray-500">Total Tagihan:</span>
+                                                            <span
+                                                                className={`text-lg font-bold ${monthData.tagihan > 0 ? 'text-red-600' : 'text-green-600'}`}
+                                                            >
+                                                                Rp {Math.abs(monthData.tagihan).toLocaleString('id-ID')}
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 {monthData.transactions.some((t) => t.jen === 0 && (t.sta === 0 || t.sta === 1)) && (
                                                     <div
                                                         className={`mb-3 flex items-center ${monthData.transactions.some((t) => t.sta === 0) ? 'justify-between' : 'justify-end'} `}
                                                     >
                                                         {monthData.transactions.some((t) => t.sta === 0) && (
-                                                            <PaymentButton monthData={monthData} nouid={nouid} month={month} />
+                                                            <PaymentButton setparam={(v)=>setTagihanParam(v)} monthData={monthData} nouid={nouid} month={month} />
                                                         )}
-                                                        
                                                     </div>
                                                 )}
                                             </div>

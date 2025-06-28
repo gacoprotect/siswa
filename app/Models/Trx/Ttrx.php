@@ -29,11 +29,14 @@ class Ttrx extends Model
         'va_number',
         'status',
         'type',
+        'spr_id',
+        'jen1',
         'note',
         'pay_data',
         'failure_message',
         'expiry_time',
         'paid_at',
+        'created_by',
     ];
     protected $hidden = [
         'bank_id',
@@ -42,6 +45,8 @@ class Ttrx extends Model
     ];
     protected $casts = [
         'pay_data' => 'array',
+        'spr_id' => 'array',
+        'jen1' => 'array',
         'expiry_time' => 'datetime',
         'amount' => 'decimal:2',
         'type' => 'string',

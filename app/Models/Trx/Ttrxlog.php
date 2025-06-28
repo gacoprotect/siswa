@@ -16,8 +16,11 @@ class Ttrxlog extends Model
     protected $fillable = [
         'nouid',
         'trx_id',
+        'bb',
+        'ab',
         'amount',
         'action',
         'description',
+        'created_by',
     ];
 }

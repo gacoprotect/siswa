@@ -22,21 +22,24 @@ import { FiLogOut } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { route } from 'ziggy-js';
 import Topup from '../Topup';
+import PaymentPage from '../Transaction/Tagihan';
 import PinPage from './Pin';
 import SetupPinPage from './SetupPin';
 import TagihanContent from './TagihanContent';
 
 // Type definitions
-type PageState = 'index' | 'topup' | 'riwayat';
+type PageState = 'index' | 'topup' | 'riwayat' | 'tagihan';
 type ModalState = 'pin' | 'setupPin' | null;
-interface Flash {
-    success: boolean;
-    message: string;
-}
 
+interface TagihanParam {
+    nouid: string;
+    bul: string;
+    tah: string;
+    spr: number[];
+    tagihan: number;
+}
 export default function SiswaDashboard() {
-    const { flash, errors, auth, data } = usePage<{
-        flash: Flash;
+    const { auth, data } = usePage<{
         auth: Auth;
         data: DataSiswa;
     }>().props;
@@ -48,17 +51,41 @@ export default function SiswaDashboard() {
     const [isHistory, setIsHistory] = useState(false);
     const [hasPined, setHasPined] = useState(data.siswa.has_pin);
     const [openModal, setOpenModal] = useState<ModalState>(null);
+    const [tagihanParam, setTagihanParam] = useState<TagihanParam>({
+        nouid: '',
+        bul: '',
+        tah: '',
+        spr: [],
+        tagihan: 0,
+    });
 
-    useEffect(() => setSiswaData(data), [data]);
+    useEffect(() => {
+        setSiswaData(data);
+    }, [data]);
 
-    // Menu configuration
+    const navigateToPage = useCallback(async (newPage: PageState) => {
+        if (newPage === 'riwayat') {
+            setIsHistory(true);
+            setOpenModal('pin');
+        } else {
+            setPage(newPage);
+        }
+    }, []);
     const menuItems = useMemo(
         () => [
             {
                 title: 'Tagihan',
                 icon: <FaFileInvoiceDollar className="h-6 w-6 text-green-600" />,
                 color: 'border-green-700 bg-green-50 hover:bg-green-100',
-                content: <TagihanContent nouid={siswaData.nouid} />,
+                content: (
+                    <TagihanContent
+                        nouid={siswaData.nouid}
+                        setTagihanParam={(v: TagihanParam) => {
+                            setTagihanParam(v);
+                            navigateToPage('tagihan');
+                        }}
+                    />
+                ),
             },
             {
                 title: 'Data Siswa',
@@ -73,7 +100,7 @@ export default function SiswaDashboard() {
                 // content: <EkstrakurikulerContent />,
             },
         ],
-        [siswaData],
+        [siswaData, navigateToPage],
     );
 
     const refreshData = useCallback(async () => {
@@ -89,7 +116,7 @@ export default function SiswaDashboard() {
             if (data.success !== true) {
                 toast.error(data.message || 'Terjadi kesalahan pada server');
             }
-            console.log('RESPONSE DATA : ', data);
+            // console.log('RESPONSE DATA : ', data);
 
             setSiswaData(data.data);
         } catch (err) {
@@ -100,7 +127,8 @@ export default function SiswaDashboard() {
         }
     }, [siswaData]);
 
-    // Modal handlers
+    console.log(tagihanParam);
+
     const openPinModal = useCallback(async () => {
         if (!isLoading) setOpenModal('pin');
     }, [isLoading]);
@@ -114,16 +142,6 @@ export default function SiswaDashboard() {
         if (!success) {
             setIsHistory(false);
             setPage('index');
-        }
-    }, []);
-
-    // Page navigation
-    const navigateToPage = useCallback(async (newPage: PageState) => {
-        if (newPage === 'riwayat') {
-            setIsHistory(true);
-            setOpenModal('pin');
-        } else {
-            setPage(newPage);
         }
     }, []);
 
@@ -148,7 +166,6 @@ export default function SiswaDashboard() {
     // Dynamic content renderer
     const renderActiveContent = useMemo(() => {
         if (activeItem === null) return null;
-
         const item = menuItems[activeItem];
         return item?.content ? (
             <div className="relative rounded-xl border border-t-4 border-gray-800 bg-blue-50 p-2 pt-8 shadow-lg">
@@ -265,8 +282,6 @@ export default function SiswaDashboard() {
 
     return (
         <>
-            {Array.isArray(errors) && errors.length > 0 && errors.map((error: string) => toast.error(error))}
-            {flash.success && toast.success(flash.message)}
             {page === 'index' ? (
                 <AppLayout title={siswaData?.siswa.namlen || 'Login'}>
                     <StudentInfo />
@@ -284,6 +299,15 @@ export default function SiswaDashboard() {
                 <Topup
                     siswa={siswaData.siswa}
                     nouid={siswaData.nouid}
+                    onClose={() => {
+                        setPage('index');
+                        closeModal();
+                        refreshData();
+                    }}
+                />
+            ) : page === 'tagihan' ? (
+                <PaymentPage
+                    tagihanParam={tagihanParam}
                     onClose={() => {
                         setPage('index');
                         closeModal();

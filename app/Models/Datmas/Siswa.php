@@ -23,7 +23,7 @@ class Siswa extends Authenticatable
     public $timestamps = true;
     const CREATED_AT = 'createdat';
     const UPDATED_AT = 'updatedat';
-    protected $appends = ['has_pin'];
+    protected $appends = ['has_pin', 'balance'];
     protected $visible = [
         'balance',
         'has_pin',
@@ -82,9 +82,9 @@ class Siswa extends Authenticatable
         return $this->belongsTo(Indentitas::class, 'idok', 'id');
     }
 
-    public function balance()
+    public function getBalanceAttribute()
     {
-        return $this->belongsTo(Tbalance::class, 'nis', 'nis');
+        return Tbalance::where('nis', $this->nis)->first()->balance;
     }
     public function getAuthPassword()
     {
