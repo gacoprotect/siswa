@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\DataValidator;
 use App\Models\Datmas\Indentitas;
 use App\Models\Trx\Ttrx;
 use App\Models\Spp\Tsalpenrut;
+use App\Models\Trx\Tbalance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -110,11 +112,10 @@ class TagihanController extends Controller
             $identitas['tah_tagihan'] = $tahTagihan;
             $identitas['bulan_tagihan'] = $bulan->bul;
             $identitas['spr_tagihan'] = $spr;
-            
+
             return Inertia::render('Transaction/Tagihan', ['data' => $identitas]);
-        
         } catch (\Throwable $th) {
-             return back()->with([
+            return back()->with([
                 'success' => false,
                 'data' => []
             ]);
@@ -267,5 +268,137 @@ class TagihanController extends Controller
                     'exception' => config('app.debug') ? $e->getMessage() : null,
                 ]);
         }
+    }
+    public function handlePay(Request $req, $nouid)
+    {
+        $v = $req->validate([
+            'spr' => 'integer|exists:mai3.tsalpenrut,id',
+            'jen1' => 'integer|exists:mai3.tsalpenrut,id',
+            'payment_method' => 'required|exists:mai3.tpt,code',
+            'amount' => 'required|numeric|min:1',
+            'orderId' => 'required|numeric|min:1'
+        ]);
+        $pt_id = match ($v['payment_method']) {
+            'va' => 1,
+            'cash' => 2,
+            'wallet' => 3,
+            default => 0,
+        };
+        $bulid = getidTagihan('bulid', $v['orderId']);
+        $tah = getidTagihan('tah', $v['orderId']);
+        $va = $v['payment_method'] === 'va' ? generateVaNumber() : null;
+        $ident = Indentitas::with(['siswa', 'tagihan' => function ($q) use ($bulid, $tah) {
+            $q->where('bulid', $bulid)
+                ->where('tah', $tah)
+                ->where(function ($qu) {
+                    $qu->where('sta', 0)->orWhere('sta', 1);
+                });
+        }])
+            ->where('nouid', $nouid)
+            ->firstOrFail();
+        $tagihan = $ident->tagihan->where('jen', 0);
+        $data = [
+            'siswa' => $ident->siswa,
+            'ttrx' => [
+                'nouid' => $nouid,
+                'order_id' => $v['orderId'],
+                'amount' => $v['amount'],
+                'pt_id' => $pt_id, // va = 1 wallet = 3
+                'phone' => $ident->siswa->tel,
+                'va_number' => $va,
+                'status' => 'pending',
+                'type' => 'payment',
+                'note' => $tagihan->pluck('ket')->implode(', '),
+                'expiry_time' => now()->addHours(6),
+                'spr_id' => $v['spr'],
+                'jen1' => $v['jen1'],
+                'created_by' => 1, // user = 1
+            ]
+        ];
+        if ($v['payment_method'] === 'wallet') {
+            return $this->wallet($data);
+        } else {
+            return response()->json(['message' => 'Metode belum didukung'], 422);
+        }
+    }
+
+    private function wallet($data)
+    {
+        $v = DataValidator::ttrx([$data->ttrx]);
+
+        DB::transaction(function () use ($data) {
+            $trx = Ttrx::create($data->ttrx);
+            Tbalance::where('nouid', $data['nouid'])->decrement('balance', $data['amount']);
+            $this->ttpenrut($data, $trx);
+            // Simpan log atau update status tagihan, dsb
+        });
+
+        return response()->json(['message' => 'Pembayaran wallet berhasil'], 200);
+    }
+
+    private function ttpenrut($data, $trx)
+    {
+        //db connection mai3
+        $v = DataValidator::ttpenrut([
+            'nopr' => 'PR' . date('Y') . str_pad($trx->id, 4, '0', STR_PAD_LEFT),
+            'tgl' => now()->format('Y-m-d'),
+            'idsis' => $data->siswa->id,
+            'via' => 'required|integer|min:0|max:255', //1
+            'idkas' => 'required|integer', // 2
+            'nova' => 'nullable|string|max:30', // null
+            'ket' =>'Pembayaran '. $data->ttrx->note,
+            'jum' => $data->ttrx->amount,
+            'cat' => 'nullable|string|max:100', //null
+            'cet' => 'required|integer|min:0|max:1', // 0
+            'dar' => 'required|integer|min:0|max:255', // 0 
+            'sta' => 'required|integer|min:0|max:255', // 0
+            'stapos' => 'required|integer|min:0|max:255', // 0
+            'rev' => 'required|integer|min:0|max:255', // 0
+            'createdby' => 'required|integer', // 1
+            'updatedby' => 'required|integer', // 0
+        ]);
+        $v1 = DataValidator::ttpenrut1([
+            'idpr' => 'required|integer',// id ttpenrut
+            'nmr' => 'required|integer|min:1|max:255',
+            'idspr' => $data->ttrx->spr_id,
+            'ket' => 'nullable|string|max:100',
+            'jum' => $data->ttrx->amount,
+            'idcoa' => 'required|integer', // 0
+            'nolai' => 'nullable|string|max:20',// null
+            'salpr' => 'required|integer|min:0|max:1', // 0
+            'sta' => 'nullable|integer|min:0|max:255', // null
+            'stapos' => 'required|integer|min:0|max:255', //0
+            'createdby' => 'required|integer',// 1
+            'updatedby' => 'required|integer', // 0
+        ]);
+
+         DB::transaction(function () use ($data) {
+            
+         });
+    }
+    private function va($data, $nouid)
+    {
+        /**
+         * 'nouid' => 'required|string|max:50',
+            'order_id' => 'required|string|max:255|unique:ttrx,order_id',
+            'amount' => 'required|numeric|min:0',
+            'bank_id' => 'nullable|integer|exists:tbank,id',
+            'pt_id' => 'nullable|integer|exists:tpt,id',
+            'phone' => 'required|string|max:255',
+            'va_number' => 'nullable|string|max:255',
+            'status' => 'required|in:pending,success,failed',
+            'type' => 'required|in:topup,payment,withdraw,refund',
+            'note' => 'nullable|string',
+            'pay_data' => 'nullable|json',
+            'failure_message' => 'nullable|string',
+            'expiry_time' => 'nullable|date',
+            'paid_at' => 'nullable|date',
+            // Validasi field baru
+            'spr_id' => 'nullable|json|exists:mai3.tsalpenrut,id',
+            'jen1' => 'nullable|json',
+            'created_by' => 'required|string|max:255',
+         */
+        $v = DataValidator::ttrx([$data]);
+        DB::transaction(function () use ($data, $nouid) {});
     }
 }
