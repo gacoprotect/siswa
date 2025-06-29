@@ -25,16 +25,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::connection('mai4')->create('tbalance', function (Blueprint $table) {
-            $table->string('nouid', 50)->primary(); // satu user satu saldo
-            $table->string('nis', 50);
-            $table->decimal('balance', 16, 2)->default(0);
-
-            $table->timestamps();
-
-            $table->index('nis');
-        });
-
         Schema::connection('mai4')->create('ttrx', function (Blueprint $table) {
             $table->id();
 
@@ -48,16 +38,16 @@ return new class extends Migration
             $table->string('phone');
             $table->string('va_number')->nullable();
 
-            $table->enum('status', ['pending', 'success', 'failed'])->default('pending');
+            $table->enum('status', ['pending', 'success', 'failed', 'canceled'])->default('pending');
             $table->enum('type', ['topup', 'payment', 'withdraw', 'refund'])->default('topup');
 
-            $table->json('spr_id')->nullable();
-            $table->json('jen1')->nullable();
+            $table->integer('spr_id')->nullable()->collation('utf8mb3_general_ci'); // idspr
+            $table->json('jen1')->nullable(); // idspr jen=1
             $table->text('note')->nullable();
             $table->json('pay_data')->nullable();
             $table->text('failure_message')->nullable();
             $table->timestamp('expiry_time');
-            $table->timestamp('created_by');
+            $table->integer('created_by');
             $table->timestamp('paid_at')->nullable();
 
             $table->timestamps();
@@ -72,17 +62,41 @@ return new class extends Migration
 
         Schema::connection('mai4')->create('ttrxlog', function (Blueprint $table) {
             $table->id();
-            $table->string('nouid', 50)->collation('utf8mb3_general_ci');
-            $table->decimal('bb', 16,2);
-            $table->decimal('bb', 16,2);
+            $table->string('nouid', 50)->collation('utf8mb3_general_ci'); //key atau index
+            $table->string('nis', 50);
+            $table->decimal('bb', 16, 2); // before balance
+            $table->decimal('ab', 16, 2); // after balance
             $table->unsignedBigInteger('trx_id');
             $table->foreign('trx_id')->references('id')->on('ttrx')->onDelete('cascade');
-            $table->string('created_by');
+            
             $table->decimal('amount', 16, 2);
             $table->enum('action', ['increase', 'decrease']);
             $table->text('description')->nullable();
+            $table->integer('created_by');
 
+            
+            $table->index('nouid');
+            $table->index('nis');
             $table->timestamps();
+        });
+
+        Schema::connection('mai4')->create('paidbill', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('trx_id')->unique(); // Referensi ke ttrx
+            $table->string('nouid', 50)->collation('utf8mb3_general_ci');
+            $table->integer('spr_id')->nullable()->collation('utf8mb3_general_ci'); // idspr
+            $table->json('jen1')->nullable(); // idspr jen=1
+            $table->decimal('amount', 16, 2); // Jumlah dibayar
+            $table->timestamp('paid_at')->useCurrent(); // Waktu pembayaran
+            $table->text('note')->nullable(); // Keterangan jika ada
+            $table->string('created_by'); // Admin/user yang membuat
+            $table->timestamps();
+
+            // Foreign Key Constraints
+            $table->foreign('trx_id')->references('id')->on('ttrx')->onDelete('cascade');
+
+            // Indexing
+            $table->index('nouid');
         });
     }
 
@@ -91,9 +105,9 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::connection('mai4')->dropIfExists('paidbill');
         Schema::connection('mai4')->dropIfExists('ttrxlog');
         Schema::connection('mai4')->dropIfExists('ttrx');
-        Schema::connection('mai4')->dropIfExists('tbalance');
         Schema::connection('mai4')->dropIfExists('tbank');
         Schema::connection('mai4')->dropIfExists('tpt');
     }

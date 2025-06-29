@@ -170,6 +170,6 @@ export interface BillData {
     transactions: BillTagihan[];
 }
 export interface Flash {
-    success: boolean;
-    message: string;
+    success: boolean | null;
+    message: string | null;
 }

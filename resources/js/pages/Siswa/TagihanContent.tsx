@@ -22,10 +22,9 @@ interface Summary {
     sisa_tagihan: number;
 }
 interface TagihanParam {
-    nouid: string;
-    bul: string;
-    tah: string;
-    spr: number[];
+    nouid: string | null;
+    spr: number | null;
+    jen1: number[] | [];
     tagihan: number;
 }
 const StatCard = ({ title, value, icon, bgColor }: { title: string; value: string; icon: React.ReactNode; bgColor: string }) => (

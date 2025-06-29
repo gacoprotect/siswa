@@ -15,9 +15,10 @@ class Ttrxlog extends Model
     public $timestamps = true;
     protected $fillable = [
         'nouid',
-        'trx_id',
+        'nis',
         'bb',
         'ab',
+        'trx_id',
         'amount',
         'action',
         'description',

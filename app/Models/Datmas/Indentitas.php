@@ -25,6 +25,7 @@ class Indentitas extends Model
         'createdby',
         'updatedby',
     ];
+    
     protected $visible = [
         'idok',
         'nouid',

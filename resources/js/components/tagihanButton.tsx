@@ -2,76 +2,65 @@ import { BillTagihan } from '@/types';
 import { FaFileInvoiceDollar } from 'react-icons/fa';
 
 interface HandleBayarParams {
-    tah: string;
     tagihan: number;
-    spr: number[];
-    month: string;
+    spr: number | null;
     jen1: number[];
 }
-interface TagihanParam {
+
+interface TagihanParam extends HandleBayarParams {
     nouid: string;
-    bul: string;
-    tah: string;
-    spr: number[];
-    jen1: number[];
-    tagihan: number;
 }
+
 interface MonthData {
     tagihan: number;
     transactions: BillTagihan[];
 }
+
 interface Props {
     setparam: (v: TagihanParam) => void;
     monthData: MonthData;
     nouid: string;
-    month: string; // Tambahkan prop month
+    month?: string; 
 }
 
-const PaymentButton: React.FC<Props> = ({ setparam, monthData, nouid, month }) => {
-    const handleBayar = ({ tagihan, spr, tah, jen1 }: HandleBayarParams) => {
+const PaymentButton: React.FC<Props> = ({ setparam, monthData, nouid }) => {
+    const handleBayar = ({ tagihan, spr, jen1 }: HandleBayarParams) => {
         setparam({
-            tah: tah,
-            bul: month,
-            spr: spr,
-            jen1: jen1,
-            tagihan: tagihan,
-            nouid: nouid,
+            spr,
+            jen1,
+            tagihan,
+            nouid,
         });
-        // router.get(route('tagihan.show', { nouid, bul: month }), {
-        //     tah: tah,
-        //     spr: spr,
-        //     tagihan: tagihan,
-        //     nouid: nouid,
-        // });
     };
 
-    const totalTagihan = monthData.transactions.filter((t) => t.sta === 0).reduce((sum, t) => sum + t.jumlah, 0);
-    const sppTransaction = monthData.transactions.find((t) => t.jen === 0);
-    const trxjen1 = monthData.transactions.find((t) => t.jen === 1);
+    // Precompute transactions data
+    const unpaidTransactions = monthData.transactions.filter((t) => t.sta === 0);
+    const hasUnpaid = unpaidTransactions.length > 0;
+    const totalTagihan = unpaidTransactions.reduce((sum, t) => sum + t.jumlah, 0);
+
+    // Get SPR values with null checks
+    const sppSpr = monthData.transactions.find((t) => t.jen === 0)?.spr ?? null;
+    const jen1Sprs = monthData.transactions.filter((t) => t.jen === 1 && t.spr !== undefined && t.spr !== null).map((t) => t.spr as number);
+
+    if (!hasUnpaid) {
+        return null;
+    }
+
     return (
-        <>
-            {monthData.transactions.some((t) => t.sta === 0) && (
-                <button
-                    onClick={() =>
-                        handleBayar({
-                            tah: sppTransaction?.tah ?? '',
-                            tagihan: totalTagihan,
-                            spr: Array.isArray(sppTransaction?.spr)
-                                ? sppTransaction?.spr
-                                : typeof sppTransaction?.spr === 'number'
-                                  ? [sppTransaction.spr]
-                                  : [],
-                            month,
-                            jen1: Array.isArray(trxjen1?.spr) ? trxjen1?.spr : typeof trxjen1?.spr === 'number' ? [trxjen1.spr] : [],
-                        })
-                    }
-                    className="flex items-center gap-2 rounded-lg bg-green-600 p-2 text-sm text-white transition-colors hover:bg-green-700"
-                >
-                    <FaFileInvoiceDollar className="text-lg" />
-                    Bayar Sekarang
-                </button>
-            )}
-        </>
+        <button
+            onClick={() =>
+                handleBayar({
+                    tagihan: totalTagihan,
+                    spr: sppSpr,
+                    jen1: jen1Sprs,
+                })
+            }
+            className="flex items-center gap-2 rounded-lg bg-green-600 p-2 text-sm text-white transition-colors hover:bg-green-700"
+            aria-label="Bayar tagihan sekarang"
+        >
+            <FaFileInvoiceDollar className="text-lg" />
+            Bayar Sekarang
+        </button>
     );
 };
 

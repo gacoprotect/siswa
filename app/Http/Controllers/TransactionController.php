@@ -2,10 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\DataValidator;
+use App\Models\Datmas\Indentitas;
+use App\Models\Spp\Tsalpenrut;
+use App\Models\Trx\PaidBill;
 use App\Models\Trx\Ttrx;
+use App\Models\Trx\Ttrxlog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class TransactionController extends Controller
@@ -106,5 +112,162 @@ class TransactionController extends Controller
         $transaction->save();
 
         return response()->json(['message' => 'Callback processed']);
+    }
+
+
+    public static function createTrx(array $data): ?Ttrx
+    {
+        try {
+            $v = DataValidator::ttrx($data);
+
+            return DB::connection('mai4')->transaction(function () use ($v) {
+                return Ttrx::create($v);
+            });
+        } catch (\Throwable $e) {
+            logger()->error('Gagal membuat transaksi', [
+                'error' => $e->getMessage(),
+                'data' => $data,
+            ]);
+            return null;
+        }
+    }
+
+    public static function createTrxLog(array $data): ?Ttrxlog
+    {
+        try {
+            $v = DataValidator::ttrxlog($data);
+
+            return DB::connection('mai4')->transaction(function () use ($v) {
+                return Ttrxlog::create($v);
+            });
+        } catch (\Throwable $e) {
+            logger()->error('Gagal membuat log transaksi', [
+                'error' => $e->getMessage(),
+                'data' => $data,
+            ]);
+            return null;
+        }
+    }
+    public static function createPaidBill(array $data): ?Ttrxlog
+    {
+        try {
+            $v = DataValidator::paidbill($data);
+
+            return DB::connection('mai4')->transaction(function () use ($v) {
+                return PaidBill::create($v);
+            });
+        } catch (\Throwable $e) {
+            logger()->error('createPaidBill: #Gagal membuat Tagihan', [
+                'error' => $e->getMessage(),
+                'data' => $data,
+            ]);
+            return null;
+        }
+    }
+
+
+    public function simulateVa(Request $request, $nouid)
+    {
+        $validated = $request->validate([
+            'va_number' => 'required|numeric',
+            'order_id' => 'required|string',
+        ]);
+
+        // Inisialisasi flag transaksi
+        $mainDbTransaction = false;
+        $mai2DbTransaction = false;
+        $mai3DbTransaction = false;
+
+        try {
+            DB::beginTransaction();
+            $mainDbTransaction = true;
+
+            DB::connection('mai2')->beginTransaction();
+            $mai2DbTransaction = true;
+
+            DB::connection('mai3')->beginTransaction();
+            $mai3DbTransaction = true;
+
+            $transaction = Ttrx::where('nouid', $nouid)
+                ->where('order_id', $validated['order_id'])
+                ->where('va_number', $validated['va_number'])
+                ->firstOrFail();
+
+            $currentBalance = Ttrxlog::where('nouid', $nouid)
+                ->orderByDesc('id')
+                ->value('ab') ?? 0;
+
+            $bulid = getidTagihan('bulid', $validated['order_id']);
+            $tah = getidTagihan('tah', $validated['order_id']);
+
+            $identitas = Indentitas::with(['siswa', 'tagihan' => function ($q) use ($bulid, $tah) {
+                $q->where('bulid', $bulid)->where('tah', $tah);
+            }])->where('nouid', $nouid)->firstOrFail();
+
+            $bb = $currentBalance;
+            $ab = match ($transaction->type) {
+                'topup', 'refund' => $bb + $transaction->amount,
+                'payment', 'withdraw' => $bb - $transaction->amount,
+                default => throw new \Exception("Unknown transaction type : " . $transaction->type),
+            };
+            $action = match ($transaction->type) {
+                'topup', 'refund' => 'increase',
+                'payment', 'withdraw' => 'decrease',
+            };
+
+            $dataLog = [
+                'nouid' => $nouid,
+                'nis' => $identitas->siswa->nis,
+                'bb' => $bb,
+                'ab' => $ab,
+                'amount' => $transaction->amount,
+                'trx_id' => $transaction->id,
+                'action' => $action,
+                'description' => $transaction->note,
+                'created_by' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+
+            if ($transaction->type === 'payment') {
+                if ($transaction->spr_id) {
+                    $sprExists = Tsalpenrut::where('id', $transaction->spr_id)->exists();
+                    if (!$sprExists) {
+                        throw new \Exception("SPR record not found");
+                    }
+
+                    Tsalpenrut::where('id', $transaction->spr_id)->update(['sta' => 2]);
+                }
+            }
+
+            // Catat log dan update status transaksi
+           $log = $this->createTrxLog($dataLog);
+           if (!$log) {
+            throw new \Exception("Transaksi gagal : ".$log);
+           }
+            $transaction->update(['status' => 'success']);
+
+            // Commit semua DB
+            DB::commit();
+            DB::connection('mai2')->commit();
+            DB::connection('mai3')->commit();
+
+            return back()->with([
+                'success' => true,
+                'message' => 'Simulasi pembayaran berhasil',
+                'transaction' => $transaction->fresh(),
+            ]);
+        } catch (\Exception $e) {
+            logger()->error('Payment simulation failed: ' . $e->getMessage());
+
+            if ($mai3DbTransaction) DB::connection('mai3')->rollBack();
+            if ($mai2DbTransaction) DB::connection('mai2')->rollBack();
+            if ($mainDbTransaction) DB::rollBack();
+
+            return back()->with([
+                'success' => false,
+                'message' => 'Simulasi pembayaran gagal: ' . $e->getMessage(),
+            ])->withInput();
+        }
     }
 }

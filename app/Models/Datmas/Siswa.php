@@ -6,6 +6,8 @@ use App\Helpers\MaskingHelper;
 use App\Models\Trx\Ttrx;
 use App\Models\Spp\Tsalpenrut;
 use App\Models\Trx\Tbalance;
+use App\Models\Trx\Ttrxlog;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\Auth;
@@ -81,17 +83,24 @@ class Siswa extends Authenticatable
     {
         return $this->belongsTo(Indentitas::class, 'idok', 'id');
     }
-
-    public function getBalanceAttribute()
+    public function trxlogs()
     {
-        return Tbalance::where('nis', $this->nis)->first()->balance;
+        return $this->hasMany(Ttrxlog::class, 'nis', 'nis');
+    }
+    public function balance(): Attribute
+    {
+        return Attribute::get(function () {
+            $latestLog = $this->trxlogs()
+                ->orderByDesc('id')
+                ->first(['ab', 'created_at']);
+
+            return $latestLog ? $latestLog->ab : 0;
+        });
     }
     public function getAuthPassword()
     {
         return $this->password;
     }
-
-
     public function setPinAttribute($value)
     {
         $this->attributes['pin'] = Hash::make($value);
@@ -123,5 +132,33 @@ class Siswa extends Authenticatable
             'kel'    => MaskingHelper::maskClass($this->kel),
             'tel'    => MaskingHelper::maskPhone($this->tel),
         ];
+    }
+
+    public function getBalanceTrx()
+    {
+        // Ambil semua nouid relasi (kalau banyak entitas)
+        $nouids = $this->identitas()->pluck('nouid')->toArray();
+
+        // Jika kosong, fallback ke nouid utama
+        if (empty($nouids)) {
+            $nouids = [$this->nouid];
+        }
+
+        // Total pemasukan
+        $totalMasuk = (float) Ttrx::whereIn('nouid', $nouids)
+            ->where('status', 'success')
+            ->whereIn('type', ['topup', 'refund'])
+            ->sum('amount');
+
+        // Total pengeluaran (hanya dari saldo)
+        $totalKeluar = (float) Ttrx::whereIn('nouid', $nouids)
+            ->where('status', 'success')
+            ->where(function ($query) {
+                $query->whereIn('type', ['payment', 'withdraw'])
+                    ->where('pt_id', 3);
+            })
+            ->sum('amount');
+
+        return $totalMasuk - $totalKeluar;
     }
 }

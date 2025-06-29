@@ -14,7 +14,7 @@ class SiswaController extends Controller
     public function index($nouid)
     {
 
-        $ident = Tbalance::with('siswa')->where('nouid', $nouid)->firstOrFail();
+        $ident = Indentitas::with('siswa')->where('nouid', $nouid)->firstOrFail();
         if (!$ident) {
             abort(404, 'Data siswa tidak ditemukan');
         }

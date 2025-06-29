@@ -1,10 +1,9 @@
 import AppLayout from '@/Layout/AppLayout';
 import { initialSiswa } from '@/lib/initial';
-import { Flash, Siswa } from '@/types';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Siswa } from '@/types';
+import { Head, useForm } from '@inertiajs/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { FaArrowAltCircleLeft, FaSpinner } from 'react-icons/fa';
-import { toast } from 'react-toastify';
 
 interface TagihanItem {
     id: number;
@@ -20,18 +19,19 @@ interface PaymentData {
     idok: number;
     nouid: string;
     sta: number;
-    spr_tagihan: number[];
+    spr_tagihan: number;
     tah_tagihan: string;
     total_tagihan: number;
     bulan_tagihan: string;
     siswa: Siswa;
     tagihan: TagihanItem[];
+    orderId: string;
+    jen1: number[];
 }
 interface TagihanParam {
-    nouid: string;
-    bul: string;
-    tah: string;
-    spr: number[];
+    nouid: string | null;
+    spr: number | null;
+    jen1: number[] | [];
     tagihan: number;
 }
 interface PaymentPageProps {
@@ -41,35 +41,39 @@ interface PaymentPageProps {
 }
 
 const PaymentPage: React.FC<PaymentPageProps> = ({ tagihanParam, onClose }) => {
-    const { errors, flash } = usePage<{ flash: Flash }>().props;
     const [isLoading, setIsLoading] = useState(true);
     const [exist, setExist] = useState(false);
     const [InitialData, setInitialData] = useState<PaymentData>({
         idok: 0,
         nouid: '',
         sta: 0,
-        spr_tagihan: [],
+        spr_tagihan: 0,
         tah_tagihan: '',
         total_tagihan: 0,
         bulan_tagihan: '',
         siswa: initialSiswa,
         tagihan: [],
+        jen1: [],
+        orderId: '',
     });
-    const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'virtual_account'>('wallet');
+    const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'va'>('wallet');
     const { data, post, processing, setData } = useForm({
         spr: InitialData.spr_tagihan,
-        tah: InitialData.tah_tagihan,
-        month: InitialData.bulan_tagihan,
+        jen1: InitialData.jen1,
         nouid: InitialData.nouid,
         payment_method: paymentMethod,
         amount: InitialData.total_tagihan,
+        orderId: InitialData.orderId,
         uri: null,
     });
-
     const fetchPaymentData = useCallback(async () => {
         setIsLoading(true);
         try {
-            const response = await fetch(route('api.tagihan', tagihanParam.nouid), {
+            if (!tagihanParam.nouid) {
+                throw new Error('Tagihan tidak ditemukan');
+            }
+            const url = route('api.tagihan', { nouid: tagihanParam.nouid });
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -91,19 +95,26 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ tagihanParam, onClose }) => {
                 setData((prev) => ({
                     ...prev,
                     spr: data.data.spr_tagihan,
+                    jen1: data.data.jen1,
                     tah: data.data.tah_tagihan,
                     month: data.data.bulan_tagihan,
                     nouid: data.data.nouid,
                     amount: data.data.total_tagihan,
                     uri: data.redirect ?? null,
+                    orderId: data.data.orderId,
                 }));
             }
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Terjadi kesalahan');
+            console.error(error instanceof Error ? error.message : 'Terjadi kesalahan');
+            setTimeout(() => {
+                onClose?.();
+            }, 1000);
         } finally {
-            await setIsLoading(false);
+            setTimeout(async () => {
+                await setIsLoading(false);
+            }, 1000);
         }
-    }, [tagihanParam, setData]);
+    }, [tagihanParam, setData, onClose]);
 
     useEffect(() => {
         fetchPaymentData();
@@ -115,7 +126,13 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ tagihanParam, onClose }) => {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('tagihan.pay', InitialData.nouid));
+        post(route('tagihan.pay', InitialData.nouid), {
+            onSuccess: () => {
+                setTimeout(() => {
+                    onClose?.();
+                }, 5000);
+            },
+        });
     };
 
     const formatCurrency = (amount: number): string => {
@@ -132,9 +149,6 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ tagihanParam, onClose }) => {
     return (
         <AppLayout>
             <Head title="Pembayaran Tagihan" />
-
-            {Array.isArray(errors) && errors.length > 0 && errors.map((error: string) => toast.error(error))}
-            {flash.success && toast.success(flash.message)}
             <div className="min-h-screen overflow-hidden rounded-lg bg-white shadow-md">
                 <div className="flex items-center justify-between bg-primary px-4 py-4 text-primary-foreground">
                     <button onClick={onClose} className="flex items-center space-x-2 transition-opacity hover:opacity-80" aria-label="Kembali">
@@ -213,8 +227,10 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ tagihanParam, onClose }) => {
                                     Anda memiliki transaksi yang belum selesai. Silakan selesaikan transaksi sebelumnya untuk melanjutkan.
                                 </p>
                                 <button
-                                    onClick={() => { if (typeof data.uri === 'string') window.location.href = data.uri;console.log(data.uri);
-                                     }} // ganti dengan URL dari backend
+                                    onClick={() => {
+                                        if (typeof data.uri === 'string') window.location.href = data.uri;
+                                        console.log(data.uri);
+                                    }} // ganti dengan URL dari backend
                                     className="mt-3 inline-block rounded bg-yellow-600 px-4 py-2 font-medium text-white transition hover:bg-yellow-700"
                                 >
                                     Lanjutkan ke Transaksi
@@ -255,22 +271,20 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ tagihanParam, onClose }) => {
                                         <div className="flex items-start">
                                             <div className="mt-1 flex h-5 items-center">
                                                 <input
-                                                    id="virtual_account"
+                                                    id="va"
                                                     name="payment_method"
                                                     type="radio"
-                                                    checked={paymentMethod === 'virtual_account'}
-                                                    onChange={() => setPaymentMethod('virtual_account')}
+                                                    checked={paymentMethod === 'va'}
+                                                    onChange={() => setPaymentMethod('va')}
                                                     className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
                                                 />
                                             </div>
                                             <div className="ml-3">
-                                                <label htmlFor="virtual_account" className="block text-sm font-medium text-gray-700 sm:text-base">
+                                                <label htmlFor="va" className="block text-sm font-medium text-gray-700 sm:text-base">
                                                     Virtual Account
                                                 </label>
                                                 <div className="mt-1 text-xs text-gray-500 sm:text-sm">
-                                                    {paymentMethod === 'virtual_account' && (
-                                                        <p>Anda akan diarahkan ke halaman pembayaran eksternal</p>
-                                                    )}
+                                                    {paymentMethod === 'va' && <p>Anda akan diarahkan ke halaman pembayaran eksternal</p>}
                                                 </div>
                                             </div>
                                         </div>

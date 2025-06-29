@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\Datmas\Indentitas;
+use App\Models\Spp\Tsalpenrut;
 use App\Models\Trx\Ttrx;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,38 +30,44 @@ class ApiTransactions extends Controller
     {
         try {
             $v = $request->validate([
-                'bul' => 'required|string',
-                'tah' => 'required|string',
+                'nouid' => 'required|string',
+                'spr' => 'required|integer|exists:mai3.tsalpenrut,id',
+                'jen1' => 'sometimes|array',
+                'jen1.*' => 'integer|exists:mai3.tsalpenrut,id',
+                'tagihan' => 'required|integer',
             ]);
+            $jen1Used = !empty($v['jen1']) && Ttrx::whereIn('jen1', $v['jen1'])->exists();
 
-            $bulan = getBulid($v['bul']);
-            if (!$bulan) {
+            $spr = Tsalpenrut::findOrFail($v['spr']);
+            if (!$spr) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Bulan tidak ditemukan.',
+                    'message' => 'Data tidak ditemukan.',
                     'data' => []
                 ], 404);
             }
 
-            $identitas = Indentitas::with('siswa')
-                ->with(['tagihan' => function ($q) use ($bulan, $v) {
-                    $q->where('bulid', $bulan)->where('tah', $v['tah']);
-                }])
-                ->where('nouid', $nouid)
-                ->firstOrFail();
+            $identitas = Indentitas::with(['siswa', 'tagihan' => function ($q) use ($spr, $v, $jen1Used) {
+                $q->where('bulid', $spr->bulid)
+                    ->where('tah', $spr->tah);
 
-            $spr = $identitas->tagihan->where('jen', 0)->pluck('id')->toArray();
-            $tahTagihan = $identitas->tagihan->pluck('tah')->first();
+                if ($jen1Used && !empty($v['jen1'])) {
+                    $q->whereNotIn('id', $v['jen1']);
+                }
+            }])->where('nouid', $v['nouid'])->firstOrFail();
+
             $totalTagihan = $identitas->tagihan->sum('jumlah');
+            $response = $identitas->toArray();
+            $response['jen1'] = $v['jen1'];
+            $response['total_tagihan'] = $totalTagihan;
+            $response['tah_tagihan'] = $spr->tah;
+            $response['bulan_tagihan'] =  $spr->bulid;
+            $response['spr_tagihan'] = $spr->id;
 
-            $identitas['total_tagihan'] = $totalTagihan;
-            $identitas['tah_tagihan'] = $tahTagihan;
-            $identitas['bulan_tagihan'] = $v['bul'];
-            $identitas['spr_tagihan'] = $spr;
-
-            $orderId = 'pay-PR' . $v['tah'] .
-                str_pad($bulan, 2, '0', STR_PAD_LEFT) .
+            $orderId = 'pay-PR' .  $spr->tah .
+                str_pad($spr->id, 2, '0', STR_PAD_LEFT) .
                 $identitas->siswa->nis;
+            $response['orderId'] = $orderId;
 
             $trx = Ttrx::where('order_id', $orderId)->first();
 
@@ -81,14 +88,13 @@ class ApiTransactions extends Controller
                         'nouid' => $nouid,
                         'orderId' => $orderId,
                     ]),
-                    'data' => $identitas,
+                    'data' => $response,
                 ]);
             }
 
-            // Jika tidak ada trx atau status success
             return response()->json([
                 'success' => true,
-                'data' => $identitas,
+                'data' => $response,
             ]);
         } catch (\Throwable $th) {
             return response()->json([

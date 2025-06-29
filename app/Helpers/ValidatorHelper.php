@@ -130,14 +130,14 @@ class DataValidator
         }
     }
 
-    public static function ttrx(array $data): void
+    public static function ttrx(array $data): array
     {
         $validator = Validator::make($data, [
             'nouid' => 'required|string|max:50',
-            'order_id' => 'required|string|max:255|unique:ttrx,order_id',
+            'order_id' => 'required|string|max:255|unique:mai4.ttrx,order_id',
             'amount' => 'required|numeric|min:0',
-            'bank_id' => 'nullable|integer|exists:tbank,id',
-            'pt_id' => 'nullable|integer|exists:tpt,id',
+            'bank_id' => 'nullable|integer|exists:mai4.tbank,id',
+            'pt_id' => 'nullable|integer|exists:mai4.tpt,id',
             'phone' => 'required|string|max:255',
             'va_number' => 'nullable|string|max:255',
             'status' => 'required|in:pending,success,failed',
@@ -147,36 +147,78 @@ class DataValidator
             'failure_message' => 'nullable|string',
             'expiry_time' => 'nullable|date',
             'paid_at' => 'nullable|date',
-            // Validasi field baru
-            'spr_id' => 'nullable|json|exists:mai3.tsalpenrut,id',
-            'jen1' => 'nullable|json',
-            'created_by' => 'required|string|max:255',
+            'spr_id' => 'nullable|integer|exists:mai3.tsalpenrut,id',
+            'jen1' => 'sometimes|array',
+            'jen1.*' => 'integer|exists:mai3.tsalpenrut,id',
+            'created_by' => 'required|integer|max:255',
         ]);
 
         if ($validator->fails()) {
+            logger()->error('Validasi ttrx gagal', [
+                'errors' => $validator->errors(),
+                'input' => $data
+            ]);
             throw new ValidationException($validator);
         }
+
+        return $validator->validated();
     }
 
-    public static function ttrxlog(array $data): void
+    public static function ttrxlog(array $data): array
     {
         $validator = Validator::make($data, [
             'nouid' => 'required|string|max:50',
-            'trx_id' => 'required|integer|exists:ttrx,id',
+            'nis' => 'required|string|max:50',
+            'trx_id' => 'required|integer|exists:mai4.ttrx,id',
             'amount' => 'required|numeric|min:0',
             'action' => 'required|in:increase,decrease',
             'description' => 'nullable|string',
-            // Validasi field baru
             'bb' => 'required|numeric|min:0',
             'ab' => 'required|numeric|min:0',
-            'created_by' => 'required|string|max:255',
+            'created_by' => 'required|integer|max:255',
         ]);
 
         if ($validator->fails()) {
+            logger()->error('Validasi ttrxlog gagal', [
+                'errors' => $validator->errors(),
+                'input' => $data
+            ]);
             throw new ValidationException($validator);
         }
-    }
 
+        return $validator->validated();
+    }
+    public static function paidbill(array $data): array
+    {
+        $validator = Validator::make($data, [
+            'trx_id' => 'required|integer|min:1|exists:mai4.ttrx,id',
+            'nouid' => 'required|string|max:50',
+            'spr_id' => 'nullable|integer|exists:mai3.tsalpenrut,id',            
+            'jen1' => 'sometimes|array',
+            'jen1.*' => 'integer|exists:mai3.tsalpenrut,id',
+            'amount' => 'required|numeric|min:0.01|regex:/^\d{1,14}(\.\d{1,2})?$/',
+            'paid_at' => 'nullable|date_format:Y-m-d H:i:s',
+            'note' => 'nullable|string',
+            'created_by' => 'required|string|max:255'
+        ], [
+            'trx_id.required' => 'Invalid Transaction ID',
+            'trx_id.integer' => 'Invalid Transaction ID',
+            'amount.regex' => 'Invalid amount',
+            'paid_at.date_format' => 'Invalid date',
+            'jen1.json' => 'Invalid Data'
+        ]);
+
+
+        if ($validator->fails()) {
+            logger()->error('Validasi paidbill gagal', [
+                'errors' => $validator->errors(),
+                'input' => $data
+            ]);
+            throw new ValidationException($validator);
+        }
+
+        return $validator->validated();
+    }
     public static function tsalpenrut(array $data): void
     {
         $validator = Validator::make($data, [

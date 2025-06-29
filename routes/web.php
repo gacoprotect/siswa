@@ -40,7 +40,7 @@ Route::middleware(['web', 'verify.nouid'])->group(function () {
         Route::post('/topup/charge', [TopupController::class, 'charge'])->name('topup.charge');
         Route::get('/payment/{orderId}', [TopupController::class, 'paymentInstruction'])->name('payment.instruction');
         Route::post('/payment/{orderId}/cancel-order', [TopupController::class, 'cancel'])->name('transactions.cancel');
-        Route::post('/payment/{orderId}/simulate', [TopupController::class, 'simulate'])->name('payment.simulate');
+        Route::post('/payment/{orderId}/simulate', [TransactionController::class, 'simulateVa'])->name('payment.simulate');
 
         // Transaction history        
         Route::get('/transactions/{orderId}/status', [TransactionController::class, 'checkStatus'])->name('transactions.status');
@@ -49,7 +49,7 @@ Route::middleware(['web', 'verify.nouid'])->group(function () {
         
         Route::get('/tagihan', [TagihanController::class, 'index'])->name('tagihan.index');
         Route::get('/tagihan/pay', [TagihanController::class, 'show'])->name('tagihan.show');
-        Route::post('/tagihan/pay', [TagihanController::class, 'pay'])->name('tagihan.pay');
+        Route::post('/tagihan/pay', [TagihanController::class, 'handlePay'])->name('tagihan.pay');
     });
 });
 

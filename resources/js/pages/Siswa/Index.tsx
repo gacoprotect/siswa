@@ -1,7 +1,8 @@
 import DataSiswaContent from '@/components/siswa/DataSiswaContent';
+import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/Layout/AppLayout';
 import { formatIDR } from '@/lib/utils';
-import { Auth, DataSiswa } from '@/types';
+import { DataSiswa, SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -19,7 +20,6 @@ import {
     FaWallet,
 } from 'react-icons/fa';
 import { FiLogOut } from 'react-icons/fi';
-import { toast } from 'react-toastify';
 import { route } from 'ziggy-js';
 import Topup from '../Topup';
 import PaymentPage from '../Transaction/Tagihan';
@@ -32,17 +32,13 @@ type PageState = 'index' | 'topup' | 'riwayat' | 'tagihan';
 type ModalState = 'pin' | 'setupPin' | null;
 
 interface TagihanParam {
-    nouid: string;
-    bul: string;
-    tah: string;
-    spr: number[];
+    nouid: string | null;
+    spr: number | null;
+    jen1: number[] | [];
     tagihan: number;
 }
 export default function SiswaDashboard() {
-    const { auth, data } = usePage<{
-        auth: Auth;
-        data: DataSiswa;
-    }>().props;
+    const {auth, data } = usePage<SharedData & { data: DataSiswa }>().props;
     // State management
     const [siswaData, setSiswaData] = useState(data);
     const [activeItem, setActiveItem] = useState<number | null>(null);
@@ -52,13 +48,12 @@ export default function SiswaDashboard() {
     const [hasPined, setHasPined] = useState(data.siswa.has_pin);
     const [openModal, setOpenModal] = useState<ModalState>(null);
     const [tagihanParam, setTagihanParam] = useState<TagihanParam>({
-        nouid: '',
-        bul: '',
-        tah: '',
-        spr: [],
+        nouid: null,
+        spr: null,
+        jen1: [],
         tagihan: 0,
     });
-
+    useToast(usePage<SharedData>().props);
     useEffect(() => {
         setSiswaData(data);
     }, [data]);
@@ -108,26 +103,23 @@ export default function SiswaDashboard() {
             setIsLoading(true);
             const res = await fetch(route('api.siswa', siswaData.nouid) + `?nouid=${encodeURIComponent(siswaData.nouid)}`);
             if (!res.ok) {
-                toast.error('Terjadi kesalahan saat mengambil data siswa');
+                console.error('Terjadi kesalahan saat mengambil data siswa');
             }
 
             const data = await res.json();
 
             if (data.success !== true) {
-                toast.error(data.message || 'Terjadi kesalahan pada server');
+                console.error(data.message || 'Terjadi kesalahan pada server');
             }
-            // console.log('RESPONSE DATA : ', data);
 
             setSiswaData(data.data);
         } catch (err) {
             setIsLoading(false);
-            toast.error(err instanceof Error ? err.message : 'Terjadi kesalahan jaringan');
+            console.error(err instanceof Error ? err.message : 'Terjadi kesalahan jaringan');
         } finally {
             setIsLoading(false);
         }
     }, [siswaData]);
-
-    console.log(tagihanParam);
 
     const openPinModal = useCallback(async () => {
         if (!isLoading) setOpenModal('pin');
@@ -161,7 +153,7 @@ export default function SiswaDashboard() {
     }, [siswaData.nouid]);
 
     // Formatted values
-    const formattedSaldo = useMemo(() => formatIDR(siswaData?.balance || 0), [siswaData?.balance]);
+    const formattedSaldo = useMemo(() => formatIDR(siswaData?.siswa.balance || 0), [siswaData?.siswa.balance]);
 
     // Dynamic content renderer
     const renderActiveContent = useMemo(() => {

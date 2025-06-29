@@ -7,9 +7,11 @@ use App\Models\Datmas\Indentitas;
 use App\Models\Trx\Ttrx;
 use App\Models\Spp\Tsalpenrut;
 use App\Models\Trx\Tbalance;
+use App\Models\Trx\Ttrxlog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class TagihanController extends Controller
@@ -269,73 +271,160 @@ class TagihanController extends Controller
                 ]);
         }
     }
-    public function handlePay(Request $req, $nouid)
+    public function handlePay(Request $request, $nouid)
     {
-        $v = $req->validate([
-            'spr' => 'integer|exists:mai3.tsalpenrut,id',
-            'jen1' => 'integer|exists:mai3.tsalpenrut,id',
-            'payment_method' => 'required|exists:mai3.tpt,code',
-            'amount' => 'required|numeric|min:1',
-            'orderId' => 'required|numeric|min:1'
-        ]);
-        $pt_id = match ($v['payment_method']) {
-            'va' => 1,
-            'cash' => 2,
-            'wallet' => 3,
-            default => 0,
-        };
-        $bulid = getidTagihan('bulid', $v['orderId']);
-        $tah = getidTagihan('tah', $v['orderId']);
-        $va = $v['payment_method'] === 'va' ? generateVaNumber() : null;
-        $ident = Indentitas::with(['siswa', 'tagihan' => function ($q) use ($bulid, $tah) {
-            $q->where('bulid', $bulid)
-                ->where('tah', $tah)
-                ->where(function ($qu) {
-                    $qu->where('sta', 0)->orWhere('sta', 1);
-                });
-        }])
-            ->where('nouid', $nouid)
-            ->firstOrFail();
-        $tagihan = $ident->tagihan->where('jen', 0);
-        $data = [
-            'siswa' => $ident->siswa,
-            'ttrx' => [
+        try {
+            $validated = $request->validate([
+                'spr' => 'required|integer|exists:mai3.tsalpenrut,id',
+                'jen1' => 'sometimes|array',
+                'jen1.*' => 'integer|exists:mai3.tsalpenrut,id',
+                'payment_method' => 'required|in:va,cash,wallet',
+                'amount' => 'required|numeric|min:1|max:100000000',
+                'orderId' => 'required|string|max:255'
+            ]);
+            $paymentTypes = [
+                'va' => 1,
+                'cash' => 2,
+                'wallet' => 3
+            ];
+
+            $pt_id = $paymentTypes[$validated['payment_method']] ?? 0;
+            if ($pt_id === 0) {
+                throw new \InvalidArgumentException("Invalid payment method");
+            }
+
+            $vaNumber = $validated['payment_method'] === 'va' ? generateVaNumber() : null;
+
+            $identity = Indentitas::with(['siswa', 'tagihan' => function ($query) use ($validated) {
+                $query->where('id', $validated['spr'])
+                    ->whereIn('sta', [0, 1]);
+            }])->where('nouid', $nouid)
+                ->firstOrFail();
+
+            $tagihanWithJen0 = $identity->tagihan->pluck('ket');
+            logger()->debug('Isi tagihan:', [$tagihanWithJen0]);
+
+            $currentBalance = Ttrxlog::where('nouid', $nouid)
+                ->orderByDesc('id')
+                ->value('ab') ?? 0;
+
+            $transactionData = [
+                'siswa' => $identity->siswa,
+                'ttrx' => [
+                    'nouid' => $nouid,
+                    'order_id' => $validated['orderId'],
+                    'amount' => $validated['amount'],
+                    'pt_id' => $pt_id,
+                    'phone' => $identity->siswa->tel,
+                    'va_number' => $vaNumber,
+                    'status' => 'pending',
+                    'type' => 'payment',
+                    'note' => $identity->tagihan->pluck('ket'),
+                    'expiry_time' => now()->addHours(6),
+                    'spr_id' => $validated['spr'],
+                    'jen1' => $validated['jen1'] ?? [],
+                    'created_by' => 1,
+                ],
+                'log' => [
+                    'nouid' => $nouid,
+                    'nis' => $identity->siswa->nis,
+                    'bb' => $currentBalance,
+                    'ab' => $currentBalance - $validated['amount'],
+                    'amount' => $validated['amount'],
+                    'action' => 'decrease',
+                    'created_by' => 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            ];
+
+            switch ($validated['payment_method']) {
+                // case 'wallet':
+                // return $this->processWalletPayment((object)$transactionData);
+                // case 'va':
+                //     return $this->processVirtualAccountPayment((object)$transactionData);
+                // case 'cash':
+                //     return $this->processCashPayment((object)$transactionData);
+                default:
+                    throw new \InvalidArgumentException("Unsupported payment method");
+            }
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->validator)->withInput();
+        } catch (\Exception $e) {
+            logger()->error('Payment processing failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
                 'nouid' => $nouid,
-                'order_id' => $v['orderId'],
-                'amount' => $v['amount'],
-                'pt_id' => $pt_id, // va = 1 wallet = 3
-                'phone' => $ident->siswa->tel,
-                'va_number' => $va,
-                'status' => 'pending',
-                'type' => 'payment',
-                'note' => $tagihan->pluck('ket')->implode(', '),
-                'expiry_time' => now()->addHours(6),
-                'spr_id' => $v['spr'],
-                'jen1' => $v['jen1'],
-                'created_by' => 1, // user = 1
-            ]
-        ];
-        if ($v['payment_method'] === 'wallet') {
-            return $this->wallet($data);
-        } else {
-            return response()->json(['message' => 'Metode belum didukung'], 422);
+                'input' => $request->all()
+            ]);
+
+            return back()->with([
+                'success' => false,
+                'message' => 'Payment failed: ' . $e->getMessage()
+            ])->withInput();
         }
     }
 
-    private function wallet($data)
+    private function processWalletPayment($transactionData)
     {
-        $v = DataValidator::ttrx([$data->ttrx]);
+        try {
+            if (!isset($transactionData->ttrx, $transactionData->log)) {
+                throw new \InvalidArgumentException("Invalid transaction data");
+            }
 
-        DB::transaction(function () use ($data) {
-            $trx = Ttrx::create($data->ttrx);
-            Tbalance::where('nouid', $data['nouid'])->decrement('balance', $data['amount']);
-            $this->ttpenrut($data, $trx);
-            // Simpan log atau update status tagihan, dsb
-        });
+            $validatedTtrx = DataValidator::ttrx((array)$transactionData->ttrx);
 
-        return response()->json(['message' => 'Pembayaran wallet berhasil'], 200);
+            $result = DB::transaction(function () use ($validatedTtrx, $transactionData) {
+                $transaction = TransactionController::createTrx([
+                    ...$validatedTtrx,
+                    'status' => 'success'
+                ]);
+                if (!$transaction) {
+                    throw new \RuntimeException("Failed to create transaction");
+                }
+
+                $transaction = is_array($transaction) ? (object)$transaction : $transaction;
+
+                $logData = array_merge($transactionData->log, [
+                    'trx_id' => $transaction->id,
+                    'description' => $transaction->note ?? 'Wallet payment'
+                ]);
+
+                $log = TransactionController::createTrxLog($logData);
+                if (!$log) {
+                    throw new \RuntimeException("Failed to create transaction");
+                }
+
+                if (!empty($validatedTtrx['spr_id'])) {
+                    $updatedRows = Tsalpenrut::where('id', $validatedTtrx['spr_id'])
+                        ->update(['sta' => 2]);
+
+                    if ($updatedRows === 0) {
+                        throw new \RuntimeException("Failed to update SPR status");
+                    }
+                }
+
+                return [
+                    'transaction' => $transaction,
+                    'log' => $log
+                ];
+            });
+
+            return redirect()->back()->with([
+                'success' => true,
+                'message' => 'Wallet payment successful',
+                'transaction' => $result['transaction']
+            ]);
+        } catch (\Exception $e) {
+            logger()->error('Wallet payment processing failed', [
+                'error' => $e->getMessage(),
+                'data' => $transactionData,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            throw $e;
+        }
     }
-
     private function ttpenrut($data, $trx)
     {
         //db connection mai3
@@ -346,7 +435,7 @@ class TagihanController extends Controller
             'via' => 'required|integer|min:0|max:255', //1
             'idkas' => 'required|integer', // 2
             'nova' => 'nullable|string|max:30', // null
-            'ket' =>'Pembayaran '. $data->ttrx->note,
+            'ket' => 'Pembayaran ' . $data->ttrx->note,
             'jum' => $data->ttrx->amount,
             'cat' => 'nullable|string|max:100', //null
             'cet' => 'required|integer|min:0|max:1', // 0
@@ -358,23 +447,21 @@ class TagihanController extends Controller
             'updatedby' => 'required|integer', // 0
         ]);
         $v1 = DataValidator::ttpenrut1([
-            'idpr' => 'required|integer',// id ttpenrut
+            'idpr' => 'required|integer', // id ttpenrut
             'nmr' => 'required|integer|min:1|max:255',
             'idspr' => $data->ttrx->spr_id,
             'ket' => 'nullable|string|max:100',
             'jum' => $data->ttrx->amount,
             'idcoa' => 'required|integer', // 0
-            'nolai' => 'nullable|string|max:20',// null
+            'nolai' => 'nullable|string|max:20', // null
             'salpr' => 'required|integer|min:0|max:1', // 0
             'sta' => 'nullable|integer|min:0|max:255', // null
             'stapos' => 'required|integer|min:0|max:255', //0
-            'createdby' => 'required|integer',// 1
+            'createdby' => 'required|integer', // 1
             'updatedby' => 'required|integer', // 0
         ]);
 
-         DB::transaction(function () use ($data) {
-            
-         });
+        DB::transaction(function () use ($data) {});
     }
     private function va($data, $nouid)
     {

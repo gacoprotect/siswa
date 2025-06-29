@@ -42,6 +42,15 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'flash' => function () use ($request) {
+                $flash = [
+                    'success' => $request->session()->get('success'),
+                    'message' => $request->session()->get('message'),
+                    'expires_at' => $request->session()->get('expires_at'),
+                ];
+                $request->session()->forget(['success', 'message', 'expires_at']);
+                return $flash;
+            },
             'auth' => [
                 'user' => $request->user(),
             ],
@@ -50,11 +59,7 @@ class HandleInertiaRequests extends Middleware
                 'location' => $request->url(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            'flash' => [
-                'success' => fn()=> $request->session()->get('success'),
-                'message' => fn() => $request->session()->get('message'),
-                'expires_at' => fn() => $request->session()->get('expires_at'),
-            ],
+            
         ];
     }
 }
