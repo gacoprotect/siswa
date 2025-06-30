@@ -133,6 +133,7 @@ class DataValidator
     public static function ttrx(array $data): array
     {
         $validator = Validator::make($data, [
+            'for' => 'sometimes|string|in:tagihan',
             'nouid' => 'required|string|max:50',
             'order_id' => 'required|string|max:255|unique:mai4.ttrx,order_id',
             'amount' => 'required|numeric|min:0',
@@ -199,7 +200,7 @@ class DataValidator
             'amount' => 'required|numeric|min:0.01|regex:/^\d{1,14}(\.\d{1,2})?$/',
             'paid_at' => 'nullable|date_format:Y-m-d H:i:s',
             'note' => 'nullable|string',
-            'created_by' => 'required|string|max:255'
+            'created_by' => 'required|integer|max:255'
         ], [
             'trx_id.required' => 'Invalid Transaction ID',
             'trx_id.integer' => 'Invalid Transaction ID',

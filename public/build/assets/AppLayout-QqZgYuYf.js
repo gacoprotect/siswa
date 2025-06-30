@@ -1,1 +1,0 @@
-import{j as s,L as r}from"./app-BqSlKtqm.js";const i=({children:a,title:e,className:m=""})=>s.jsxs("div",{className:"min-h-screen",children:[s.jsx(r,{title:e}),s.jsx("div",{className:"mx-auto min-h-screen max-w-xl bg-primary shadow-sm rounded-t-lg",children:s.jsx("main",{className:`min-h-[calc(100vh-4rem)] ${m}`,children:a})})]});export{i as A};

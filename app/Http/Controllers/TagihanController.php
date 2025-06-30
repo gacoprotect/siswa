@@ -157,7 +157,7 @@ class TagihanController extends Controller
                 str_pad($bulan->bulid, 2, '0', STR_PAD_LEFT) .
                 $identitas->siswa->nis;
             // Prepare transaction data
-            $transactionData = [
+            $dataTrx = [
                 'phone' => $identitas->siswa->tel,
                 'nouid' => $nouid,
                 'order_id' => $orderId,
@@ -171,7 +171,7 @@ class TagihanController extends Controller
             ];
 
             // Create transaction
-            $transaction = Ttrx::create($transactionData);
+            $transaction = Ttrx::create($dataTrx);
 
             if ($validated['payment_method'] === 'va') {
                 DB::commit();
@@ -301,16 +301,14 @@ class TagihanController extends Controller
             }])->where('nouid', $nouid)
                 ->firstOrFail();
 
-            $tagihanWithJen0 = $identity->tagihan->pluck('ket');
-            logger()->debug('Isi tagihan:', [$tagihanWithJen0]);
-
             $currentBalance = Ttrxlog::where('nouid', $nouid)
                 ->orderByDesc('id')
                 ->value('ab') ?? 0;
 
-            $transactionData = [
+            $dataTrx = [
                 'siswa' => $identity->siswa,
-                'ttrx' => [
+                'ttrx' => [                    
+                    'for' => 'tagihan',
                     'nouid' => $nouid,
                     'order_id' => $validated['orderId'],
                     'amount' => $validated['amount'],
@@ -319,7 +317,7 @@ class TagihanController extends Controller
                     'va_number' => $vaNumber,
                     'status' => 'pending',
                     'type' => 'payment',
-                    'note' => $identity->tagihan->pluck('ket'),
+                    'note' => $identity->tagihan->pluck('ket')->implode(', '),
                     'expiry_time' => now()->addHours(6),
                     'spr_id' => $validated['spr'],
                     'jen1' => $validated['jen1'] ?? [],
@@ -339,12 +337,12 @@ class TagihanController extends Controller
             ];
 
             switch ($validated['payment_method']) {
-                // case 'wallet':
-                // return $this->processWalletPayment((object)$transactionData);
-                // case 'va':
-                //     return $this->processVirtualAccountPayment((object)$transactionData);
-                // case 'cash':
-                //     return $this->processCashPayment((object)$transactionData);
+                case 'wallet':
+                    return $this->processWalletPayment((object)$dataTrx);
+                    // case 'va':
+                    //     return $this->processVirtualAccountPayment((object)$dataTrx);
+                    // case 'cash':
+                    //     return $this->processCashPayment((object)$dataTrx);
                 default:
                     throw new \InvalidArgumentException("Unsupported payment method");
             }
@@ -365,36 +363,35 @@ class TagihanController extends Controller
         }
     }
 
-    private function processWalletPayment($transactionData)
+    private function processWalletPayment($dataTrx)
     {
         try {
-            if (!isset($transactionData->ttrx, $transactionData->log)) {
+            if (!isset($dataTrx->ttrx, $dataTrx->log)) {
                 throw new \InvalidArgumentException("Invalid transaction data");
             }
 
-            $validatedTtrx = DataValidator::ttrx((array)$transactionData->ttrx);
+            $validatedTtrx = DataValidator::ttrx((array)$dataTrx->ttrx);
 
-            $result = DB::transaction(function () use ($validatedTtrx, $transactionData) {
-                $transaction = TransactionController::createTrx([
+            $result = DB::transaction(function () use ($validatedTtrx, $dataTrx) {
+                $trx = TransactionController::createTrx([
                     ...$validatedTtrx,
                     'status' => 'success'
                 ]);
-                if (!$transaction) {
+                if (!$trx) {
                     throw new \RuntimeException("Failed to create transaction");
                 }
 
-                $transaction = is_array($transaction) ? (object)$transaction : $transaction;
+                $trx = is_array($trx) ? (object)$trx : $trx;
 
-                $logData = array_merge($transactionData->log, [
-                    'trx_id' => $transaction->id,
-                    'description' => $transaction->note ?? 'Wallet payment'
+                $logData = array_merge($dataTrx->log, [
+                    'trx_id' => $trx->id,
+                    'description' => $trx->note ?? 'Wallet payment'
                 ]);
 
                 $log = TransactionController::createTrxLog($logData);
                 if (!$log) {
                     throw new \RuntimeException("Failed to create transaction");
                 }
-
                 if (!empty($validatedTtrx['spr_id'])) {
                     $updatedRows = Tsalpenrut::where('id', $validatedTtrx['spr_id'])
                         ->update(['sta' => 2]);
@@ -405,7 +402,7 @@ class TagihanController extends Controller
                 }
 
                 return [
-                    'transaction' => $transaction,
+                    'transaction' => $trx,
                     'log' => $log
                 ];
             });
@@ -418,7 +415,7 @@ class TagihanController extends Controller
         } catch (\Exception $e) {
             logger()->error('Wallet payment processing failed', [
                 'error' => $e->getMessage(),
-                'data' => $transactionData,
+                'data' => $dataTrx,
                 'trace' => $e->getTraceAsString()
             ]);
 

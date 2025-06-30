@@ -119,9 +119,34 @@ class TransactionController extends Controller
     {
         try {
             $v = DataValidator::ttrx($data);
+            logger('Input transaksi', $v);
 
             return DB::connection('mai4')->transaction(function () use ($v) {
-                return Ttrx::create($v);
+                $trx = Ttrx::create($v);
+
+                if (($v['for'] ?? null) === 'tagihan' && $v['type'] === "payment" && (int)$v['pt_id'] === 3) {
+                    logger('Memasuki blok createPaidBill', $v);
+
+                    $pb = self::createPaidBill([
+                        'trx_id' => $trx->id, // pakai ID dari hasil create
+                        'orderId' => $trx->order_id,
+                        'nouid' => $trx->nouid,
+                        'spr_id' => $trx->spr_id,
+                        'jen1' => $trx->jen1,
+                        'amount' => $trx->amount,
+                        'paid_at' => now(),
+                        'note' => $trx->note,
+                        'sta' => 1,
+                        'created_by' => $trx->created_by
+                    ]);
+
+                    if (!$pb) {
+                        logger('Gagal createPaidBill', ['data' => $trx->toArray()]);
+                        throw new \RuntimeException("Failed to create paid bill");
+                    }
+                }
+
+                return $trx;
             });
         } catch (\Throwable $e) {
             logger()->error('Gagal membuat transaksi', [
@@ -241,10 +266,10 @@ class TransactionController extends Controller
             }
 
             // Catat log dan update status transaksi
-           $log = $this->createTrxLog($dataLog);
-           if (!$log) {
-            throw new \Exception("Transaksi gagal : ".$log);
-           }
+            $log = $this->createTrxLog($dataLog);
+            if (!$log) {
+                throw new \Exception("Transaksi gagal : " . $log);
+            }
             $transaction->update(['status' => 'success']);
 
             // Commit semua DB

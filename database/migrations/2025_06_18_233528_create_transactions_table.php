@@ -82,20 +82,23 @@ return new class extends Migration
 
         Schema::connection('mai4')->create('paidbill', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('trx_id')->unique(); // Referensi ke ttrx
+            $table->unsignedBigInteger('trx_id')->unique(); // Referensi ke ttrx            
+            $table->string('order_id')->unique();
             $table->string('nouid', 50)->collation('utf8mb3_general_ci');
             $table->integer('spr_id')->nullable()->collation('utf8mb3_general_ci'); // idspr
             $table->json('jen1')->nullable(); // idspr jen=1
             $table->decimal('amount', 16, 2); // Jumlah dibayar
             $table->timestamp('paid_at')->useCurrent(); // Waktu pembayaran
             $table->text('note')->nullable(); // Keterangan jika ada
-            $table->string('created_by'); // Admin/user yang membuat
+            $table->string('created_by'); 
+            $table->boolean('sta');
             $table->timestamps();
 
             // Foreign Key Constraints
             $table->foreign('trx_id')->references('id')->on('ttrx')->onDelete('cascade');
 
             // Indexing
+            $table->index('order_id');
             $table->index('nouid');
         });
     }
