@@ -1,17 +1,35 @@
-import { useEffect, useState } from 'react';
-import { FaBook, FaCalendarAlt, FaChess, FaFlask, FaInfoCircle, FaMusic, FaPaintBrush, FaRunning, FaSpinner, FaUsers } from 'react-icons/fa';
+import { cn } from '@/lib/utils';
+import { Excul as ExculType } from '@/types';
+import { router } from '@inertiajs/react';
+import { X } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { FaBook, FaCalendarAlt, FaInfoCircle, FaRunning, FaSpinner } from 'react-icons/fa';
 
 interface ExculProps {
     nouid: string;
 }
-
+interface DataExcul {
+    sub: number[];
+    excul: ExculType[];
+}
+interface Response {
+    success: boolean;
+    data: DataExcul;
+}
 const Excul = ({ nouid }: ExculProps) => {
     const [isLoading, setIsLoading] = useState(true);
+    const [process, setProcess] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
-    useEffect(() => {
-        const fetchData = async () => {
+    const [initialData, setInitialData] = useState<DataExcul>({
+        sub: [],
+        excul: [],
+    });
+    const [subexcul, setsubExcul] = useState<number[]>(initialData.sub);
+
+    const fetchData = useCallback(
+        async (load = true) => {
             try {
-                setIsLoading(true);
+                if (load) setIsLoading(true);
                 setError(null);
 
                 const response = await fetch(route('api.excul', nouid) + '?nouid=' + nouid);
@@ -20,95 +38,90 @@ const Excul = ({ nouid }: ExculProps) => {
                     throw new Error('Gagal memuat data');
                 }
 
-                const data = await response.json();
+                const data: Response = await response.json();
 
-                if (data.status !== 'success') {
+                if (!data.success) {
                     throw new Error('Terjadi kesalahan server');
                 }
+
+                setInitialData(data.data);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Terjadi kesalahan jaringan');
             } finally {
-                setIsLoading(false);
+                if (load) setIsLoading(false);
             }
-        };
-
+        },
+        [nouid],
+    );
+    useEffect(() => {
         fetchData();
-    }, [nouid]);
+    }, [fetchData]);
+    useEffect(() => {
+        setsubExcul(initialData.sub);
+    }, [initialData.sub]);
+    const excul = initialData.excul;
+    const subExcul = initialData.excul
+        .filter((e) => subexcul.includes(e.id))
+        .map((e) => ({
+            id: e.id,
+            name: e.name,
+            status: 'Aktif',
+        }));
 
-    // Data contoh ekstrakurikuler
-    const excul = [
-        {
-            id: 1,
-            name: 'Futsal',
-            day: 'Senin',
-            time: '15.00-17.00',
-            coach: 'Coach Ahmad',
-            quota: 20,
-            registered: 18,
-            icon: <FaRunning className="text-red-500" />,
-        },
-        {
-            id: 2,
-            name: 'Pramuka',
-            day: 'Rabu',
-            time: '14.00-16.00',
-            coach: 'Pak Budi',
-            quota: 30,
-            registered: 25,
-            icon: <FaUsers className="text-amber-500" />,
-        },
-        {
-            id: 3,
-            name: 'Seni Lukis',
-            day: 'Kamis',
-            time: '13.00-15.00',
-            coach: 'Bu Citra',
-            quota: 15,
-            registered: 12,
-            icon: <FaPaintBrush className="text-blue-500" />,
-        },
-        {
-            id: 4,
-            name: 'Robotika',
-            day: 'Selasa',
-            time: '15.00-17.00',
-            coach: 'Pak Dedi',
-            quota: 12,
-            registered: 10,
-            icon: <FaFlask className="text-purple-500" />,
-        },
-        {
-            id: 5,
-            name: 'Paduan Suara',
-            day: 'Jumat',
-            time: '14.00-16.00',
-            coach: 'Bu Eka',
-            quota: 25,
-            registered: 20,
-            icon: <FaMusic className="text-green-500" />,
-        },
-        {
-            id: 6,
-            name: 'Catur',
-            day: 'Senin',
-            time: '16.00-18.00',
-            coach: 'Pak Fajar',
-            quota: 10,
-            registered: 8,
-            icon: <FaChess className="text-gray-500" />,
-        },
-    ];
+    const subscribe = ({ e, id }: { e: React.MouseEvent<HTMLButtonElement>; id: number }) => {
+        e.preventDefault();
+        if (subexcul.includes(id)) return;
+        setProcess(id);
+        router.post(
+            route('subs.excul', nouid),
+            { excul: id },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onError: (errors) => {
+                    console.error('Validasi gagal:', errors);
+                },
+                onFinish: () => {
+                    fetchData(false);
+                    setProcess(null);
+                },
+            },
+        );
+    };
 
-    // Data siswa yang sudah terdaftar
-    const subExcul = [
-        { id: 1, name: 'Futsal', status: 'Aktif' },
-        { id: 4, name: 'Robotika', status: 'Aktif' },
-    ];
+    const unsubs = ({ e, id }: { e: React.MouseEvent<HTMLButtonElement>; id: number }) => {
+        e.preventDefault();
+
+        if (!subexcul.includes(id)) return;
+        router.post(
+            route('unsubs.excul', nouid),
+            { excul: id },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onError: (errors) => {
+                    console.error('Validasi gagal:', errors);
+                },
+                onFinish: () => {
+                    fetchData(false);
+                },
+            },
+        );
+    };
+
     if (isLoading) {
         return (
             <div className="flex flex-row items-center justify-center space-x-3 py-4">
                 <FaSpinner className="animate-spin text-3xl text-blue-600" />
                 <span className="text-lg font-bold text-blue-600">Memuat data</span>
+            </div>
+        );
+    }
+    if (error) {
+        return (
+            <div className="flex flex-row items-center justify-center space-x-3 py-4">
+                <X className="text-3xl text-red-600" />
+                <span className="text-lg font-bold text-red-600">{error}</span>
             </div>
         );
     }
@@ -136,7 +149,12 @@ const Excul = ({ nouid }: ExculProps) => {
                                             Status: <span className="font-medium text-green-600">{activity.status}</span>
                                         </p>
                                     </div>
-                                    <button className="text-sm font-medium text-red-600 hover:text-red-800">Keluar</button>
+                                    <button
+                                        onClick={(e) => unsubs({ e, id: activity.id })}
+                                        className="text-sm font-medium text-red-600 hover:text-red-800"
+                                    >
+                                        Keluar
+                                    </button>
                                 </div>
                                 <div className="mt-3 flex items-center justify-between text-sm">
                                     <span className="text-gray-500">Rabu, 14.00-16.00</span>
@@ -164,7 +182,7 @@ const Excul = ({ nouid }: ExculProps) => {
                     {excul.map((ext) => (
                         <div key={ext.id} className="rounded-lg border p-4 transition-shadow hover:shadow-lg">
                             <div className="mb-3 flex items-center gap-3">
-                                <div className="rounded-full bg-gray-100 p-2">{ext.icon}</div>
+                                {/* <div className="rounded-full bg-gray-100 p-2">{ext.icon}</div> */}
                                 <h5 className="text-lg font-bold">{ext.name}</h5>
                             </div>
 
@@ -188,10 +206,22 @@ const Excul = ({ nouid }: ExculProps) => {
                                             ></div>
                                         </div>
                                     </div>
-                                    {subExcul.some((a) => a.id === ext.id) ? (
+                                    {ext.registered === ext.quota ? (
+                                        <span className="rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800">Kuota Pendaftaran Penuh</span>
+                                    ) : subExcul.some((a) => a.id === ext.id) ? (
                                         <span className="rounded bg-green-100 px-2 py-1 text-xs text-green-800">Sudah Terdaftar</span>
                                     ) : (
-                                        <button className="rounded bg-indigo-600 px-3 py-1 text-xs text-white hover:bg-indigo-700">Daftar</button>
+                                        <button
+                                            onClick={(e) => subscribe({ e, id: ext.id })}
+                                            className={cn(
+                                                `flex items-center justify-center space-x-2 rounded bg-indigo-600 px-3 py-1 text-xs text-white hover:bg-indigo-700`,
+                                                `${process === ext.id && 'bg-indigo-400 hover:bg-indigo-500'}`,
+                                            )}
+                                            disabled={process === ext.id}
+                                        >
+                                            {process === ext.id && <FaSpinner className="animate-spin" />}
+                                            <span>Daftar</span>
+                                        </button>
                                     )}
                                 </div>
                             </div>

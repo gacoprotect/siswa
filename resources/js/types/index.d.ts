@@ -60,11 +60,15 @@ export interface DataSiswa {
 export interface Siswa {
     has_pin: boolean;
     balance: number;
+    excul?: number[];
+    prestasi?: string[];
     nis?: string;
     nisn?: string;
     namlen: string;
     nampan?: string;
     namman?: string;
+    ttl?: string;
+    email?: string;
     temlah?: string;
     tgllah?: string;
     jenkel?: string;
@@ -174,12 +178,17 @@ export interface Flash {
     success: boolean | null;
     message: string | null;
 }
+export interface Pelatih {
+    name: string | null;
+    telepon: number | null;
+}
 export interface Excul {
     id: number;
     name: string;
     day: string;
     time: string;
-    pel_id: number;
+    coach: string;
+    pel: Pelatih;
     quota: number;
     registered: number;
     icon: string;

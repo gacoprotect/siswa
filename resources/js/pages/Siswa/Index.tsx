@@ -1,4 +1,3 @@
-import DataSiswaContent from '@/components/siswa/DataSiswaContent';
 import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/Layout/AppLayout';
 import { formatIDR } from '@/lib/utils';
@@ -27,6 +26,7 @@ import PinPage from './Pin';
 import SetupPinPage from './SetupPin';
 import TagihanContent from './TagihanContent';
 import Excul from './Excul';
+import DataSiswaContent from './DataSiswaContent';
 
 // Type definitions
 type PageState = 'index' | 'topup' | 'riwayat' | 'tagihan';
@@ -88,7 +88,7 @@ export default function SiswaDashboard() {
                 title: 'Data Siswa',
                 icon: <FaUserGraduate className="h-6 w-6 text-amber-600" />,
                 color: 'border-amber-700 bg-amber-50 hover:bg-amber-100',
-                content: <DataSiswaContent />,
+                content: <DataSiswaContent {...siswaData.siswa} />,
             },
             {
                 title: 'Ekstrakurikuler',

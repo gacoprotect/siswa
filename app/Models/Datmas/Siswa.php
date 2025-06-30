@@ -10,6 +10,7 @@ use App\Models\Trx\Ttrxlog;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
@@ -25,14 +26,13 @@ class Siswa extends Authenticatable
     public $timestamps = true;
     const CREATED_AT = 'createdat';
     const UPDATED_AT = 'updatedat';
-    protected $appends = ['has_pin', 'balance'];
+    protected $appends = ['has_pin', 'balance', 'ttl'];
     protected $visible = [
         'balance',
         'has_pin',
         'nis',
         'namlen',
-        'temlah',
-        'tgllah',
+        'ttl',
         'tel',
         'kel',
         'excul',
@@ -89,6 +89,17 @@ class Siswa extends Authenticatable
     public function trxlogs()
     {
         return $this->hasMany(Ttrxlog::class, 'nis', 'nis');
+    }
+    public function ttl(): Attribute
+    {
+        return Attribute::get(function () {
+            // Pastikan kolom tanggal lahir bisa di-parse
+            $tgl = $this->tgllah ? Carbon::parse($this->tgllah)->translatedFormat('j F Y') : null;
+
+            return $this->temlah && $tgl
+                ? "{$this->temlah}, {$tgl}"
+                : null;
+        });
     }
     public function balance(): Attribute
     {

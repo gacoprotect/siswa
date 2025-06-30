@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\ExculController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\SiswaController;
 use App\Http\Controllers\TagihanController;
@@ -50,6 +51,10 @@ Route::middleware(['web', 'verify.nouid'])->group(function () {
         Route::get('/tagihan', [TagihanController::class, 'index'])->name('tagihan.index');
         Route::get('/tagihan/pay', [TagihanController::class, 'show'])->name('tagihan.show');
         Route::post('/tagihan/pay', [TagihanController::class, 'handlePay'])->name('tagihan.pay');
+
+
+        Route::post('/excul/subs', [ExculController::class, 'subs'])->name('subs.excul');
+        Route::post('/excul/unsubs', [ExculController::class, 'unsubs'])->name('unsubs.excul');
     });
 });
 
