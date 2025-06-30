@@ -66,7 +66,7 @@ return new class extends Migration
             $table->string('nis', 50);
             $table->decimal('bb', 16, 2); // before balance
             $table->decimal('ab', 16, 2); // after balance
-            $table->unsignedBigInteger('trx_id');
+            $table->unsignedBigInteger('trx_id')->unique();
             $table->foreign('trx_id')->references('id')->on('ttrx')->onDelete('cascade');
             
             $table->decimal('amount', 16, 2);

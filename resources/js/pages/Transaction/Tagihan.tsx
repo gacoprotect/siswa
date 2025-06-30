@@ -1,7 +1,7 @@
 import AppLayout from '@/Layout/AppLayout';
 import { initialSiswa } from '@/lib/initial';
-import { Siswa } from '@/types';
-import { Head, useForm } from '@inertiajs/react';
+import { SharedData, Siswa } from '@/types';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { FaArrowAltCircleLeft, FaSpinner } from 'react-icons/fa';
 
@@ -41,8 +41,10 @@ interface PaymentPageProps {
 }
 
 const PaymentPage: React.FC<PaymentPageProps> = ({ tagihanParam, onClose }) => {
+    const { flash } = usePage<SharedData>().props;
     const [isLoading, setIsLoading] = useState(true);
     const [exist, setExist] = useState(false);
+    const [lunas, setLunas] = useState(false);
     const [InitialData, setInitialData] = useState<PaymentData>({
         idok: 0,
         nouid: '',
@@ -128,9 +130,17 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ tagihanParam, onClose }) => {
         e.preventDefault();
         post(route('tagihan.pay', InitialData.nouid), {
             onSuccess: () => {
+                if (flash?.success) {
+                    setLunas(true);
+                } else {
+                    setLunas(false);
+                }
                 setTimeout(() => {
-                    onClose?.();
+                    // onClose?.()
                 }, 5000);
+            },
+            onError: () => {
+                setLunas(false);
             },
         });
     };
@@ -220,7 +230,13 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ tagihanParam, onClose }) => {
                         </div>
 
                         {/* Metode Pembayaran */}
-                        {exist ? (
+                        {lunas ? (
+                            <div className="flex justify-center p-6">
+                                <div className="flex h-15 w-40 items-center justify-center border-4 border-green-700 p-4">
+                                    <h1 className="text-4xl font-bold text-green-700">LUNAS</h1>
+                                </div>
+                            </div>
+                        ) : exist ? (
                             <div className="mx-6 mb-4 rounded-lg border-l-4 border-yellow-500 bg-yellow-100 p-4 text-yellow-700 shadow-sm">
                                 <p className="font-semibold">Transaksi Belum Selesai</p>
                                 <p className="mt-1">

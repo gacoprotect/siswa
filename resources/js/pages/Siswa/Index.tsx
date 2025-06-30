@@ -26,6 +26,7 @@ import PaymentPage from '../Transaction/Tagihan';
 import PinPage from './Pin';
 import SetupPinPage from './SetupPin';
 import TagihanContent from './TagihanContent';
+import Excul from './Excul';
 
 // Type definitions
 type PageState = 'index' | 'topup' | 'riwayat' | 'tagihan';
@@ -53,6 +54,7 @@ export default function SiswaDashboard() {
         jen1: [],
         tagihan: 0,
     });
+    
     useToast(usePage<SharedData>().props);
     useEffect(() => {
         setSiswaData(data);
@@ -92,10 +94,10 @@ export default function SiswaDashboard() {
                 title: 'Ekstrakurikuler',
                 icon: <FaFootballBall className="h-6 w-6 text-rose-600" />,
                 color: 'border-rose-700 bg-rose-50 hover:bg-rose-100',
-                // content: <EkstrakurikulerContent />,
+                content: <Excul nouid={data.nouid} />,
             },
         ],
-        [siswaData, navigateToPage],
+        [siswaData, navigateToPage, data],
     );
 
     const refreshData = useCallback(async () => {

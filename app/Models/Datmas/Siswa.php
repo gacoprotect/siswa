@@ -35,6 +35,7 @@ class Siswa extends Authenticatable
         'tgllah',
         'tel',
         'kel',
+        'excul',
     ];
     protected $fillable = [
         'nis',
@@ -55,6 +56,7 @@ class Siswa extends Authenticatable
         'kel',
         'ala',
         'pin',
+        'excul',
     ];
 
     protected $hidden = [
@@ -71,6 +73,7 @@ class Siswa extends Authenticatable
         'id',
     ];
     protected $casts = [
+        'excul' => 'array',
         'tgllah' => 'date',
         'sta' => 'integer',
         'staqd' => 'integer',

@@ -24,6 +24,7 @@ export interface NavItem {
 
 export interface SharedData {
     name: string;
+    nouid: string;
     errors: Record<string, string[]>;
     flash: Flash;
     auth: Auth;
@@ -172,4 +173,14 @@ export interface BillData {
 export interface Flash {
     success: boolean | null;
     message: string | null;
+}
+export interface Excul {
+    id: number;
+    name: string;
+    day: string;
+    time: string;
+    pel_id: number;
+    quota: number;
+    registered: number;
+    icon: string;
 }

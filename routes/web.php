@@ -38,11 +38,11 @@ Route::middleware(['web', 'verify.nouid'])->group(function () {
 
         Route::get('/topup', [TopupController::class, 'index'])->name('topup');
         Route::post('/topup/charge', [TopupController::class, 'charge'])->name('topup.charge');
-        Route::get('/payment/{orderId}', [TopupController::class, 'paymentInstruction'])->name('payment.instruction');
-        Route::post('/payment/{orderId}/cancel-order', [TopupController::class, 'cancel'])->name('transactions.cancel');
-        Route::post('/payment/{orderId}/simulate', [TransactionController::class, 'simulateVa'])->name('payment.simulate');
-
+        
         // Transaction history        
+        Route::get('/payment/{orderId}', [TransactionController::class, 'paymentInstruction'])->name('payment.instruction');
+        Route::post('/payment/{orderId}/simulate', [TransactionController::class, 'simulateVa'])->name('payment.simulate');
+        Route::post('/payment/{orderId}/cancel-order', [TransactionController::class, 'cancel'])->name('transactions.cancel');
         Route::get('/transactions/{orderId}/status', [TransactionController::class, 'checkStatus'])->name('transactions.status');
         Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions');
         Route::get('/transactions/{orderId}', [TransactionController::class, 'show'])->name('transactions.show');

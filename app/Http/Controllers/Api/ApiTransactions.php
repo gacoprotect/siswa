@@ -36,6 +36,8 @@ class ApiTransactions extends Controller
                 'jen1.*' => 'integer|exists:mai3.tsalpenrut,id',
                 'tagihan' => 'required|integer',
             ]);
+            $v['jen1'] = $v['jen1'] ?? [];
+
             $jen1Used = !empty($v['jen1']) && Ttrx::whereIn('jen1', $v['jen1'])->exists();
 
             $spr = Tsalpenrut::findOrFail($v['spr']);
@@ -71,17 +73,7 @@ class ApiTransactions extends Controller
 
             $trx = Ttrx::where('order_id', $orderId)->first();
 
-            if ($trx && $trx->status !== 'success') {
-                // Jika kadaluarsa
-                if ($trx->expiry_time < now()) {
-                    $trx->update([
-                        'va_number' => generateVaNumber(),
-                        'status' => 'pending',
-                        'failure_message' => null,
-                        'expiry_time' => now(),
-                    ]);
-                }
-
+            if ($trx && $trx->status === 'pending') {
                 return response()->json([
                     'success' => true,
                     'redirect' => route('payment.instruction', [
@@ -91,7 +83,9 @@ class ApiTransactions extends Controller
                     'data' => $response,
                 ]);
             }
-
+            if ($trx && $trx->status !== 'success') {
+                $trx->delete();
+            }
             return response()->json([
                 'success' => true,
                 'data' => $response,

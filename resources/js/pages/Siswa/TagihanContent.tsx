@@ -120,9 +120,9 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center space-x-3 p-4">
-                <FaSpinner className="animate-spin" />
-                <span>Memuat data...</span>
+            <div className="flex flex-row items-center justify-center space-x-3 py-4">
+                <FaSpinner className="animate-spin text-3xl text-blue-600" />
+                <span className="text-lg text-blue-600 font-bold">Memuat data</span>
             </div>
         );
     }
@@ -214,7 +214,12 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
                                                         className={`mb-3 flex items-center ${monthData.transactions.some((t) => t.sta === 0) ? 'justify-between' : 'justify-end'} `}
                                                     >
                                                         {monthData.transactions.some((t) => t.sta === 0) && (
-                                                            <PaymentButton setparam={(v)=>setTagihanParam(v)} monthData={monthData} nouid={nouid} month={month} />
+                                                            <PaymentButton
+                                                                setparam={(v) => setTagihanParam(v)}
+                                                                monthData={monthData}
+                                                                nouid={nouid}
+                                                                month={month}
+                                                            />
                                                         )}
                                                         <div className="flex items-center space-x-2">
                                                             <span className="text-sm font-medium text-gray-500">Tagihan:</span>
@@ -254,7 +259,12 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
                                                         className={`mb-3 flex items-center ${monthData.transactions.some((t) => t.sta === 0) ? 'justify-between' : 'justify-end'} `}
                                                     >
                                                         {monthData.transactions.some((t) => t.sta === 0) && (
-                                                            <PaymentButton setparam={(v)=>setTagihanParam(v)} monthData={monthData} nouid={nouid} month={month} />
+                                                            <PaymentButton
+                                                                setparam={(v) => setTagihanParam(v)}
+                                                                monthData={monthData}
+                                                                nouid={nouid}
+                                                                month={month}
+                                                            />
                                                         )}
                                                     </div>
                                                 )}

@@ -1,5 +1,6 @@
+import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/Layout/AppLayout';
-import { PaymentDataResponse } from '@/types';
+import { PaymentDataResponse, SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/react';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
@@ -18,9 +19,10 @@ const PaymentInstruction: React.FC<PaymentDataResponse> = ({ order_id, transacti
 
     const expiry = dayjs(transaction.expiry_time);
 
+    useToast(usePage<SharedData>().props);
     useEffect(() => {
         if (!order_id || transaction.status === 'success') {
-            // router.visit(route('siswa.index', nouid));
+            router.visit(route('siswa.index', nouid));
             return;
         }
 
@@ -209,25 +211,27 @@ const PaymentInstruction: React.FC<PaymentDataResponse> = ({ order_id, transacti
                                 <span className="text-gray-600">Nomor Virtual Account</span>
                                 <div className="flex items-center justify-between space-x-4">
                                     <span className="font-medium">{transaction.va_number}</span>
-                                    <button
-                                        disabled={simulating}
-                                        onClick={(e) => {
-                                            setSimulating(true);
-                                            handleSimulate(e, transaction.va_number);
-                                        }}
-                                        className={`flex items-center space-x-2 rounded-lg px-4 py-2 font-bold text-white ${
-                                            simulating ? 'bg-cyan-700' : 'bg-cyan-900 hover:bg-cyan-800'
-                                        } transition-colors disabled:opacity-70`}
-                                    >
-                                        {simulating ? (
-                                            <>
-                                                <FaSpinner className="animate-spin" />
-                                                <span>Memproses pembayaran</span>
-                                            </>
-                                        ) : (
-                                            'Simulasi Pembayaran'
-                                        )}
-                                    </button>
+                                    {transaction.status === 'pending' && (
+                                        <button
+                                            disabled={simulating}
+                                            onClick={(e) => {
+                                                setSimulating(true);
+                                                handleSimulate(e, transaction.va_number);
+                                            }}
+                                            className={`flex items-center space-x-2 rounded-lg px-4 py-2 font-bold text-white ${
+                                                simulating ? 'bg-cyan-700' : 'bg-cyan-900 hover:bg-cyan-800'
+                                            } transition-colors disabled:opacity-70`}
+                                        >
+                                            {simulating ? (
+                                                <>
+                                                    <FaSpinner className="animate-spin" />
+                                                    <span>Memproses pembayaran</span>
+                                                </>
+                                            ) : (
+                                                'Simulasi Pembayaran'
+                                            )}
+                                        </button>
+                                    )}
                                 </div>
                                 {errorSimulate && <p className="text-center text-sm text-red-500">{errorSimulate}</p>}
                             </div>

@@ -17,15 +17,18 @@ class PaidBill extends Model
     protected $fillable = [
         'trx_id',
         'nouid',
+        'order_id',
         'spr_id',
         'jen1',
         'amount',
         'paid_at',
-        'note',    
+        'note',
+        'created_by',
+        'sta',
     ];
     protected $hidden = [
         'created_by',
-        'created_at',    
+        'created_at',
         'updated_at',
     ];
     protected $casts = [

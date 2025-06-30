@@ -194,17 +194,18 @@ class DataValidator
         $validator = Validator::make($data, [
             'trx_id' => 'required|integer|min:1|exists:mai4.ttrx,id',
             'nouid' => 'required|string|max:50',
-            'spr_id' => 'nullable|integer|exists:mai3.tsalpenrut,id',            
+            'spr_id' => 'nullable|integer|exists:mai3.tsalpenrut,id',
             'jen1' => 'sometimes|array',
             'jen1.*' => 'integer|exists:mai3.tsalpenrut,id',
-            'amount' => 'required|numeric|min:0.01|regex:/^\d{1,14}(\.\d{1,2})?$/',
-            'paid_at' => 'nullable|date_format:Y-m-d H:i:s',
+            'amount' => 'required|numeric|min:0',
+            'paid_at' => 'nullable|date',
             'note' => 'nullable|string',
-            'created_by' => 'required|integer|max:255'
+            'created_by' => 'required|integer',
+            'order_id' => 'required|string',
+            'sta' => 'required|integer',
         ], [
             'trx_id.required' => 'Invalid Transaction ID',
             'trx_id.integer' => 'Invalid Transaction ID',
-            'amount.regex' => 'Invalid amount',
             'paid_at.date_format' => 'Invalid date',
             'jen1.json' => 'Invalid Data'
         ]);

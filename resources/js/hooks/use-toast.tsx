@@ -7,7 +7,7 @@ export const useToast = ({ errors, flash }: SharedData) => {
         const allErrors = Object.values(errors || {});
         allErrors.forEach((err) => {
             if (err) {
-                toast.error(err, { toastId: `err-${err}` });
+                console.error(err, { toastId: `err-${err}` });
             }
         });
     }, [errors]);

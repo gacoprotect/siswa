@@ -282,6 +282,7 @@ class TagihanController extends Controller
                 'amount' => 'required|numeric|min:1|max:100000000',
                 'orderId' => 'required|string|max:255'
             ]);
+            $dataTrx = [];
             $paymentTypes = [
                 'va' => 1,
                 'cash' => 2,
@@ -304,10 +305,22 @@ class TagihanController extends Controller
             $currentBalance = Ttrxlog::where('nouid', $nouid)
                 ->orderByDesc('id')
                 ->value('ab') ?? 0;
-
+            if ($pt_id !== 1) {
+                $dataTrx['log'] = [
+                    'nouid' => $nouid,
+                    'nis' => $identity->siswa->nis,
+                    'bb' => $currentBalance,
+                    'ab' => $currentBalance - $validated['amount'],
+                    'amount' => $validated['amount'],
+                    'action' => 'decrease',
+                    'created_by' => 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
             $dataTrx = [
                 'siswa' => $identity->siswa,
-                'ttrx' => [                    
+                'ttrx' => [
                     'for' => 'tagihan',
                     'nouid' => $nouid,
                     'order_id' => $validated['orderId'],
@@ -323,24 +336,13 @@ class TagihanController extends Controller
                     'jen1' => $validated['jen1'] ?? [],
                     'created_by' => 1,
                 ],
-                'log' => [
-                    'nouid' => $nouid,
-                    'nis' => $identity->siswa->nis,
-                    'bb' => $currentBalance,
-                    'ab' => $currentBalance - $validated['amount'],
-                    'amount' => $validated['amount'],
-                    'action' => 'decrease',
-                    'created_by' => 1,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]
             ];
 
             switch ($validated['payment_method']) {
                 case 'wallet':
                     return $this->processWalletPayment((object)$dataTrx);
-                    // case 'va':
-                    //     return $this->processVirtualAccountPayment((object)$dataTrx);
+                case 'va':
+                    return $this->processVa((object)$dataTrx);
                     // case 'cash':
                     //     return $this->processCashPayment((object)$dataTrx);
                 default:
@@ -356,13 +358,43 @@ class TagihanController extends Controller
                 'input' => $request->all()
             ]);
 
-            return back()->with([
+            return back()->withErrors(["message" => $e->getMessage()])->with([
                 'success' => false,
                 'message' => 'Payment failed: ' . $e->getMessage()
             ])->withInput();
         }
     }
 
+    private function processVa($dataTrx)
+    {
+        try {
+            if (!isset($dataTrx->ttrx)) {
+                throw new \InvalidArgumentException("Invalid transaction data");
+            }
+
+            $validatedTtrx = DataValidator::ttrx((array) $dataTrx->ttrx);
+
+            return DB::connection('mai4')->transaction(function () use ($validatedTtrx, $dataTrx) {
+                $trx = TransactionController::createTrx($validatedTtrx);
+                if (!$trx) {
+                    throw new \RuntimeException("Failed to create transaction");
+                }
+                $trx = is_array($trx) ? (object) $trx : $trx;
+                return redirect()->intended(route('payment.instruction', [
+                    'nouid' => is_array($dataTrx->ttrx) ? $dataTrx->ttrx['nouid'] : $dataTrx->ttrx->nouid,
+                    'orderId' => is_array($dataTrx->ttrx) ? $dataTrx->ttrx['order_id'] ?? null : $dataTrx->ttrx->order_id ?? null,
+                ]));
+            });
+        } catch (\Exception $e) {
+            logger()->error('VA payment processing failed', [
+                'error' => $e->getMessage(),
+                'data' => $dataTrx,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            throw $e;
+        }
+    }
     private function processWalletPayment($dataTrx)
     {
         try {

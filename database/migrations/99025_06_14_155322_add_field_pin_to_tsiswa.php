@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         // Schema::connection('mai2')->table('tsiswa', function (Blueprint $table) {
-        //     $table->string('pin', 255)->nullable()->after('ala');
+        //     // $table->string('pin', 255)->nullable()->after('ala');
+        //     // $table->json('excul')->nullable()->after('pin');
         // });
     }
 

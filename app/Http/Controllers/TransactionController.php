@@ -8,10 +8,12 @@ use App\Models\Spp\Tsalpenrut;
 use App\Models\Trx\PaidBill;
 use App\Models\Trx\Ttrx;
 use App\Models\Trx\Ttrxlog;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class TransactionController extends Controller
@@ -52,92 +54,29 @@ class TransactionController extends Controller
             'transaction' => $transaction,
         ]);
     }
-
-    public function checkStatus($orderId)
-    {
-        $transaction = Ttrx::where('order_id', $orderId)
-            ->where('user_id', auth('siswa')->id())
-            ->firstOrFail();
-
-        // Implementasi pengecekan status ke Midtrans
-        // ...
-
-        return response()->json([
-            'status' => $transaction->status,
-            'updated_at' => $transaction->updated_at,
-        ]);
-    }
-
-    public function handleCallback(Request $request)
-    {
-        $payload = $request->all();
-
-        // Verifikasi signature key (penting untuk keamanan)
-        $signatureKey = hash(
-            'sha512',
-            $payload['order_id'] .
-                $payload['status_code'] .
-                $payload['gross_amount'] .
-                config('services.midtrans.server_key')
-        );
-
-        if ($signatureKey !== $payload['signature_key']) {
-            return response()->json(['message' => 'Invalid signature'], 403);
-        }
-
-        $orderId = $payload['order_id'];
-        $transactionStatus = $payload['transaction_status'];
-        $fraudStatus = $payload['fraud_status'] ?? null;
-
-        // Cari transaksi
-        $transaction = Ttrx::where('order_id', $orderId)->first();
-
-        if (!$transaction) {
-            return response()->json(['message' => 'Transaction not found'], 404);
-        }
-
-        // Update status berdasarkan callback
-        if ($transactionStatus == 'capture') {
-            if ($fraudStatus == 'accept') {
-                $transaction->status = 'success';
-            }
-        } elseif ($transactionStatus == 'settlement') {
-            $transaction->status = 'success';
-        } elseif ($transactionStatus == 'pending') {
-            $transaction->status = 'pending';
-        } elseif ($transactionStatus == 'deny' || $transactionStatus == 'expire' || $transactionStatus == 'cancel') {
-            $transaction->status = 'failed';
-        }
-
-        $transaction->save();
-
-        return response()->json(['message' => 'Callback processed']);
-    }
-
-
     public static function createTrx(array $data): ?Ttrx
     {
         try {
             $v = DataValidator::ttrx($data);
-            logger('Input transaksi', $v);
+            // logger('Input transaksi', $v);
 
             return DB::connection('mai4')->transaction(function () use ($v) {
                 $trx = Ttrx::create($v);
 
                 if (($v['for'] ?? null) === 'tagihan' && $v['type'] === "payment" && (int)$v['pt_id'] === 3) {
-                    logger('Memasuki blok createPaidBill', $v);
+                    // logger('Memasuki blok createPaidBill', $v);
 
                     $pb = self::createPaidBill([
-                        'trx_id' => $trx->id, // pakai ID dari hasil create
-                        'orderId' => $trx->order_id,
+                        'trx_id' => $trx->id,
+                        'order_id' => $trx->order_id,
                         'nouid' => $trx->nouid,
                         'spr_id' => $trx->spr_id,
                         'jen1' => $trx->jen1,
-                        'amount' => $trx->amount,
+                        'amount' => abs($v['amount']),
                         'paid_at' => now(),
                         'note' => $trx->note,
                         'sta' => 1,
-                        'created_by' => $trx->created_by
+                        'created_by' => 1
                     ]);
 
                     if (!$pb) {
@@ -173,7 +112,7 @@ class TransactionController extends Controller
             return null;
         }
     }
-    public static function createPaidBill(array $data): ?Ttrxlog
+    public static function createPaidBill(array $data): ?PaidBill
     {
         try {
             $v = DataValidator::paidbill($data);
@@ -189,7 +128,6 @@ class TransactionController extends Controller
             return null;
         }
     }
-
 
     public function simulateVa(Request $request, $nouid)
     {
@@ -253,7 +191,6 @@ class TransactionController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
-
             if ($transaction->type === 'payment') {
                 if ($transaction->spr_id) {
                     $sprExists = Tsalpenrut::where('id', $transaction->spr_id)->exists();
@@ -261,18 +198,35 @@ class TransactionController extends Controller
                         throw new \Exception("SPR record not found");
                     }
 
+                    $pb = self::createPaidBill([
+                        'trx_id' => $transaction->id,
+                        'order_id' => $transaction->order_id,
+                        'nouid' => $transaction->nouid,
+                        'spr_id' => $transaction->spr_id,
+                        'jen1' => $transaction->jen1,
+                        'amount' => abs($transaction->amount),
+                        'paid_at' => now(),
+                        'note' => $transaction->note,
+                        'sta' => 1,
+                        'created_by' => 1
+                    ]);
+
+                    if (!$pb) {
+                        logger('Gagal createPaidBill', ['data' => $transaction->toArray()]);
+                        throw new \RuntimeException("Failed to create paid bill");
+                    }
+
                     Tsalpenrut::where('id', $transaction->spr_id)->update(['sta' => 2]);
+                }
+            } else {
+                $log = $this->createTrxLog($dataLog);
+                if (!$log) {
+                    throw new \Exception("Transaksi gagal : " . json_encode($dataLog));
                 }
             }
 
-            // Catat log dan update status transaksi
-            $log = $this->createTrxLog($dataLog);
-            if (!$log) {
-                throw new \Exception("Transaksi gagal : " . $log);
-            }
             $transaction->update(['status' => 'success']);
 
-            // Commit semua DB
             DB::commit();
             DB::connection('mai2')->commit();
             DB::connection('mai3')->commit();
@@ -283,7 +237,10 @@ class TransactionController extends Controller
                 'transaction' => $transaction->fresh(),
             ]);
         } catch (\Exception $e) {
-            logger()->error('Payment simulation failed: ' . $e->getMessage());
+            logger()->error('Simulasi pembayaran gagal', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
 
             if ($mai3DbTransaction) DB::connection('mai3')->rollBack();
             if ($mai2DbTransaction) DB::connection('mai2')->rollBack();
@@ -293,6 +250,103 @@ class TransactionController extends Controller
                 'success' => false,
                 'message' => 'Simulasi pembayaran gagal: ' . $e->getMessage(),
             ])->withInput();
+        }
+    }
+
+    public function paymentInstruction(Request $req, $nouid, $orderId)
+    {
+        $validated = $req->validate([
+            'type' => 'sometimes|string|in:payment,topup',
+            'tah' => 'sometimes|string',
+            'month' => 'sometimes|string',
+            'spr' => 'sometimes|array',
+            'spr.*' => 'sometimes|integer',
+        ]);
+
+        $identitas = Indentitas::with('siswa')
+            ->where('nouid', $nouid)
+            ->firstOrFail();
+
+        $transaction = Ttrx::where('order_id', $orderId)
+            ->where('nouid', $nouid)
+            ->firstOrFail();
+
+        $transactionData = $transaction->toArray();
+
+        // Tambahan parameter untuk instruction page
+        $transactionData['spr'] = $validated['spr'] ?? [];
+        $transactionData['tah'] = $validated['tah'] ?? null;
+        $transactionData['month'] = $validated['month'] ?? null;
+        $transactionData['type'] = $validated['type'] ?? $transaction->type;
+        $transactionData['amount'] = abs($transaction->amount);
+        $transactionData['formatted_amount'] = number_format(abs($transaction->amount), 0, ',', '.'); // jika butuh
+
+        return Inertia::render('PaymentInstruction', [
+            'nouid' => $nouid,
+            'order_id' => $orderId,
+            'transaction' => $transactionData,
+            'siswa' => $identitas->siswa,
+        ]);
+    }
+
+    public function cancel(Request $request, $nouid)
+    {
+        try {
+            $validated = $request->validate([
+                'order_id' => 'required|string|max:255',
+                'nouid' => 'required|string|max:50|exists:mai4.ttrx,nouid'
+            ]);
+
+            $transaction = Ttrx::where('nouid', $nouid)
+                ->where('order_id', $validated['order_id'])
+                ->firstOrFail();
+
+            if (!in_array($transaction->status, ['pending', 'waiting'])) {
+                throw new \Exception('Hanya transaksi dengan status pending/waiting yang bisa dibatalkan');
+            }
+
+            DB::transaction(function () use ($transaction, $nouid) {
+                $updateResult = $transaction->update([
+                    'status' => 'canceled',
+                    'failure_message' => 'Order dibatalkan oleh user nouid: ' . $nouid,
+                    'updated_at' => now()
+                ]);
+
+                if (!$updateResult) {
+                    throw new \Exception('Gagal memperbarui status transaksi');
+                }
+
+                // // Optional: Add transaction log
+                // Ttrxlog::create([
+                //     'trx_id' => $transaction->id,
+                //     'action' => 'cancel',
+                //     'description' => 'Transaksi dibatalkan oleh user',
+                //     'created_by' => auth()->id() ?? 1
+                // ]);
+            });
+
+            return redirect()
+                ->route('siswa.index', ['nouid' => $nouid])
+                ->with(['success' => true, 'message' => 'Transaksi berhasil dibatalkan']);
+        } catch (ValidationException $e) {
+            return back()
+                ->withErrors($e->validator)
+                ->withInput();
+        } catch (ModelNotFoundException $e) {
+            logger()->error('Transaction not found', [
+                'nouid' => $nouid,
+                'order_id' => $request->order_id
+            ]);
+            return back()->withErrors(['message' => 'Transaksi tidak ditemukan']);
+        } catch (\Exception $e) {
+            logger()->error('Transaction cancellation failed', [
+                'error' => $e->getMessage(),
+                'nouid' => $nouid,
+                'order_id' => $request->order_id,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return back()->withErrors(['message' => 'Gagal membatalkan transaksi: ' . $e->getMessage()]);
         }
     }
 }
