@@ -34,14 +34,15 @@ const DataSiswaContent = (siswa: Siswa) => {
             <div className="flex flex-col items-center gap-6 md:flex-row md:items-start">
                 {/* Foto Profil */}
                 {/* <div className="flex-shrink-0">
-          <div className="rounded-lg overflow-hidden w-48 h-64 border-2 border-gray-200 shadow-md">
-            <img
-              className="w-full h-full object-cover"
-              src={siswa.foto}
-              alt="Student profile"
-            />
-          </div>
-        </div> */}
+                      <div className="rounded-lg overflow-hidden w-48 h-64 border-2 border-gray-200 shadow-md">
+                        <img
+                          className="w-full h-full object-cover"
+                          src={siswa.foto}
+                          alt="Student profile"
+                        />
+                      </div>
+                    </div> 
+                */}
 
                 {/* Data Siswa */}
                 <div className="grid flex-1 grid-cols-1 gap-6 md:grid-cols-2">
@@ -76,7 +77,7 @@ const DataSiswaContent = (siswa: Siswa) => {
                             </h4>
                             <div className="space-y-3">
                                 {/* <DataRow icon={<FaUser />} label="Ayah" value={siswa.orangTua.ayah} />
-                <DataRow icon={<FaUser />} label="Ibu" value={siswa.orangTua.ibu} /> */}
+                                    <DataRow icon={<FaUser />} label="Ibu" value={siswa.orangTua.ibu} /> */}
                                 <DataRow icon={<FaPhone />} label="Kontak Darurat" value="081234567893" />
                             </div>
                         </div>
