@@ -11,7 +11,6 @@
 
 # Abaikan file env & backup database
 .env
-/database/*.sql
 
 # Laravel IDE Helper files (jika digunakan)
 .phpstorm.meta.php
