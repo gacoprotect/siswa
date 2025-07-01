@@ -82,6 +82,13 @@ export interface Siswa {
     kel?: string;
     ala?: string;
     pin?: string;
+    wali?: Wali | null;
+}
+
+export interface Wali {
+    ayah : string | null
+    ibu : string | null
+    tel: string
 }
 
 export interface Bank {

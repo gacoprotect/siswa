@@ -7,6 +7,7 @@ use App\Models\Trx\Ttrx;
 use App\Models\Spp\Tsalpenrut;
 use App\Models\Trx\Tbalance;
 use App\Models\Trx\Ttrxlog;
+use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Hash;
 class Siswa extends Authenticatable
 {
     use HasFactory;
+    use LogsChanges;
 
     protected $connection = 'mai2';
     protected $table = 'tsiswa';
@@ -81,7 +83,10 @@ class Siswa extends Authenticatable
         'createdby' => 'integer',
         'updatedby' => 'integer',
     ];
-
+    public function loggable()
+    {
+        return $this->morphTo();
+    }
     public function indentitas()
     {
         return $this->belongsTo(Indentitas::class, 'idok', 'id');

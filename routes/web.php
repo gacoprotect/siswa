@@ -26,6 +26,7 @@ Route::get('/', function () {
 Route::middleware(['web', 'verify.nouid'])->group(function () {
     Route::prefix('/{nouid}')->group(function () {
         Route::get('/', [SiswaController::class, 'index'])->name('siswa.index');
+        Route::get('/update', [SiswaController::class, 'update'])->name('siswa.update');
         Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('siswa.logout');
         Route::post('/verify-pin', [AuthenticatedSessionController::class, 'store'])->name('siswa.verify-pin');
         Route::post('/register-phone', [RegisteredUserController::class, 'verifphone'])->name('siswa.verify-nope');

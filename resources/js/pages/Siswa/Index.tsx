@@ -1,7 +1,7 @@
 import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/Layout/AppLayout';
 import { formatIDR } from '@/lib/utils';
-import { DataSiswa, SharedData } from '@/types';
+import { Auth, DataSiswa, SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -39,7 +39,7 @@ interface TagihanParam {
     tagihan: number;
 }
 export default function SiswaDashboard() {
-    const {auth, data } = usePage<SharedData & { data: DataSiswa }>().props;
+    const {auth, data } = usePage<{auth: Auth, data: DataSiswa }>().props;
     // State management
     const [siswaData, setSiswaData] = useState(data);
     const [activeItem, setActiveItem] = useState<number | null>(null);
@@ -88,7 +88,7 @@ export default function SiswaDashboard() {
                 title: 'Data Siswa',
                 icon: <FaUserGraduate className="h-6 w-6 text-amber-600" />,
                 color: 'border-amber-700 bg-amber-50 hover:bg-amber-100',
-                content: <DataSiswaContent {...siswaData.siswa} />,
+                content: <DataSiswaContent nouid={siswaData.nouid} siswa={siswaData.siswa} />,
             },
             {
                 title: 'Ekstrakurikuler',
