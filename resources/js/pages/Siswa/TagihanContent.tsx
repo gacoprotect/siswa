@@ -98,7 +98,7 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
     return (
         <div className="space-y-6 p-2">
             {summary && (
-                <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 md:grid-cols-3'}`}>
+                <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
                     <StatCard
                         title="Total Tagihan"
                         value={`Rp ${summary.total_tagihan.toLocaleString('id-ID')}`}

@@ -148,7 +148,7 @@ class DataValidator
             'failure_message' => 'nullable|string',
             'expiry_time' => 'nullable|date',
             'paid_at' => 'nullable|date',
-            'spr_id' => 'required|array',
+            'spr_id' => 'sometimes|array',
             'spr_id.*' => 'integer|exists:mai3.tsalpenrut,id',
             'jen1' => 'sometimes|array',
             'jen1.*' => 'integer|exists:mai3.tsalpenrut,id',

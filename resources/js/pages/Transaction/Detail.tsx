@@ -139,7 +139,7 @@ const Detail: React.FC<TransactionDetailProps> = ({ transaction, onClose }) => {
                                 <DetailRow
                                     icon={<Landmark size={16} />}
                                     label="Metode Pembayaran"
-                                    value={transaction.payment_type.replace('_', ' ')}
+                                    value={typeof transaction.payment_type === 'string' ? transaction.payment_type.replace('_', ' ') : ''}
                                 />
                                 {vaInfo && (
                                     <>

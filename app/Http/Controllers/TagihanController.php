@@ -44,41 +44,42 @@ class TagihanController extends Controller
             }])
             ->firstOrFail();
 
-        // Group and format data
-        $data = $identitas->tagihan
-            ->where('jen', 0)
-            ->values()
-            ->map(function ($item) {
-                return [
-                    'tah'    => $item->tah,
-                    'ket'    => $item->ket,
-                    'jumlah' => $item->jumlah,
-                    'bulan'  => $item->bulan,
-                ];
-            });
-        $spr = $identitas->tagihan
-            ->where('jen', 0)
-            ->pluck('id')
-            ->values()
-            ->all();
-        $jen1 = $identitas->tagihan
-            ->where('jen', 1)
-            ->pluck('id')
-            ->values()
-            ->all();
+        // Ambil tagihan dengan jen == 0 (SPP) dan jen == 1 (diskon atau jenis lain)
+        $tagihanJen0 = $identitas->tagihan->where('jen', 0)->values();
+        $tagihanJen1 = $identitas->tagihan->where('jen', 1)->values();
 
-        $total_disc = $identitas->tagihan->where('jen', 1)->sum('jumlah');
-        $totalTagihan = $identitas->tagihan->where('jen', 0)->sum('jumlah');
-        $sisaTagihan = max(0, $totalTagihan - abs($total_disc));
+        $data = $tagihanJen0->map(function ($item) {
+            return [
+                'tah'    => $item->tah,
+                'ket'    => $item->ket,
+                'jumlah' => $item->jumlah,
+                'bulan'  => $item->bulan,
+            ];
+        });
+
+        $spr = $tagihanJen0->pluck('id')->values()->all();
+
+        // Hanya isi jen1 jika ada tagihan jen == 0
+        $jen1 = $tagihanJen0->isNotEmpty()
+            ? $tagihanJen1->pluck('id')->values()->all()
+            : [];
+
+        $total_disc = $tagihanJen0->isNotEmpty()
+            ? abs($tagihanJen1->sum('jumlah'))
+            : 0;
+
+        $totalTagihan = $tagihanJen0->sum('jumlah');
+        $sisaTagihan = max(0, $totalTagihan - $total_disc);
+
         return response()->json([
             'status' => true,
             'data' => $data,
             'summary' => [
                 'total_tagihan' => $totalTagihan,
-                'total_disc' => abs($total_disc),
-                'sisa_tagihan' => $sisaTagihan,
-                'spr' => $spr,
-                'jen1' => $jen1,
+                'total_disc'    => $total_disc,
+                'sisa_tagihan'  => $sisaTagihan,
+                'spr'           => $spr,
+                'jen1'          => $jen1,
             ],
         ]);
     }

@@ -193,7 +193,7 @@ class TransactionController extends Controller
             ];
             if ($transaction->type === 'payment') {
                 if ($transaction->spr_id) {
-                    $sprExists = Tsalpenrut::where('id', $transaction->spr_id)->exists();
+                    $sprExists = Tsalpenrut::whereIn('id', $transaction->spr_id)->exists();
                     if (!$sprExists) {
                         throw new \Exception("SPR record not found");
                     }
@@ -216,7 +216,7 @@ class TransactionController extends Controller
                         throw new \RuntimeException("Failed to create paid bill");
                     }
 
-                    Tsalpenrut::where('id', $transaction->spr_id)->update(['sta' => 2]);
+                    Tsalpenrut::whereIn('id', $transaction->spr_id)->update(['sta' => 2]);
                 }
             } else {
                 $log = $this->createTrxLog($dataLog);
