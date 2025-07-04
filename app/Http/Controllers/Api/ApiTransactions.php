@@ -29,63 +29,70 @@ class ApiTransactions extends Controller
     public function tagihan(Request $request, $nouid)
     {
         try {
+            // Validasi request
             $v = $request->validate([
-                'nouid' => 'required|string',
-                'spr' => 'required|integer|exists:mai3.tsalpenrut,id',
+                'spr' => 'required|array',
+                'spr.*' => 'required|integer|exists:mai3.tsalpenrut,id',
                 'jen1' => 'sometimes|array',
                 'jen1.*' => 'integer|exists:mai3.tsalpenrut,id',
                 'tagihan' => 'required|integer',
             ]);
-            $v['jen1'] = $v['jen1'] ?? [];
 
-            $jen1Used = !empty($v['jen1']) && Ttrx::whereIn('jen1', $v['jen1'])->exists();
-
-            $spr = Tsalpenrut::findOrFail($v['spr']);
+            $sprIds = $v['spr'];
+            $spr = Tsalpenrut::whereIn('id', $sprIds)->get();
             if (!$spr) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data tidak ditemukan.',
+                    'message' => 'Data SPR tidak ditemukan.',
                     'data' => []
                 ], 404);
             }
 
-            $identitas = Indentitas::with(['siswa', 'tagihan' => function ($q) use ($spr, $v, $jen1Used) {
-                $q->where('bulid', $spr->bulid)
-                    ->where('tah', $spr->tah);
+            // Cek jika jen1 digunakan (sudah pernah bayar)
+            $jen1Used = !empty($v['jen1']) && Ttrx::whereIn('jen1', $v['jen1'])->exists();
 
-                if ($jen1Used && !empty($v['jen1'])) {
-                    $q->whereNotIn('id', $v['jen1']);
+            // Ambil identitas siswa beserta tagihan yang belum dibayar
+            $identitas = Indentitas::with([
+                'siswa',
+                'tagihan' => function ($q) use ($v, $jen1Used) {
+                    if ($jen1Used) {
+                        $q->whereNotIn('id', $v['jen1']);
+                    }
                 }
-            }])->where('nouid', $v['nouid'])->firstOrFail();
+            ])->where('nouid', $nouid)->firstOrFail();
 
+            // Hitung total tagihan
             $totalTagihan = $identitas->tagihan->sum('jumlah');
+
+            // Siapkan response dasar
             $response = $identitas->toArray();
             $response['jen1'] = $v['jen1'];
             $response['total_tagihan'] = $totalTagihan;
-            $response['tah_tagihan'] = $spr->tah;
-            $response['bulan_tagihan'] =  $spr->bulid;
-            $response['spr_tagihan'] = $spr->id;
+            // $response['tah_tagihan'] = $spr->tah;
+            // $response['bulan_tagihan'] = $spr->bulid;
+            $response['spr_tagihan'] = $v['spr'];
 
-            $orderId = 'pay-PR' .  $spr->tah .
-                str_pad($spr->id, 2, '0', STR_PAD_LEFT) .
-                $identitas->siswa->nis;
+            // Generate order ID
+            $orderId = 'pay-PR' . $identitas->siswa->nis . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             $response['orderId'] = $orderId;
 
+            // Cek jika sudah ada transaksi sebelumnya
             $trx = Ttrx::where('order_id', $orderId)->first();
+            if ($trx) {
+                if ($trx->status === 'pending') {
+                    return response()->json([
+                        'success' => true,
+                        'redirect' => route('payment.instruction', [
+                            'nouid' => $nouid,
+                            'orderId' => $orderId,
+                        ]),
+                        'data' => $response,
+                    ]);
+                } elseif ($trx->status !== 'success') {
+                    $trx->delete(); // hapus transaksi gagal
+                }
+            }
 
-            if ($trx && $trx->status === 'pending') {
-                return response()->json([
-                    'success' => true,
-                    'redirect' => route('payment.instruction', [
-                        'nouid' => $nouid,
-                        'orderId' => $orderId,
-                    ]),
-                    'data' => $response,
-                ]);
-            }
-            if ($trx && $trx->status !== 'success') {
-                $trx->delete();
-            }
             return response()->json([
                 'success' => true,
                 'data' => $response,
@@ -93,8 +100,49 @@ class ApiTransactions extends Controller
         } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,
-                'message' => $th->getMessage(),
+                'message' => 'Terjadi kesalahan: ' . $th->getMessage(),
                 'data' => []
+            ], 500);
+        }
+    }
+
+    public function getLastTagihan(Request $req, $nouid)
+    {
+        try {
+            $identitas = Indentitas::with(['tagihan' => function ($q) {
+                $q->where('sta', 2)
+                    ->orderByDesc('tah')
+                    ->orderByDesc('bulid');
+            }])->where('nouid', $nouid)->first();
+
+            if (!$identitas || $identitas->tagihan->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tagihan belum tersedia.',
+                    'data' => null,
+                ], 404);
+            }
+
+            $last = $identitas->tagihan->first(); // tagihan terakhir
+            $tahun = $last->tah;
+            $bulan = str_pad($last->bulid, 2, '0', STR_PAD_LEFT); // pastikan 2 digit
+            $tanggal = \Carbon\Carbon::createFromFormat('Y-m', "$tahun-$bulan");
+
+            $nextMonth = $tanggal->addMonth()->startOfMonth();
+            $timestamp = $nextMonth->timestamp * 1000;
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'bul' => $bulan.'-'.$tahun,
+                    'month' => $timestamp,
+                ]
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $th->getMessage(),
+                'data' => null,
             ], 500);
         }
     }

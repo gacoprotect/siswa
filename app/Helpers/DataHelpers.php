@@ -22,7 +22,7 @@ function getBulan()
 }
 function getBulanById($id)
 {
-    return DB::table('tbulan')->where('id', $id)->first();
+    return DB::connection('mai2')->table('tbulan')->where('id', $id)->first();
 }
 
 function getTagihan(string $nouid)

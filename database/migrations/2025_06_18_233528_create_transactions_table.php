@@ -41,7 +41,7 @@ return new class extends Migration
             $table->enum('status', ['pending', 'success', 'failed', 'canceled'])->default('pending');
             $table->enum('type', ['topup', 'payment', 'withdraw', 'refund'])->default('topup');
 
-            $table->integer('spr_id')->nullable()->collation('utf8mb3_general_ci'); // idspr
+            $table->json('spr_id')->nullable(); // idspr
             $table->json('jen1')->nullable(); // idspr jen=1
             $table->text('note')->nullable();
             $table->json('pay_data')->nullable();
@@ -85,7 +85,7 @@ return new class extends Migration
             $table->unsignedBigInteger('trx_id')->unique(); // Referensi ke ttrx            
             $table->string('order_id')->unique();
             $table->string('nouid', 50)->collation('utf8mb3_general_ci');
-            $table->integer('spr_id')->nullable()->collation('utf8mb3_general_ci'); // idspr
+            $table->json('spr_id')->nullable(); // idspr
             $table->json('jen1')->nullable(); // idspr jen=1
             $table->decimal('amount', 16, 2); // Jumlah dibayar
             $table->timestamp('paid_at')->useCurrent(); // Waktu pembayaran

@@ -32,6 +32,7 @@ class PaidBill extends Model
         'updated_at',
     ];
     protected $casts = [
+        'spr_id' => 'array',
         'jen1' => 'array',
         'amount' => 'decimal:2',
         'paid_at' => 'datetime',

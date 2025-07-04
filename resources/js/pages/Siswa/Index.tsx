@@ -22,24 +22,24 @@ import { FiLogOut } from 'react-icons/fi';
 import { route } from 'ziggy-js';
 import Topup from '../Topup';
 import PaymentPage from '../Transaction/Tagihan';
+import DataSiswaContent from './DataSiswaContent';
+import Excul from './Excul';
 import PinPage from './Pin';
 import SetupPinPage from './SetupPin';
 import TagihanContent from './TagihanContent';
-import Excul from './Excul';
-import DataSiswaContent from './DataSiswaContent';
 
 // Type definitions
 type PageState = 'index' | 'topup' | 'riwayat' | 'tagihan';
 type ModalState = 'pin' | 'setupPin' | null;
 
-interface TagihanParam {
-    nouid: string | null;
-    spr: number | null;
+export interface TagihanParam {
+    nouid?: string;
+    spr: number[] | [];
     jen1: number[] | [];
     tagihan: number;
 }
 export default function SiswaDashboard() {
-    const {auth, data } = usePage<{auth: Auth, data: DataSiswa }>().props;
+    const { auth, data } = usePage<{ auth: Auth; data: DataSiswa }>().props;
     // State management
     const [siswaData, setSiswaData] = useState(data);
     const [activeItem, setActiveItem] = useState<number | null>(null);
@@ -49,12 +49,11 @@ export default function SiswaDashboard() {
     const [hasPined, setHasPined] = useState(data.siswa.has_pin);
     const [openModal, setOpenModal] = useState<ModalState>(null);
     const [tagihanParam, setTagihanParam] = useState<TagihanParam>({
-        nouid: null,
-        spr: null,
+        spr: [],
         jen1: [],
         tagihan: 0,
     });
-    
+
     useToast(usePage<SharedData>().props);
     useEffect(() => {
         setSiswaData(data);
@@ -301,7 +300,7 @@ export default function SiswaDashboard() {
                 />
             ) : page === 'tagihan' ? (
                 <PaymentPage
-                    tagihanParam={tagihanParam}
+                    tagihanParam={{...tagihanParam, nouid: siswaData.nouid}}
                     onClose={() => {
                         setPage('index');
                         closeModal();

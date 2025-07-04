@@ -44,6 +44,7 @@ class Ttrx extends Model
         'id'
     ];
     protected $casts = [
+        'spr_id' => 'array',
         'jen1' => 'array',
         'pay_data' => 'array',
         'expiry_time' => 'datetime',
