@@ -1,6 +1,23 @@
 import { TransactionDetail } from '@/types';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertCircle, ArrowDown, ArrowUp, Ban, Banknote, CheckCircle, Clock, Copy, CreditCard, Landmark, Share2, ShoppingCart, Smartphone, Wallet, X, XCircle } from 'lucide-react';
+import {
+    AlertCircle,
+    ArrowDown,
+    ArrowUp,
+    Ban,
+    Banknote,
+    CheckCircle,
+    Clock,
+    Copy,
+    CreditCard,
+    Landmark,
+    Share2,
+    ShoppingCart,
+    Smartphone,
+    Wallet,
+    X,
+    XCircle,
+} from 'lucide-react';
 import React from 'react';
 
 interface TransactionDetailProps {
@@ -10,7 +27,7 @@ interface TransactionDetailProps {
 
 const Detail: React.FC<TransactionDetailProps> = ({ transaction, onClose }) => {
     // Determine icons
-    
+    console.log(transaction);
 
     const getStatusBadge = (status: 'success' | 'pending' | 'failed' | 'canceled') => {
         switch (status) {
@@ -125,9 +142,7 @@ const Detail: React.FC<TransactionDetailProps> = ({ transaction, onClose }) => {
                                 {parseFloat(transaction.amount) > 0 ? '+' : ''}
                                 {formatCurrency(transaction.amount)}
                             </div>
-                            <span
-                                className={`mt-3 inline-flex items-center rounded-full px-4 py-1 text-sm font-medium`}
-                            >
+                            <span className={`mt-3 inline-flex items-center rounded-full px-4 py-1 text-sm font-medium`}>
                                 {getStatusBadge(transaction.status)}
                             </span>
                         </div>
@@ -141,12 +156,7 @@ const Detail: React.FC<TransactionDetailProps> = ({ transaction, onClose }) => {
                                     label="Metode Pembayaran"
                                     value={typeof transaction.payment_type === 'string' ? transaction.payment_type.replace('_', ' ') : ''}
                                 />
-                                {vaInfo && (
-                                    <>
-                                        {/* <DetailRow icon={<Landmark size={16} />} label="Bank" value={vaInfo.bank} /> */}
-                                        <DetailRow icon={<CreditCard size={16} />} label="Virtual Account" value={vaInfo} copyable />
-                                    </>
-                                )}
+                                {vaInfo && <DetailRow icon={<CreditCard size={16} />} label="Virtual Account" value={vaInfo} copyable />}
                                 {transaction.phone && <DetailRow icon={<Smartphone size={16} />} label="Nomor Telepon" value={transaction.phone} />}
                                 <DetailRow label="Tanggal" value={formatDate(transaction.created_at)} />
                                 <DetailRow label="ID Transaksi" value={transaction.id} copyable />

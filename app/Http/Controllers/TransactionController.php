@@ -128,7 +128,22 @@ class TransactionController extends Controller
             return null;
         }
     }
+    public static function createBill(array $data): ?Tsalpenrut
+    {
+        try {
+            $v = DataValidator::tsalpenrut($data);
 
+            return DB::connection('mai3')->transaction(function () use ($v) {
+                return Tsalpenrut::create($v);
+            });
+        } catch (\Throwable $e) {
+            logger()->error('createBill: #Gagal membuat Tagihan', [
+                'error' => $e->getMessage(),
+                'data' => $data,
+            ]);
+            return null;
+        }
+    }
     public function simulateVa(Request $request, $nouid)
     {
         $validated = $request->validate([

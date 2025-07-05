@@ -1,144 +1,202 @@
 import { Modal } from '@/components/ui/Modal';
-import { useForm } from '@inertiajs/react';
-import dayjs from 'dayjs';
+import { formatBulan } from '@/lib/utils';
 import { useCallback, useEffect, useState } from 'react';
+import { FaChevronDown, FaChevronRight, FaSpinner } from 'react-icons/fa';
 
 interface Props {
     open: boolean;
     onClose: (value: boolean) => void;
     nouid: string;
+    setTambahTagihan: (v: SetTambahTagihan) => void;
 }
 
-const TambahTagihan = ({ open, onClose, nouid }: Props) => {
-    const [startMonth, setStartMonth] = useState(dayjs().format('YYYY-MM'));
-    const [endMonth, setEndMonth] = useState(dayjs().add(1, 'month').format('YYYY-MM'));
-    const { data, setData, post, processing, errors, reset } = useForm<{ nouid: string; months: number[] }>({
-        nouid: nouid,
-        months: [],
-    });
-    const lastTagihan = useCallback(async () => {
-        try {
-            if (!nouid) throw new Error('Tagihan tidak ditemukan');
+interface ResponseForBill {
+    id: number;
+    tah: string;
+    bulid: number;
+    jumlah: number;
+    ket: string;
+    jen: number; // 0 = tagihan, 1 = pengurangan
+    sta: number;
+}
+interface DataTambahTagihan {
+    tah: string;
+    ket: string;
+    jumlah: number;
+    bulan: string; // juli , agustus, format indonesia
+}
 
-            const url = route('api.tagihan.last', { nouid });
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                },
+interface SetTambahTagihan {
+    spr: number[];
+    jen1: number[];
+    data: DataTambahTagihan[];
+}
+interface Grouped {
+    [tah: string]: {
+        [bul: string]: ResponseForBill[];
+    };
+}
+
+const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+const TambahTagihan = ({ open, onClose, nouid, setTambahTagihan }: Props) => {
+    const [grouped, setGrouped] = useState<Grouped>({});
+    const [expandedYears, setExpandedYears] = useState<Record<string, boolean>>({});
+    const [selectedMonths, setSelectedMonths] = useState<Record<string, Record<string, boolean>>>({});
+    const [loading, setLoading] = useState(false);
+
+    const getData = useCallback(async () => {
+        setLoading(true);
+        try {
+            const url = route('api.tagihan.add', { nouid });
+            const res = await fetch(url);
+            const json = await res.json();
+
+            if (!res.ok) throw new Error(json.message);
+
+            const data: Grouped = json.data || {};
+            setGrouped(data);
+
+            const initExpand: Record<string, boolean> = {};
+            const initSelected: Record<string, Record<string, boolean>> = {};
+
+            Object.keys(data).forEach((year) => {
+                initExpand[year] = false;
+                initSelected[year] = {};
+                Object.keys(data[year]).forEach((month) => {
+                    initSelected[year][month] = false;
+                });
             });
 
-            const json = await response.json();
-
-            if (!response.ok) {
-                throw new Error(json.message || 'Gagal mengambil data tagihan');
-            }
-
-            if (json?.data?.month) {
-                const nextMonth = dayjs(json.data.month);
-                setStartMonth(nextMonth.format('YYYY-MM'));
-                setEndMonth(nextMonth.add(1, 'month').format('YYYY-MM')); // default 1 bulan ke depan
-            }
-        } catch (error) {
-            console.error('Gagal ambil tagihan terakhir:', error);
-            if (onClose) setTimeout(() => onClose(false), 1000);
+            setExpandedYears(initExpand);
+            setSelectedMonths(initSelected);
+        } catch (err) {
+            console.error('Gagal ambil tagihan:', err);
+        } finally {
+            setLoading(false);
         }
-    }, [nouid, onClose]);
+    }, [nouid]);
 
     useEffect(() => {
-        if (open) {
-            lastTagihan();
-        }
-    }, [open, lastTagihan]);
+        if (open) getData();
+    }, [open, getData]);
 
-    const generateMonthsArray = useCallback((start: string, end: string): number[] => {
-        const monthsArray: number[] = [];
-        let current = dayjs(start);
-        const endDate = dayjs(end);
+    const toggleYear = (year: string) => {
+        setExpandedYears((prev) => ({ ...prev, [year]: !prev[year] }));
+    };
 
-        while (current.isBefore(endDate) || current.isSame(endDate, 'month')) {
-            monthsArray.push(current.valueOf());
-            current = current.add(1, 'month');
-        }
-        return monthsArray;
-    }, []);
-
-    useEffect(() => {
-        const monthsArray = generateMonthsArray(startMonth, endMonth);
-        setData({
-            nouid,
-            months: monthsArray,
-        });
-    }, [startMonth, endMonth, generateMonthsArray, nouid, setData]);
+    const toggleMonth = (year: string, month: string) => {
+        setSelectedMonths((prev) => ({
+            ...prev,
+            [year]: {
+                ...prev[year],
+                [month]: !prev[year][month],
+            },
+        }));
+    };
 
     const handleSubmit = () => {
-        console.log(data);
+        const spr: number[] = [];
+        const jen1: number[] = [];
+        const data: SetTambahTagihan['data'] = [];
 
-        post(route('api.tagihan.new', nouid), {
-            onSuccess: () => {
-                reset();
-                onClose(false);
-            },
-            preserveScroll: true,
+        Object.entries(selectedMonths).forEach(([year, months]) => {
+            Object.entries(months).forEach(([month, isChecked]) => {
+                if (!isChecked) return;
+                const bills = grouped[year]?.[month] ?? [];
+
+                const main = bills.find((b) => b.jen === 0);
+                const disc = bills.filter((b) => b.jen === 1);
+
+                if (main) {
+                    spr.push(main.id);
+                    jen1.push(...disc.map((d) => d.id));
+
+                    const totalDisc = disc.reduce((acc, d) => acc + d.jumlah, 0);
+
+                    data.push({
+                        tah: year,
+                        bulan: formatBulan(month),
+                        ket: main.ket,
+                        jumlah: main.jumlah - totalDisc,
+                    });
+                }
+            });
         });
-    };
-
-    const handleStartMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newStartMonth = e.target.value;
-        setStartMonth(newStartMonth);
-        if (dayjs(newStartMonth).isAfter(dayjs(endMonth))) {
-            setEndMonth(dayjs(newStartMonth).add(1, 'month').format('YYYY-MM'));
+        const bills = { spr, jen1, data };
+        if (data.length > 0) {
+            setTambahTagihan(bills);
+            onClose(false);
         }
-    };
-
-    const handleEndMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newEndMonth = e.target.value;
-        if (dayjs(newEndMonth).isBefore(dayjs(startMonth))) return;
-        setEndMonth(newEndMonth);
     };
 
     return (
-        <Modal title="Buat Tagihan SPP" isOpen={open} onClose={() => onClose(false)}>
-            <div className="space-y-4">
-                {/* Form fields remain the same as previous implementation */}
-                <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Mulai</label>
-                    <input
-                        type="month"
-                        className="input w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                        value={startMonth}
-                        onChange={handleStartMonthChange}
-                        min={dayjs().format('YYYY-MM')}
-                    />
-                    {errors.months && <p className="mt-1 text-sm text-red-500">{errors.months}</p>}
-                </div>
+        <Modal title="Pilih Tagihan SPP" isOpen={open} onClose={() => onClose(false)}>
+            <div className="max-h-[75vh] space-y-6 overflow-y-auto px-1">
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+                        <FaSpinner className="mb-2 animate-spin text-2xl" />
+                        <span>Memuat data tagihan...</span>
+                    </div>
+                ) : Object.keys(grouped).length === 0 ? (
+                    <p className="py-4 text-center text-gray-600">Tidak ada data tagihan tersedia</p>
+                ) : (
+                    Object.entries(grouped)
+                        .sort(([a], [b]) => parseInt(b) - parseInt(a))
+                        .map(([year, months]) => (
+                            <div key={year} className="overflow-hidden rounded-lg border shadow-sm">
+                                <button
+                                    className="flex w-full items-center justify-between bg-gray-100 px-4 py-3 transition-colors hover:bg-gray-200"
+                                    onClick={() => toggleYear(year)}
+                                >
+                                    <span className="font-semibold text-gray-800">Tahun {year}</span>
+                                    {expandedYears[year] ? <FaChevronDown /> : <FaChevronRight />}
+                                </button>
 
-                <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Sampai</label>
-                    <input
-                        type="month"
-                        className="input w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                        value={endMonth}
-                        onChange={handleEndMonthChange}
-                        min={startMonth}
-                    />
-                </div>
+                                {expandedYears[year] && (
+                                    <div className="space-y-3 bg-white px-4 py-3 transition-all">
+                                        {Object.keys(months)
+                                            .sort((a, b) => monthNames.indexOf(a) - monthNames.indexOf(b))
+                                            .map((month) => {
+                                                const tagihan = months[month].filter((b) => b.jen === 0);
+                                                if (tagihan.length === 0) return null;
+
+                                                return (
+                                                    <div
+                                                        key={month}
+                                                        className="flex items-start rounded-lg border border-gray-200 p-3 shadow-sm transition-shadow hover:shadow-md"
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            id={`${year}-${month}`}
+                                                            checked={selectedMonths[year]?.[month] || false}
+                                                            onChange={() => toggleMonth(year, month)}
+                                                            className="mt-1 mr-3 accent-blue-600"
+                                                        />
+                                                        <label htmlFor={`${year}-${month}`} className="flex-1 cursor-pointer">
+                                                            <div className="font-medium text-gray-800 capitalize">{month}</div>
+                                                            {tagihan.map((item) => (
+                                                                <div key={item.id} className="ml-2 text-sm text-gray-600">
+                                                                    {item.ket} — Rp {item.jumlah.toLocaleString('id-ID')}
+                                                                </div>
+                                                            ))}
+                                                        </label>
+                                                    </div>
+                                                );
+                                            })}
+                                    </div>
+                                )}
+                            </div>
+                        ))
+                )}
+
                 <div className="flex justify-end pt-4">
                     <button
-                        onClick={() => onClose(false)}
-                        className="mr-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50"
-                    >
-                        Batal
-                    </button>
-                    <button
                         onClick={handleSubmit}
-                        disabled={processing}
-                        className={`rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none ${
-                            processing ? 'cursor-not-allowed opacity-75' : ''
-                        }`}
+                        disabled={loading}
+                        className="rounded-md bg-blue-600 px-5 py-2 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        {processing ? 'Menyimpan...' : 'Simpan Tagihan'}
+                        Tambahkan Tagihan
                     </button>
                 </div>
             </div>

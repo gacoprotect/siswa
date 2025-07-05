@@ -24,15 +24,13 @@ class TagihanController extends Controller
         $identitas = Indentitas::select('idok')
             ->where('nouid', $nouid)
             ->with(['tagihan' => function ($query) {
-                $query
-                    ->where(function ($query) {
-                        $query->where('sta', 0)
-                            ->orWhere('sta', 1);
-                    })
-                    ->where(function ($query) {
-                        $currentYear = date('Y');
-                        $currentMonth = date('n');
+                $currentYear = date('Y');
+                $currentMonth = date('n');
 
+                // logger(['month' => $currentMonth]); // 7
+
+                $query->whereIn('sta', [0, 1])
+                    ->where(function ($query) use ($currentYear, $currentMonth) {
                         $query->where('tah', '<', $currentYear)
                             ->orWhere(function ($q) use ($currentYear, $currentMonth) {
                                 $q->where('tah', $currentYear)
@@ -40,9 +38,10 @@ class TagihanController extends Controller
                             });
                     })
                     ->orderBy('tah', 'desc')
-                    ->orderBy('bulid', 'desc');
+                    ->orderBy('bulid', 'asc');
             }])
             ->firstOrFail();
+
 
         // Ambil tagihan dengan jen == 0 (SPP) dan jen == 1 (diskon atau jenis lain)
         $tagihanJen0 = $identitas->tagihan->where('jen', 0)->values();
@@ -120,153 +119,6 @@ class TagihanController extends Controller
         }
     }
 
-    public function pay(Request $request, $nouid)
-    {
-        DB::beginTransaction();
-
-        try {
-            // Validate input
-            $validated = $request->validate([
-                'spr' => 'required|array',
-                'spr.*' => 'integer|exists:mai3.tsalpenrut,id',
-                'tah' => 'required|string',
-                'month' => 'required|string',
-                'payment_method' => 'required|exists:mai3.tpt,code',
-                'amount' => 'required|numeric|min:1'
-            ]);
-
-            // Get month data
-            $bulan = DB::connection('mai2')->table('tbulan')
-                ->where('bul', $validated['month'])
-                ->firstOrFail();
-
-            // Get student data with relations
-            $identitas = Indentitas::with(['siswa', 'tagihan' => function ($q) use ($bulan, $validated) {
-                $q->where('bulid', $bulan->bulid)
-                    ->where('tah', $validated['tah']);
-            }])
-                ->where('nouid', $nouid)
-                ->firstOrFail();
-
-            // Generate order ID
-            $orderId = 'pay-PR' . $validated['tah'] .
-                str_pad($bulan->bulid, 2, '0', STR_PAD_LEFT) .
-                $identitas->siswa->nis;
-            // Prepare transaction data
-            $dataTrx = [
-                'phone' => $identitas->siswa->tel,
-                'nouid' => $nouid,
-                'order_id' => $orderId,
-                'pt_id' => getPtId($validated['payment_method']),
-                'amount' => $validated['amount'],
-                'status' => 'pending',
-                'type' => 'payment',
-                'va_number' => $validated['payment_method'] === 'va' ? generateVaNumber() : null,
-                'note' => $identitas->tagihan->where('jen', 0)->pluck('ket')->implode(', '),
-                'expiry_time' => now()->addHours(6),
-            ];
-
-            // Create transaction
-            $transaction = Ttrx::create($dataTrx);
-
-            if ($validated['payment_method'] === 'va') {
-                DB::commit();
-                return redirect()->route('payment.instruction', [
-                    'tah' => $request->tah,
-                    'month' => $request->month,
-                    'spr' => $request->spr,
-                    'type' => 'payment',
-                    'nouid' => $nouid,
-                    'orderId' => $orderId
-                ]);
-            }
-            // Get SPR details for reference
-            $sprDetails = Tsalpenrut::whereIn('id', $validated['spr'])
-                ->get(['id', 'ket', 'jum']); // Get needed fields
-
-            // Update SPR status
-            $updatedSprs = Tsalpenrut::whereIn('id', $validated['spr'])
-                ->update(['sta' => 2]);
-
-            if ($updatedSprs !== count($validated['spr'])) {
-                throw new \Exception("Failed to update all SPR records");
-            }
-
-            $currentDate = now()->format('Y-m-d');
-            $tprId = DB::connection('mai3')
-                ->table('ttpenrut')
-                ->insertGetId([
-                    'nopr' => 'PR' . date('Y') . str_pad($transaction->id, 4, '0', STR_PAD_LEFT),
-                    'tgl' => $currentDate,
-                    'idsis' => $identitas->siswa->id,
-                    'via' => 1,
-                    'idkas' => 2,
-                    'nova' => null,
-                    'ket' => 'Pembayaran via ' . $validated['payment_method'],
-                    'jum' => $validated['amount'],
-                    'cat' => null,
-                    'cet' => 0,
-                    'dar' => 0,
-                    'sta' => 0,
-                    'stapos' => 0,
-                    'rev' => 0,
-                    'createdby' => 1,
-                    'updatedby' => 0,
-                ]);
-
-            foreach ($sprDetails as $index => $spr) {
-                DB::connection('mai3')
-                    ->table('ttpenrut1')
-                    ->insert([
-                        'idpr' => $tprId,
-                        'nmr' => $index + 1, // Sequential number
-                        'idspr' => $spr->id, // Dynamic SPR ID
-                        'ket' => $spr->ket ?? 'Pembayaran SPR ' . $spr->id,
-                        'jum' => $spr->jum ?? $validated['amount'],
-                        'idcoa' => 0,
-                        'nolai' => null,
-                        'salpr' => 0,
-                        'sta' => null,
-                        'stapos' => 0,
-                        'createdby' =>  1,
-                        'updatedby' => 0,
-                    ]);
-            }
-
-            // Handle payment method
-            if ($validated['payment_method'] === 'saldo') {
-                // Validate sufficient balance
-                if ($identitas->siswa->saldo < $validated['amount']) {
-                    throw new \Exception("Insufficient balance");
-                }
-                $transaction->update(['status' => 'success']);
-
-                DB::commit();
-
-                return back()->withMessage(['success' => true, 'message' => 'Payment successful using balance']);
-            }
-
-            return redirect()->intended(route('siswa.index', $nouid))->withMessage([
-                'success' => false,
-                'message' => 'Payment Failed'
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            logger()->error('Payment failed: ' . $e->getMessage(), [
-                'exception' => $e,
-                'request' => $request->all(),
-                'nouid' => $nouid
-            ]);
-
-            return back()
-                ->withInput()
-                ->withErrors([
-                    'message' => 'Payment processing failed: ' . $e->getMessage(),
-                    'exception' => config('app.debug') ? $e->getMessage() : null,
-                ]);
-        }
-    }
     public function handlePay(Request $request, $nouid)
     {
         try {
@@ -469,67 +321,54 @@ class TagihanController extends Controller
         }
     }
 
-    private function ttpenrut($data, $trx)
+    public function newTagihan(Request $req, $nouid)
     {
-        //db connection mai3
-        $v = DataValidator::ttpenrut([
-            'nopr' => 'PR' . date('Y') . str_pad($trx->id, 4, '0', STR_PAD_LEFT),
-            'tgl' => now()->format('Y-m-d'),
-            'idsis' => $data->siswa->id,
-            'via' => 'required|integer|min:0|max:255', //1
-            'idkas' => 'required|integer', // 2
-            'nova' => 'nullable|string|max:30', // null
-            'ket' => 'Pembayaran ' . $data->ttrx->note,
-            'jum' => $data->ttrx->amount,
-            'cat' => 'nullable|string|max:100', //null
-            'cet' => 'required|integer|min:0|max:1', // 0
-            'dar' => 'required|integer|min:0|max:255', // 0 
-            'sta' => 'required|integer|min:0|max:255', // 0
-            'stapos' => 'required|integer|min:0|max:255', // 0
-            'rev' => 'required|integer|min:0|max:255', // 0
-            'createdby' => 'required|integer', // 1
-            'updatedby' => 'required|integer', // 0
-        ]);
-        $v1 = DataValidator::ttpenrut1([
-            'idpr' => 'required|integer', // id ttpenrut
-            'nmr' => 'required|integer|min:1|max:255',
-            'idspr' => $data->ttrx->spr_id,
-            'ket' => 'nullable|string|max:100',
-            'jum' => $data->ttrx->amount,
-            'idcoa' => 'required|integer', // 0
-            'nolai' => 'nullable|string|max:20', // null
-            'salpr' => 'required|integer|min:0|max:1', // 0
-            'sta' => 'nullable|integer|min:0|max:255', // null
-            'stapos' => 'required|integer|min:0|max:255', //0
-            'createdby' => 'required|integer', // 1
-            'updatedby' => 'required|integer', // 0
-        ]);
+        try {
+            if (!isset($nouid)) {
+                throw new \InvalidArgumentException("Invalid transaction data");
+            }
+            $data = [
+                'idset' => 'required|integer',
+                'idsis' => 'required|integer',
+                'bulid' => 'required|integer|min:0|max:255',
+                'tah' => 'required|integer|digits:4',
+                'nmr' => 'required|integer|min:0|max:255',
+                'jen' => 'required|integer|min:0|max:255',
+                'ket' => 'nullable|string|max:80',
+                'jum' => 'required|numeric|min:0',
+                'coapen' => 'required|integer',
+                'coapiu' => 'nullable|integer',
+                'coapendim' => 'nullable|integer',
+                'coabelter' => 'nullable|integer',
+                'sta' => 'required|integer|min:0|max:255',
+                'islock' => 'required|integer|min:0|max:1',
+                'idspr1' => 'required|integer',
+                'idgru' => 'required|integer',
+                'idpr' => 'required|integer',
+                'createdby' => 'required|integer',
+                'updatedby' => 'required|integer',
+            ];
+            $v = DataValidator::tsalpenrut((array) $data);
 
-        DB::transaction(function () use ($data) {});
-    }
-    private function va($data, $nouid)
-    {
-        /**
-         * 'nouid' => 'required|string|max:50',
-            'order_id' => 'required|string|max:255|unique:ttrx,order_id',
-            'amount' => 'required|numeric|min:0',
-            'bank_id' => 'nullable|integer|exists:tbank,id',
-            'pt_id' => 'nullable|integer|exists:tpt,id',
-            'phone' => 'required|string|max:255',
-            'va_number' => 'nullable|string|max:255',
-            'status' => 'required|in:pending,success,failed',
-            'type' => 'required|in:topup,payment,withdraw,refund',
-            'note' => 'nullable|string',
-            'pay_data' => 'nullable|json',
-            'failure_message' => 'nullable|string',
-            'expiry_time' => 'nullable|date',
-            'paid_at' => 'nullable|date',
-            // Validasi field baru
-            'spr_id' => 'nullable|json|exists:mai3.tsalpenrut,id',
-            'jen1' => 'nullable|json',
-            'created_by' => 'required|string|max:255',
-         */
-        $v = DataValidator::ttrx([$data]);
-        DB::transaction(function () use ($data, $nouid) {});
+            return DB::connection('mai3')->transaction(function () use ($v, $data) {
+                $trx = TransactionController::createBill($v);
+                if (!$trx) {
+                    throw new \RuntimeException("Gagal Membuat Tagihan");
+                }
+                $trx = is_array($trx) ? (object) $trx : $trx;
+                return back()->with([
+                    'success' => true,
+                    'message' => 'Berhasil membuat tagihan'
+                ]);
+            });
+        } catch (\Exception $e) {
+            logger()->error('Gagal proses tagihan baru', [
+                'error' => $e->getMessage(),
+                'data' => $data,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            throw $e;
+        }
     }
 }

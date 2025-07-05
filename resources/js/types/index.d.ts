@@ -169,13 +169,15 @@ export interface VirtualAccount {
 }
 
 export interface BillTagihan {
-    spr: number;
+    id?: number;
+    bulid?: number;
+    spr?: number;
     tah: string;
-    jen: number;
+    jen?: number;
     ket: string;
     jumlah: number;
     bulan: string;
-    sta: number;
+    sta?: number;
 }
 export interface BillData {
     tagihan: number;

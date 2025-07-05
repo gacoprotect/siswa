@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
             TptSeeder::class,
             PelExculSeeder::class,
             ExculSeeder::class,
+            TagihanSetahunSeeder::class,
+
         ]);
     }
 }

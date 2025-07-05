@@ -52,6 +52,8 @@ Route::middleware(['web', 'verify.nouid'])->group(function () {
         Route::get('/tagihan', [TagihanController::class, 'index'])->name('tagihan.index');
         Route::get('/tagihan/pay', [TagihanController::class, 'show'])->name('tagihan.show');
         Route::post('/tagihan/pay', [TagihanController::class, 'handlePay'])->name('tagihan.pay');
+        Route::post('/bills/new', [TagihanController::class, 'newTagihan'])->name('api.tagihan.new');
+
 
 
         Route::post('/excul/subs', [ExculController::class, 'subs'])->name('subs.excul');

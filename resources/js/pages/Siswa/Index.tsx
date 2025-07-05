@@ -300,7 +300,8 @@ export default function SiswaDashboard() {
                 />
             ) : page === 'tagihan' ? (
                 <PaymentPage
-                    tagihanParam={{...tagihanParam, nouid: siswaData.nouid}}
+                    siswa={siswaData.siswa}
+                    tagihanParam={{ ...tagihanParam, nouid: siswaData.nouid }}
                     onClose={() => {
                         setPage('index');
                         closeModal();

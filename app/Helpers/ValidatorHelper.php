@@ -223,7 +223,7 @@ class DataValidator
 
         return $validator->validated();
     }
-    public static function tsalpenrut(array $data): void
+    public static function tsalpenrut(array $data): array
     {
         $validator = Validator::make($data, [
             'idset' => 'required|integer',
@@ -248,8 +248,14 @@ class DataValidator
         ]);
 
         if ($validator->fails()) {
+            logger()->error('Validasi tsalpenrut gagal', [
+                'errors' => $validator->errors(),
+                'input' => $data
+            ]);
             throw new ValidationException($validator);
         }
+
+        return $validator->validated();
     }
 
     public static function ttpenrut(array $data): void

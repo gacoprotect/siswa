@@ -63,10 +63,11 @@ class Ttrx extends Model
             ? -1 * abs($value)
             : abs($value);
     }
-    public function getPaymentTypeAttribute(): BelongsTo
+    public function getPaymentTypeAttribute(): ?string
     {
-        return $this->belongsTo(Tpt::class, 'pt_id', 'id');
+        return Tpt::where('id', $this->pt_id)->value('pt');
     }
+
     public function getBankAttribute(): BelongsTo
     {
         return $this->belongsTo(Tbank::class, 'bank_id', 'id');

@@ -11,7 +11,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,90 +31,79 @@ class ApiTransactions extends Controller
     public function tagihan(Request $request, $nouid)
     {
         try {
-            // Validasi request
-            $v = $request->validate([
-                'spr' => 'required|array',
+            $validated = $request->validate([
+                'spr' => 'required|array|min:1',
                 'spr.*' => 'required|integer|exists:mai3.tsalpenrut,id',
-                'jen1' => 'sometimes|array',
+                'jen1' => 'nullable|array',
                 'jen1.*' => 'integer|exists:mai3.tsalpenrut,id',
-                'tagihan' => 'required|integer',
+                'tagihan' => 'required|numeric|min:10000',
             ]);
 
-            $sprIds = $v['spr'];
-            $spr = Tsalpenrut::whereIn('id', $sprIds)->get();
-            if (!$spr) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Data SPR tidak ditemukan.',
-                    'data' => []
-                ], 404);
-            }
+            $identitas = Indentitas::with('siswa')->where('nouid', $nouid)->firstOrFail();
+            $sprRecords = Tsalpenrut::whereIn('id', $validated['spr'])
+                ->get();
 
-            // Cek jika jen1 digunakan (sudah pernah bayar)
-            $jen1Used = !empty($v['jen1']) && Ttrx::whereIn('jen1', $v['jen1'])->exists();
-
-            // Ambil identitas siswa beserta tagihan yang belum dibayar
-            $identitas = Indentitas::with([
-                'siswa',
-                'tagihan' => function ($q) use ($v, $jen1Used) {
-                    if ($jen1Used) {
-                        $q->whereNotIn('id', $v['jen1']);
-                    }
-                }
-            ])->where('nouid', $nouid)->firstOrFail();
-
-            // Hitung total tagihan
-            $totalTagihan = $identitas->tagihan->sum('jumlah');
-
-            // Siapkan response dasar
-            $response = $identitas->toArray();
-            $response['jen1'] = $v['jen1'];
-            $response['total_tagihan'] = $totalTagihan;
-            // $response['tah_tagihan'] = $spr->tah;
-            // $response['bulan_tagihan'] = $spr->bulid;
-            $response['spr_tagihan'] = $v['spr'];
-
-            // Generate order ID
+            $totalTagihan = $sprRecords->where('jen', 0)->sum('jum');
+            $totalDiskon = !empty($validated['jen1'])
+                ? Tsalpenrut::whereIn('id', $validated['jen1'])->sum('jum')
+                : 0;
             $orderId = 'pay-PR' . $identitas->siswa->nis . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-            $response['orderId'] = $orderId;
-
-            // Cek jika sudah ada transaksi sebelumnya
-            $trx = Ttrx::where('order_id', $orderId)->first();
+            $data = [
+                'items' => $sprRecords,
+                'total_tagihan' => $totalTagihan,
+                'total_diskon' => abs($totalDiskon),
+                'sisa_tagihan' => $totalTagihan - abs($totalDiskon),
+                'orderId' => $orderId
+            ];
+            $trx = Ttrx::where('order_id', $orderId)->orWhere(function ($q) use ($nouid) {
+                $q->where('nouid', $nouid)->where('status', 'pending');
+            })->first();
             if ($trx) {
                 if ($trx->status === 'pending') {
                     return response()->json([
                         'success' => true,
                         'redirect' => route('payment.instruction', [
                             'nouid' => $nouid,
-                            'orderId' => $orderId,
+                            'orderId' => $trx->order_id,
                         ]),
-                        'data' => $response,
+                        'data' => $data,
                     ]);
-                } elseif ($trx->status !== 'success') {
-                    $trx->delete(); // hapus transaksi gagal
                 }
             }
-
             return response()->json([
                 'success' => true,
-                'data' => $response,
+                'data' => $data
             ]);
-        } catch (\Throwable $th) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $th->getMessage(),
-                'data' => []
+                'message' => 'Validasi gagal',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Tagihan Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem'
             ], 500);
         }
     }
-
-    public function getLastTagihan(Request $req, $nouid)
+    public function getTambahTagihan(Request $req, $nouid)
     {
         try {
             $identitas = Indentitas::with(['tagihan' => function ($q) {
-                $q->where('sta', 2)
-                    ->orderByDesc('tah')
-                    ->orderByDesc('bulid');
+                $currentYear = date('Y');
+                $currentMonth = date('n');
+                $q->whereIn('sta', [0, 1])
+                    ->where(function ($q) use ($currentYear, $currentMonth) {
+                        $q->where('tah', '>=', $currentYear)
+                            ->orWhere(function ($q) use ($currentYear, $currentMonth) {
+                                $q->where('tah', $currentYear)
+                                    ->where('bulid', '>', $currentMonth);
+                            });
+                    })
+                    ->orderBy('tah', 'desc')
+                    ->orderBy('bulid', 'asc');
             }])->where('nouid', $nouid)->first();
 
             if (!$identitas || $identitas->tagihan->isEmpty()) {
@@ -123,20 +114,34 @@ class ApiTransactions extends Controller
                 ], 404);
             }
 
-            $last = $identitas->tagihan->first(); // tagihan terakhir
-            $tahun = $last->tah;
-            $bulan = str_pad($last->bulid, 2, '0', STR_PAD_LEFT); // pastikan 2 digit
-            $tanggal = \Carbon\Carbon::createFromFormat('Y-m', "$tahun-$bulan");
+            $grouped = [];
 
-            $nextMonth = $tanggal->addMonth()->startOfMonth();
-            $timestamp = $nextMonth->timestamp * 1000;
+            foreach ($identitas->tagihan as $tagihan) {
+                $tahun = $tagihan->tah;
+                $namaBulan = strtolower(\Carbon\Carbon::create()->month($tagihan->bulid)->translatedFormat('F'));
+
+                if (!isset($grouped[$tahun])) {
+                    $grouped[$tahun] = [];
+                }
+
+                if (!isset($grouped[$tahun][$namaBulan])) {
+                    $grouped[$tahun][$namaBulan] = [];
+                }
+
+                $grouped[$tahun][$namaBulan][] = [
+                    'id'     => $tagihan->id,
+                    'tah'    => $tagihan->tah,
+                    'bulid'  => $tagihan->bulid,
+                    'jumlah' => $tagihan->jumlah,
+                    'ket'    => $tagihan->ket,
+                    'jen'    => $tagihan->jen,
+                    'sta'    => $tagihan->sta,
+                ];
+            }
 
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'bul' => $bulan.'-'.$tahun,
-                    'month' => $timestamp,
-                ]
+                'data' => $grouped
             ]);
         } catch (\Throwable $th) {
             return response()->json([

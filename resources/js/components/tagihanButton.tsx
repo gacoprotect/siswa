@@ -28,7 +28,7 @@ const PaymentButton: React.FC<Props> = ({ setparam, summary }) => {
             className="flex items-center gap-2 rounded-lg bg-green-600 p-2 text-sm text-white transition-colors hover:bg-green-700"
             aria-label="Bayar tagihan sekarang"
         >
-            <FaFileInvoiceDollar className="text-lg" />
+            <FaFileInvoiceDollar className="text-sm" />
             Bayar Sekarang
         </button>
     );
