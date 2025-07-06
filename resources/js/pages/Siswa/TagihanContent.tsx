@@ -228,10 +228,7 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-4 py-2 text-left text-xs font-medium tracking-wider text-gray-500 uppercase sm:px-6 sm:py-3">
-                                            Tahun
-                                        </th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium tracking-wider text-gray-500 uppercase sm:px-6 sm:py-3">
-                                            Bulan
+                                            Tagihan
                                         </th>
                                         <th className="px-4 py-2 text-left text-xs font-medium tracking-wider text-gray-500 uppercase sm:px-6 sm:py-3">
                                             Jumlah
@@ -244,8 +241,8 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
                                 <tbody className="divide-y divide-gray-200 bg-white">
                                     {groupedData.map((item) => (
                                         <tr key={`${item.tah}-${item.bulan}-${item.ket}`}>
-                                            <td className="px-4 py-3 text-sm whitespace-nowrap text-gray-900 sm:px-6">{item.tah}</td>
-                                            <td className="px-4 py-3 text-sm whitespace-nowrap text-gray-900 sm:px-6">{item.bulan}</td>
+                                            <td className="px-4 py-3 text-sm whitespace-nowrap text-gray-900 sm:px-6">{item.tah}-{item.bulan}</td>
+                                            {/* <td className="px-4 py-3 text-sm whitespace-nowrap text-gray-900 sm:px-6">{item.bulan}</td> */}
                                             <td className="px-4 py-3 text-sm whitespace-nowrap text-gray-900 sm:px-6">
                                                 {formatCurrency(item.jumlah)}
                                             </td>

@@ -43,9 +43,25 @@ class TagihanController extends Controller
             ->firstOrFail();
 
 
-        // Ambil tagihan dengan jen == 0 (SPP) dan jen == 1 (diskon atau jenis lain)
+        // Ambil tagihan dengan jen == 0 (SPP) dan jen == 1 (diskon atau jenis lain) 
         $tagihanJen0 = $identitas->tagihan->where('jen', 0)->values();
-        $tagihanJen1 = $identitas->tagihan->where('jen', 1)->values();
+        // cek jen1 sudah ada dalam kolom jen1(json) di table ttrx? jika ada maka abaikan
+        // Ambil semua ID tagihan jen == 1
+        $jen1Ids = $identitas->tagihan->where('jen', 1)->pluck('id')->toArray();
+
+        // Cek apakah salah satu dari ID tersebut sudah ada di JSON 'jen1' (ttrx)
+        $jen1Used = Ttrx::where('nouid', $nouid)
+            ->where(function ($query) use ($jen1Ids) {
+                foreach ($jen1Ids as $id) {
+                    $query->orWhereJsonContains('jen1', $id);
+                }
+            })
+            ->exists();
+
+        // Jika belum pernah digunakan, ambil tagihan jen==1
+        $tagihanJen1 = $jen1Used
+            ? collect([]) // Kosong jika sudah pernah dipakai
+            : $identitas->tagihan->where('jen', 1)->values();
 
         $data = $tagihanJen0->map(function ($item) {
             return [
