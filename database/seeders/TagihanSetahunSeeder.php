@@ -25,7 +25,7 @@ class TagihanSetahunSeeder extends Seeder
                     'bulid'       => $bulan,
                     'tah'         => $tahun,
                     'nmr'         => 0,
-                    'jen'         => 1, // semester 1
+                    'jen'         => 0,
                     'ket'         => "SPP SMA TA $tahunAjaran - Semester 1",
                     'jum'         => 100000,
                     'coapen'      => 45,
@@ -52,7 +52,7 @@ class TagihanSetahunSeeder extends Seeder
                     'bulid'       => $bulan,
                     'tah'         => $tahun + 1,
                     'nmr'         => 0,
-                    'jen'         => 2, // semester 2
+                    'jen'         => 0,
                     'ket'         => "SPP SMA TA $tahunAjaran - Semester 2",
                     'jum'         => 100000,
                     'coapen'      => 45,
