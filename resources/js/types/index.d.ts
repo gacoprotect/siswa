@@ -53,6 +53,7 @@ export interface User {
 }
 export interface DataSiswa {
     idok: number;
+    active: boolean;
     nouid: string;
     balance: number;
     siswa: Siswa;

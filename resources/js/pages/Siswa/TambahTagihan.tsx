@@ -1,8 +1,14 @@
 import { Modal } from '@/components/ui/Modal';
-import { formatBulan } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { useCallback, useEffect, useState } from 'react';
-import { FaChevronDown, FaChevronRight, FaSpinner } from 'react-icons/fa';
+import { FaMinus, FaPlus, FaSpinner } from 'react-icons/fa';
 
+interface Props {
+    open: boolean;
+    onClose: (value: boolean) => void;
+    nouid: string;
+    setTambahTagihan: (v: SetTambahTagihan) => void;
+}
 interface Props {
     open: boolean;
     onClose: (value: boolean) => void;
@@ -36,14 +42,15 @@ interface Grouped {
         [bul: string]: ResponseForBill[];
     };
 }
-
 const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 const TambahTagihan = ({ open, onClose, nouid, setTambahTagihan }: Props) => {
     const [grouped, setGrouped] = useState<Grouped>({});
-    const [expandedYears, setExpandedYears] = useState<Record<string, boolean>>({});
-    const [selectedMonths, setSelectedMonths] = useState<Record<string, Record<string, boolean>>>({});
     const [loading, setLoading] = useState(false);
+    const [selectedYear, setSelectedYear] = useState<string>('');
+    const [selectedMonth, setSelectedMonth] = useState<string>('');
+    const [selectedBills, setSelectedBills] = useState<ResponseForBill[]>([]);
+    const [showAllMonths, setShowAllMonths] = useState(false); // New state
 
     const getData = useCallback(async () => {
         setLoading(true);
@@ -57,81 +64,99 @@ const TambahTagihan = ({ open, onClose, nouid, setTambahTagihan }: Props) => {
             const data: Grouped = json.data || {};
             setGrouped(data);
 
-            const initExpand: Record<string, boolean> = {};
-            const initSelected: Record<string, Record<string, boolean>> = {};
-
-            Object.keys(data).forEach((year) => {
-                initExpand[year] = false;
-                initSelected[year] = {};
-                Object.keys(data[year]).forEach((month) => {
-                    initSelected[year][month] = false;
-                });
-            });
-
-            setExpandedYears(initExpand);
-            setSelectedMonths(initSelected);
+            // Set default selected year to the first available year
+            if (Object.keys(data).length > 0 && !selectedYear) {
+                setSelectedYear(Object.keys(data)[0]);
+            }
         } catch (err) {
             console.error('Gagal ambil tagihan:', err);
         } finally {
             setLoading(false);
         }
-    }, [nouid]);
+    }, [nouid, selectedYear]);
 
     useEffect(() => {
         if (open) getData();
     }, [open, getData]);
 
-    const toggleYear = (year: string) => {
-        setExpandedYears((prev) => ({ ...prev, [year]: !prev[year] }));
-    };
+    const monthOptions = selectedYear
+        ? [
+              { value: '', label: 'Semua Bulan' },
+              ...Object.keys(grouped[selectedYear] || {})
+                  .sort((a, b) => monthNames.indexOf(a) - monthNames.indexOf(b))
+                  .map((month) => ({ value: month, label: month })),
+          ]
+        : [];
 
-    const toggleMonth = (year: string, month: string) => {
-        setSelectedMonths((prev) => ({
-            ...prev,
-            [year]: {
-                ...prev[year],
-                [month]: !prev[year][month],
-            },
-        }));
+    const toggleBillSelection = (bill: ResponseForBill) => {
+        setSelectedBills((prev) => {
+            const isSelected = prev.some((b) => b.id === bill.id);
+            if (isSelected) {
+                return prev.filter((b) => b.id !== bill.id);
+            } else {
+                return [...prev, bill];
+            }
+        });
     };
 
     const handleSubmit = () => {
         const spr: number[] = [];
         const jen1: number[] = [];
-        const data: SetTambahTagihan['data'] = [];
+        const data: DataTambahTagihan[] = [];
 
-        Object.entries(selectedMonths).forEach(([year, months]) => {
-            Object.entries(months).forEach(([month, isChecked]) => {
-                if (!isChecked) return;
-                const bills = grouped[year]?.[month] ?? [];
+        selectedBills.forEach((bill) => {
+            // Get the correct month name from the bill data
+            const monthName = monthNames[bill.bulid - 1] || 'Undefined';
 
-                const main = bills.find((b) => b.jen === 0);
-                const disc = bills.filter((b) => b.jen === 1);
-
-                if (main) {
-                    spr.push(main.id);
-                    jen1.push(...disc.map((d) => d.id));
-
-                    const totalDisc = disc.reduce((acc, d) => acc + d.jumlah, 0);
-
-                    data.push({
-                        tah: year,
-                        bulan: formatBulan(month),
-                        ket: main.ket,
-                        jumlah: main.jumlah - totalDisc,
-                    });
-                }
-            });
+            if (bill.jen === 0) {
+                spr.push(bill.id);
+                data.push({
+                    tah: bill.tah,
+                    bulan: monthName, // Use the properly formatted month name
+                    ket: bill.ket,
+                    jumlah: bill.jumlah,
+                });
+            } else {
+                jen1.push(bill.id);
+            }
         });
-        const bills = { spr, jen1, data };
+
+        console.log('SUBMIT DATA', data);
+
         if (data.length > 0) {
-            setTambahTagihan(bills);
+            setTambahTagihan({ spr, jen1, data });
             onClose(false);
         }
     };
 
+    // Modified displayBills to ensure consistent month data
+    const displayBills = () => {
+        if (!selectedYear) return [];
+
+        if (!selectedMonth) {
+            // When showing all months
+            return Object.entries(grouped[selectedYear]).flatMap(([month, bills]) =>
+                bills
+                    .filter((b) => b.jen === 0)
+                    .map((bill) => ({
+                        ...bill,
+                        monthName: month,
+                        bulid: monthNames.indexOf(month) + 1 || bill.bulid, // Fallback to original bulid if not found
+                    })),
+            );
+        }
+
+        // When showing specific month
+        return (grouped[selectedYear]?.[selectedMonth] || [])
+            .filter((b) => b.jen === 0)
+            .map((bill) => ({
+                ...bill,
+                monthName: selectedMonth,
+                bulid: monthNames.indexOf(selectedMonth) + 1 || bill.bulid, // Fallback to original bulid
+            }));
+    };
     return (
-        <Modal title="Pilih Tagihan SPP" isOpen={open} onClose={() => onClose(false)}>
+        <Modal title="Pilih Tagihan" isOpen={open} onClose={() => onClose(false)}>
             <div className="max-h-[75vh] space-y-6 overflow-y-auto px-1">
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-8 text-gray-500">
@@ -141,64 +166,94 @@ const TambahTagihan = ({ open, onClose, nouid, setTambahTagihan }: Props) => {
                 ) : Object.keys(grouped).length === 0 ? (
                     <p className="py-4 text-center text-gray-600">Tidak ada data tagihan tersedia</p>
                 ) : (
-                    Object.entries(grouped)
-                        .sort(([a], [b]) => parseInt(b) - parseInt(a))
-                        .map(([year, months]) => (
-                            <div key={year} className="overflow-hidden rounded-lg border shadow-sm">
-                                <button
-                                    className="flex w-full items-center justify-between bg-gray-100 px-4 py-3 transition-colors hover:bg-gray-200"
-                                    onClick={() => toggleYear(year)}
-                                >
-                                    <span className="font-semibold text-gray-800">Tahun {year}</span>
-                                    {expandedYears[year] ? <FaChevronDown /> : <FaChevronRight />}
-                                </button>
+                    <>
+                        <div className="flex flex-row gap-2">
+                            {/* Tahun Dropdown */}
+                            <select
+                                value={selectedYear}
+                                onChange={(e) => {
+                                    setSelectedYear(e.target.value);
+                                    setSelectedMonth(''); // Reset to "Semua Bulan"
+                                }}
+                                className="w-full bg-gray-100 px-4 py-3 font-semibold text-gray-800"
+                            >
+                                {Object.keys(grouped)
+                                    .sort((a, b) => parseInt(b) - parseInt(a))
+                                    .map((year) => (
+                                        <option key={year} value={year}>
+                                            Tahun {year}
+                                        </option>
+                                    ))}
+                            </select>
 
-                                {expandedYears[year] && (
-                                    <div className="space-y-3 bg-white px-4 py-3 transition-all">
-                                        {Object.keys(months)
-                                            .sort((a, b) => monthNames.indexOf(a) - monthNames.indexOf(b))
-                                            .map((month) => {
-                                                const tagihan = months[month].filter((b) => b.jen === 0);
-                                                if (tagihan.length === 0) return null;
+                            {/* Bulan Dropdown */}
+                            <select
+                                value={selectedMonth}
+                                onChange={(e) => setSelectedMonth(e.target.value)}
+                                className="w-full bg-gray-100 px-4 py-3 font-semibold text-gray-800 capitalize"
+                                disabled={!selectedYear}
+                            >
+                                {monthOptions.map(({ value, label }) => (
+                                    <option key={value || 'all'} value={value}>
+                                        {label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
 
-                                                return (
-                                                    <div
-                                                        key={month}
-                                                        className="flex items-start rounded-lg border border-gray-200 p-3 shadow-sm transition-shadow hover:shadow-md"
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            id={`${year}-${month}`}
-                                                            checked={selectedMonths[year]?.[month] || false}
-                                                            onChange={() => toggleMonth(year, month)}
-                                                            className="mt-1 mr-3 accent-blue-600"
-                                                        />
-                                                        <label htmlFor={`${year}-${month}`} className="flex-1 cursor-pointer">
-                                                            <div className="font-medium text-gray-800 capitalize">{month}</div>
-                                                            {tagihan.map((item) => (
-                                                                <div key={item.id} className="ml-2 text-sm text-gray-600">
-                                                                    {item.ket} — Rp {item.jumlah.toLocaleString('id-ID')}
-                                                                </div>
-                                                            ))}
-                                                        </label>
-                                                    </div>
-                                                );
-                                            })}
-                                    </div>
-                                )}
+                        {/* Display bills */}
+                        {selectedYear && (
+                            <div className="space-y-4">
+                                {displayBills().map(({ id, ket, jumlah, monthName, bulid }) => {
+                                    const isSelected = selectedBills.some((b) => b.id === id);
+                                    return (
+                                        <div
+                                            key={id}
+                                            className="flex items-center justify-between rounded-lg border border-gray-200 p-3 transition-shadow hover:shadow-md"
+                                        >
+                                            <div>
+                                                <div className="font-medium text-gray-800">{ket}</div>
+                                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                    <span>Rp {jumlah.toLocaleString('id-ID')}</span>
+                                                    {!selectedMonth && <span className="text-xs text-gray-400">{monthName}</span>}
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() =>
+                                                    toggleBillSelection({
+                                                        id,
+                                                        ket,
+                                                        jumlah,
+                                                        tah: selectedYear,
+                                                        bulid,
+                                                        jen: 0,
+                                                        sta: 0,
+                                                    })
+                                                }
+                                                className={cn(
+                                                    `rounded-full p-2 text-blue-600 transition hover:bg-blue-50`,
+                                                    isSelected && 'text-red-500 hover:bg-red-50',
+                                                )}
+                                                title={isSelected ? 'Hapus tagihan' : 'Tambahkan tagihan'}
+                                            >
+                                                {isSelected ? <FaMinus /> : <FaPlus />}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        ))
-                )}
+                        )}
 
-                <div className="flex justify-end pt-4">
-                    <button
-                        onClick={handleSubmit}
-                        disabled={loading}
-                        className="rounded-md bg-blue-600 px-5 py-2 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        Tambahkan Tagihan
-                    </button>
-                </div>
+                        {/* Submit button */}
+                        {selectedBills.length > 0 && (
+                            <div className="flex justify-end pt-4">
+                                <button onClick={handleSubmit} className="rounded-md bg-blue-600 px-5 py-2 text-white transition hover:bg-blue-700">
+                                    Tambahkan {selectedBills.length} Tagihan
+                                </button>
+                            </div>
+                        )}
+                    </>
+                )}
             </div>
         </Modal>
     );

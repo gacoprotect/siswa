@@ -14,6 +14,14 @@ export default defineConfig({
         react(),
         tailwindcss(),
     ],
+    server: {
+        host: '0.0.0.0',      // agar bisa diakses oleh domain
+        port: 5173,
+        cors: true,
+        hmr: {
+            host: 'siswa.gaco', // arahkan ke domain dev kamu
+        }
+    },
     esbuild: {
         jsx: 'automatic',
     },

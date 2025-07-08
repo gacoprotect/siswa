@@ -1,16 +1,16 @@
 import PaymentButton from '@/components/tagihanButton';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { BillTagihan } from '@/types';
 import { X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { FaExclamationTriangle, FaFileInvoice, FaFileInvoiceDollar, FaHistory, FaSpinner } from 'react-icons/fa';
+import { FaExclamationTriangle, FaFileInvoice, FaFileInvoiceDollar, FaHistory, FaSpinner, FaTrashAlt } from 'react-icons/fa';
 import { TagihanParam } from './Index';
 import TambahTagihan from './TambahTagihan';
+
 interface DataTambahTagihan {
     tah: string;
     ket: string;
     jumlah: number;
-    bulan: string; // juli , agustus, format indonesia
+    bulan: string;
 }
 
 interface SetTambahTagihan {
@@ -18,6 +18,7 @@ interface SetTambahTagihan {
     jen1: number[];
     data: DataTambahTagihan[];
 }
+
 export interface Summary {
     total_tagihan: number;
     total_pembayaran?: number;
@@ -26,37 +27,26 @@ export interface Summary {
     spr: number[];
     jen1: number[];
 }
-const StatCard = ({ title, value, icon, bgColor }: { title: string; value: string; icon: React.ReactNode; bgColor: string }) => (
-    <div className={`${bgColor} rounded-lg p-4 shadow-sm`}>
-        <div className="flex items-center justify-between">
-            <div>
-                <p className="text-sm font-medium text-gray-500">{title}</p>
-                <p className="mt-1 text-2xl font-semibold text-gray-900">{value}</p>
-            </div>
-            <div className="rounded-full bg-white p-3">{icon}</div>
-        </div>
-    </div>
-);
+
+const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanParam: (v: TagihanParam) => void }) => {
-    const isMobile = useIsMobile();
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false); // Tidak perlu loading untuk operasi lokal
     const [buatTagihanModal, setBuatTagihanModal] = useState(false);
     const [groupedData, setGroupedData] = useState<BillTagihan[]>([]);
     const [error, setError] = useState<string | null>(null);
+
     const [summary, setSummary] = useState<Summary>({
         total_tagihan: 0,
-        // total_pembayaran: 0,
         sisa_tagihan: 0,
         total_disc: 0,
         spr: [],
         jen1: [],
     });
-
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // setIsLoading(true);
+                setIsLoading(true);
                 setError(null);
 
                 const response = await fetch(route('tagihan.index', nouid));
@@ -82,6 +72,24 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
 
         fetchData();
     }, [nouid]);
+    // Format mata uang
+    const formatCurrency = (amount: number): string => {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+        }).format(amount);
+    };
+
+    // Cek apakah tagihan di masa depan
+    const getIsFutureBill = (tah: string, bulan: string): boolean => {
+        const monthNumber = monthNames.indexOf(bulan) + 1;
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        const currentMonth = currentDate.getMonth() + 1;
+
+        return parseInt(tah) > currentYear || (parseInt(tah) === currentYear && monthNumber > currentMonth);
+    };
 
     const handleTambahTagihan = useCallback(
         (items: SetTambahTagihan) => {
@@ -160,13 +168,19 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
         [groupedData],
     );
 
-    const formatCurrency = (amount: number): string => {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0,
-        }).format(amount);
-    };
+    // Hapus tagihan (lokal)
+    const handleDelete = useCallback((item: DataTambahTagihan) => {
+        setGroupedData((prev) => prev.filter((bill) => !(bill.tah === item.tah && bill.bulan === item.bulan && bill.ket === item.ket)));
+
+        setSummary((prev) => {
+            const amountToRemove = item.jumlah;
+            return {
+                ...prev,
+                total_tagihan: prev.total_tagihan - amountToRemove,
+                sisa_tagihan: prev.sisa_tagihan - amountToRemove,
+            };
+        });
+    }, []);
     if (isLoading) {
         return (
             <div className="flex flex-row items-center justify-center space-x-3 py-4">
@@ -185,91 +199,118 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
         );
     }
     return (
-        <div className="space-y-6 p-2">
-            {summary && (
-                <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                    <StatCard
-                        title="Total Tagihan"
-                        value={`Rp ${summary.total_tagihan.toLocaleString('id-ID')}`}
-                        icon={<FaFileInvoiceDollar className="text-green-500" />}
-                        bgColor="bg-green-50"
-                    />
-                    <StatCard
-                        title="Sisa Tagihan"
-                        value={`Rp ${summary.sisa_tagihan.toLocaleString('id-ID')}`}
-                        icon={<FaExclamationTriangle className="text-amber-500" />}
-                        bgColor="bg-amber-50"
-                    />
+        <div className="space-y-6 p-4">
+            {/* Summary Cards */}
+            <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-lg bg-green-50 p-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-500">Total Tagihan</p>
+                            <p className="mt-1 text-2xl font-semibold text-gray-900">{formatCurrency(summary.total_tagihan)}</p>
+                        </div>
+                        <div className="rounded-full bg-white p-3">
+                            <FaFileInvoiceDollar className="text-green-500" />
+                        </div>
+                    </div>
                 </div>
-            )}
 
-            <div className="mb-6 flex items-center justify-between gap-2">
+                <div className="rounded-lg bg-amber-50 p-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-500">Sisa Tagihan</p>
+                            <p className="mt-1 text-2xl font-semibold text-gray-900">{formatCurrency(summary.sisa_tagihan)}</p>
+                        </div>
+                        <div className="rounded-full bg-white p-3">
+                            <FaExclamationTriangle className="text-amber-500" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
                 <button
                     onClick={() => setBuatTagihanModal(true)}
-                    className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+                    className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
                 >
-                    <FaFileInvoice className="text-sm" />
+                    <FaFileInvoice />
                     Buat Tagihan
                 </button>
-                <button className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700">
-                    <FaHistory className="text-sm" />
+                <button className="flex items-center gap-2 rounded-lg bg-gray-600 px-4 py-2 text-white hover:bg-gray-700">
+                    <FaHistory />
                     Riwayat
                 </button>
             </div>
 
+            {/* Bills Table */}
             {groupedData.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">Tidak ada data tagihan</div>
+                <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center">
+                    <p className="text-gray-500">Tidak ada data tagihan</p>
+                </div>
             ) : (
-                <div className="mb-6 flex items-center justify-center">
-                    <div className="w-full border-b p-2">
-                        <h2 className="mb-3 text-lg font-semibold sm:mb-4 sm:text-xl">Rincian Tagihan</h2>
+                <div className="overflow-hidden rounded-lg border shadow-sm">
+                    <div className="bg-white p-4">
+                        <h2 className="mb-4 text-lg font-semibold">Rincian Tagihan</h2>
+
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="px-4 py-2 text-left text-xs font-medium tracking-wider text-gray-500 uppercase sm:px-6 sm:py-3">
-                                            Tagihan
-                                        </th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium tracking-wider text-gray-500 uppercase sm:px-6 sm:py-3">
-                                            Jumlah
-                                        </th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium tracking-wider text-gray-500 uppercase sm:px-6 sm:py-3">
-                                            Keterangan
-                                        </th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Tagihan</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Jumlah</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Keterangan</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 bg-white">
-                                    {groupedData.map((item) => (
-                                        <tr key={`${item.tah}-${item.bulan}-${item.ket}`}>
-                                            <td className="px-4 py-3 text-sm whitespace-nowrap text-gray-900 sm:px-6">{item.tah}-{item.bulan}</td>
-                                            {/* <td className="px-4 py-3 text-sm whitespace-nowrap text-gray-900 sm:px-6">{item.bulan}</td> */}
-                                            <td className="px-4 py-3 text-sm whitespace-nowrap text-gray-900 sm:px-6">
-                                                {formatCurrency(item.jumlah)}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm whitespace-nowrap text-gray-900 sm:px-6">{item.ket}</td>
-                                        </tr>
-                                    ))}
+                                    {groupedData.map((item) => {
+                                        const isFutureBill = getIsFutureBill(item.tah, item.bulan);
+
+                                        return (
+                                            <tr key={`${item.tah}-${item.bulan}-${item.ket}`}>
+                                                <td className="flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap text-gray-900">
+                                                    {isFutureBill && (
+                                                        <button
+                                                            onClick={() => handleDelete(item)}
+                                                            className="text-red-500 hover:text-red-700"
+                                                            title="Hapus Tagihan"
+                                                        >
+                                                            <FaTrashAlt />
+                                                        </button>
+                                                    )}
+                                                    {item.tah} - {item.bulan}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm whitespace-nowrap text-gray-900">{formatCurrency(item.jumlah)}</td>
+                                                <td className="px-4 py-3 text-sm whitespace-nowrap text-gray-900">{item.ket}</td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
-                        {summary.total_disc !== 0 && (
-                            <div className="mt-4 flex items-center justify-between sm:mt-6">
-                                <span className="text-base font-semibold sm:text-lg">Pengurangan:</span>
-                                <span className="text-xl font-bold text-blue-600 sm:text-2xl">{formatCurrency(summary.total_disc ?? 0)}</span>
+
+                        {/* Summary Footer */}
+                        <div className="mt-6 space-y-3 border-t pt-4">
+                            {summary.total_disc ? (
+                                <div className="flex justify-between">
+                                    <span className="font-medium">Diskon:</span>
+                                    <span className="font-medium text-red-600">-{formatCurrency(summary.total_disc)}</span>
+                                </div>
+                            ) : null}
+
+                            <div className="flex justify-between text-lg font-semibold">
+                                <span>Total Tagihan:</span>
+                                <span className="text-blue-600">{formatCurrency(summary.total_tagihan - (summary.total_disc || 0))}</span>
                             </div>
-                        )}
-                        <div className="flex items-center justify-between sm:mt-6">
-                            <span className="text-base font-semibold sm:text-lg">Tagihan:</span>
-                            <span className="text-xl font-bold text-blue-600 sm:text-2xl">
-                                {formatCurrency(summary.total_tagihan - (summary.total_disc ?? 0))}
-                            </span>
-                        </div>
-                        <div className="mt-6 flex items-center justify-end">
-                            <PaymentButton setparam={(v) => setTagihanParam(v)} summary={summary} />
+
+                            <div className="pt-4">
+                                <PaymentButton setparam={setTagihanParam} summary={summary} />
+                            </div>
                         </div>
                     </div>
                 </div>
             )}
+
+            {/* Add Bill Modal */}
             <TambahTagihan setTambahTagihan={handleTambahTagihan} open={buatTagihanModal} onClose={() => setBuatTagihanModal(false)} nouid={nouid} />
         </div>
     );

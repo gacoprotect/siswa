@@ -58,7 +58,11 @@ export function formatIDR(value: number | string): string {
     return `Rp ${formatted} ,-`;
 }
 
-// Fungsi untuk mengkapitalisasi bulan
-export const formatBulan = (bulan: string): string => {
-  return bulan.charAt(0).toUpperCase() + bulan.slice(1).toLowerCase();
-};
+
+export function formatBulan(bulid: number): string {
+    const bulan = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return bulan[bulid - 1] || 'Undefined';
+}

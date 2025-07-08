@@ -96,7 +96,7 @@ class ApiTransactions extends Controller
                 $currentMonth = date('n');
                 $q->whereIn('sta', [0, 1])
                     ->where(function ($q) use ($currentYear, $currentMonth) {
-                        $q->where('tah', '>=', $currentYear)
+                        $q->where('tah', '>', $currentYear)
                             ->orWhere(function ($q) use ($currentYear, $currentMonth) {
                                 $q->where('tah', $currentYear)
                                     ->where('bulid', '>', $currentMonth);
@@ -150,5 +150,12 @@ class ApiTransactions extends Controller
                 'data' => null,
             ], 500);
         }
+    }
+
+    public function ApiTagihanSearch(Request $req, $nouid){
+        $v = $req->validate([
+            'month' => '',
+            'tahun' => '',
+        ]);
     }
 }

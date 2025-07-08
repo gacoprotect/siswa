@@ -3,8 +3,10 @@ import AppLayout from '@/Layout/AppLayout';
 import { formatIDR } from '@/lib/utils';
 import { Auth, DataSiswa, SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/react';
+import * as Dialog from '@radix-ui/react-dialog';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+    FaCog,
     FaExchangeAlt,
     FaFileInvoiceDollar,
     FaFootballBall,
@@ -39,11 +41,14 @@ export interface TagihanParam {
     tagihan: number;
 }
 export default function SiswaDashboard() {
-    const { auth, data } = usePage<{ auth: Auth; data: DataSiswa }>().props;
+    const {auth, data } = usePage<{ auth: Auth; data: DataSiswa }>().props;
+    console.log(data);
+    
     // State management
     const [siswaData, setSiswaData] = useState(data);
     const [activeItem, setActiveItem] = useState<number | null>(null);
     const [page, setPage] = useState<PageState>('index');
+    const [isBlocked, setIsBlocked] = useState<Boolean>(!data.active);
     const [isLoading, setIsLoading] = useState(false);
     const [isHistory, setIsHistory] = useState(false);
     const [hasPined, setHasPined] = useState(data.siswa.has_pin);
@@ -177,22 +182,78 @@ export default function SiswaDashboard() {
     }, [activeItem, menuItems]);
 
     // Student info component
-    const StudentInfo = () => (
-        <div className="flex w-full flex-col items-start rounded-t-lg bg-white p-4 px-6">
-            <div className="flex items-center space-x-3">
-                <FaUser className="flex-shrink-0 text-xl text-primary" />
-                <h2 className="truncate text-3xl font-semibold text-primary">{siswaData?.siswa.namlen || '******'}</h2>
+    const StudentInfo = () => {
+        const [menuOpen, setMenuOpen] = useState(false);
+        const [dialogOpen, setDialogOpen] = useState(false);
+
+        const handleBlockCard = () => {
+            // TODO: Tambahkan logika pemblokiran kartu di sini
+            console.log('Kartu diblokir!');
+            setDialogOpen(false);
+        };
+
+        return (
+            <div className="relative flex w-full flex-col items-start rounded-t-lg bg-white p-4 px-6">
+                <div className="flex items-center space-x-3">
+                    <FaUser className="flex-shrink-0 text-xl text-primary" />
+                    <h2 className="truncate text-3xl font-semibold text-primary">{siswaData?.siswa.namlen || '******'}</h2>
+                </div>
+                <div className="flex items-center space-x-3">
+                    <FaIdCard className="flex-shrink-0 text-lg text-primary" />
+                    <p className="text-primary md:text-lg">NIS: {siswaData?.siswa.nis || '*****'}</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                    <FaGraduationCap className="flex-shrink-0 text-lg text-primary" />
+                    <p className="text-primary md:text-lg">Kelas: {siswaData?.siswa.kel || '******'}</p>
+                </div>
+
+                {/* Menu Gear */}
+                <div className="absolute right-4 bottom-2">
+                    <div className="relative">
+                        <div className="cursor-pointer p-2" onClick={() => setMenuOpen((prev) => !prev)}>
+                            <FaCog className="text-xl text-blue-500" />
+                        </div>
+
+                        {menuOpen && (
+                            <div className="absolute right-0 z-10 mt-1 w-40 rounded-md border bg-white shadow-md">
+                                <button
+                                    onClick={() => {
+                                        setMenuOpen(false);
+                                        setDialogOpen(true);
+                                    }}
+                                    className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                                >
+                                    🔒 Blokir Kartu
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Dialog konfirmasi blokir */}
+                <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
+                    <Dialog.Portal>
+                        <Dialog.Overlay className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
+                        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6 shadow-lg">
+                            <Dialog.Title className="mb-2 text-xl font-bold text-gray-800">Konfirmasi Blokir</Dialog.Title>
+                            <Dialog.Description className="mb-4 text-sm text-gray-600">
+                                Apakah kamu yakin ingin memblokir kartu siswa ini?
+                            </Dialog.Description>
+
+                            <div className="flex justify-end space-x-3">
+                                <button onClick={() => setDialogOpen(false)} className="rounded-md bg-gray-100 px-4 py-2 text-sm hover:bg-gray-200">
+                                    Batal
+                                </button>
+                                <button onClick={handleBlockCard} className="rounded-md bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700">
+                                    Ya, Blokir
+                                </button>
+                            </div>
+                        </Dialog.Content>
+                    </Dialog.Portal>
+                </Dialog.Root>
             </div>
-            <div className="flex items-center space-x-3">
-                <FaIdCard className="flex-shrink-0 text-lg text-primary" />
-                <p className="text-primary md:text-lg">NIS: {siswaData?.siswa.nis || '*****'}</p>
-            </div>
-            <div className="flex items-center space-x-3">
-                <FaGraduationCap className="flex-shrink-0 text-lg text-primary" />
-                <p className="text-primary md:text-lg">Kelas: {siswaData?.siswa.kel || '******'}</p>
-            </div>
-        </div>
-    );
+        );
+    };
 
     // Action buttons component
     const ActionButtons = () => (
@@ -275,40 +336,61 @@ export default function SiswaDashboard() {
 
     return (
         <>
-            {page === 'index' ? (
-                <AppLayout title={siswaData?.siswa.namlen || 'Login'}>
-                    <StudentInfo />
-                    <ActionButtons />
-
-                    {auth.user && (
-                        <>
-                            <BalanceSection />
-                            <MenuItems />
-                            {renderActiveContent}
-                        </>
-                    )}
+            {isBlocked ? (
+                <AppLayout title="Kartu Siswa">
+                    <div className='flex bg-white min-h-screen items-center'>
+                        <div className="flex w-full flex-col mx-2 items-center justify-center rounded-lg border-2 border-red-400 bg-red-50 p-6 text-center shadow-sm">
+                            <h3 className="mb-2 text-lg font-semibold text-red-600">🔒 Kartu Diblokir</h3>
+                            <p className="mb-4 text-sm text-red-700">
+                                Kartu ini telah diblokir dan tidak dapat digunakan. Silakan aktifkan kembali untuk melanjutkan.
+                            </p>
+                            <button
+                                onClick={() => setOpenModal('setupPin')}
+                                className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
+                            >
+                                🔓 Aktifkan Kembali
+                            </button>
+                        </div>
+                    </div>
                 </AppLayout>
-            ) : page === 'topup' ? (
-                <Topup
-                    siswa={siswaData.siswa}
-                    nouid={siswaData.nouid}
-                    onClose={() => {
-                        setPage('index');
-                        closeModal();
-                        refreshData();
-                    }}
-                />
-            ) : page === 'tagihan' ? (
-                <PaymentPage
-                    siswa={siswaData.siswa}
-                    tagihanParam={{ ...tagihanParam, nouid: siswaData.nouid }}
-                    onClose={() => {
-                        setPage('index');
-                        closeModal();
-                        refreshData();
-                    }}
-                />
-            ) : null}
+            ) : (
+                <>
+                    {page === 'index' ? (
+                        <AppLayout title={siswaData?.siswa.namlen || 'Login'}>
+                            <StudentInfo />
+                            <ActionButtons />
+
+                            {auth.user && (
+                                <>
+                                    <BalanceSection />
+                                    <MenuItems />
+                                    {renderActiveContent}
+                                </>
+                            )}
+                        </AppLayout>
+                    ) : page === 'topup' ? (
+                        <Topup
+                            siswa={siswaData.siswa}
+                            nouid={siswaData.nouid}
+                            onClose={() => {
+                                setPage('index');
+                                closeModal();
+                                refreshData();
+                            }}
+                        />
+                    ) : page === 'tagihan' ? (
+                        <PaymentPage
+                            siswa={siswaData.siswa}
+                            tagihanParam={{ ...tagihanParam, nouid: siswaData.nouid }}
+                            onClose={() => {
+                                setPage('index');
+                                closeModal();
+                                refreshData();
+                            }}
+                        />
+                    ) : null}
+                </>
+            )}
 
             <PinPage
                 open={openModal === 'pin'}
@@ -321,7 +403,6 @@ export default function SiswaDashboard() {
                     if (!success) setIsHistory(false);
                 }}
             />
-
             <SetupPinPage
                 open={openModal === 'setupPin'}
                 hasPin={hasPined}

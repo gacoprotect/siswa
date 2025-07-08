@@ -4,16 +4,18 @@ namespace App\Models\Datmas;
 
 use App\Models\Trx\Ttrx;
 use App\Models\Spp\Tsalpenrut;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Indentitas extends Model
 {
     use HasFactory;
-    
+
     protected $connection = 'mai2';
     protected $table = 'tindentitas';
     protected $primaryKey = ['idmen', 'idok', 'tip'];
+    protected $appends = ['active'];
     public $incrementing = false;
     protected $fillable = [
         'idmen',
@@ -25,7 +27,7 @@ class Indentitas extends Model
         'createdby',
         'updatedby',
     ];
-    
+
     protected $visible = [
         'idok',
         'nouid',
@@ -35,7 +37,8 @@ class Indentitas extends Model
         'bulan_tagihan',
         'tagihan',
         'siswa',
-        'transactions'
+        'transactions',
+        'active'
     ];
     protected $casts = [
         'idmen' => 'integer',
@@ -63,6 +66,13 @@ class Indentitas extends Model
     {
         return $this->hasMany(Tsalpenrut::class, 'idsis', 'idok');
     }
+    public function active(): Attribute
+    {
+        return Attribute::get(function () {
+            return $this->sta !== -1;
+        });
+    }
+
 
     public function getTotalTagihanAttribute()
     {
