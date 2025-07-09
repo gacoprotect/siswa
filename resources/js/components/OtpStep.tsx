@@ -51,7 +51,7 @@ export const OtpStep: React.FC<OtpStepProps> = ({
                 <p className="mt-2 text-center text-sm text-gray-600">Masukkan 6 digit kode OTP yang dikirim ke +62{phone}</p>
             </div>
 
-            {errors.message && <div className="text-center text-sm text-red-500">{errors.message}</div>}
+            {errors.otp && <div className="text-center text-sm text-red-500">{errors.otp}</div>}
 
             <form onSubmit={onSubmit} className="space-y-6">
                 <div className="flex justify-center space-x-2">
@@ -65,7 +65,7 @@ export const OtpStep: React.FC<OtpStepProps> = ({
                             value={otp[index] || ''}
                             onChange={(e) => handleChange(e, index)}
                             onKeyDown={(e) => onKeyDown(e, index)}
-                            error={!!errors.message}
+                            error={!!errors.otp}
                             autoFocus={index === 0}
                         />
                     ))}

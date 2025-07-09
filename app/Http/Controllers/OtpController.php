@@ -77,7 +77,6 @@ class OtpController extends Controller
                     'message' => 'Kode OTP telah dikirim ke nomor Anda',
                     'phone' => MaskingHelper::maskPhone($phone)
                 ]);
-               
             }
 
             throw new \Exception('Gagal mengirim OTP: ' . $response->getData()->message);
@@ -87,7 +86,7 @@ class OtpController extends Controller
                 'error' => $e->getMessage()
             ]);
 
-            return back()->withErrors([                
+            return back()->withErrors([
                 'message' => 'Data siswa tidak ditemukan'
             ])->withInput()->with([
                 'success' => false,
@@ -114,8 +113,18 @@ class OtpController extends Controller
         $request->validate([
             'phone' => 'required|string|regex:/^[0-9]+$/|min:10|max:15'
         ]);
-
+        $ident = Indentitas::with('siswa')->where('nouid', $nouid)->firstOrFail();
         $phone = $this->formatPhoneNumber($request->phone);
+        $sistel = $this->formatPhoneNumber($ident->siswa->tel);
+        logger('Phone Check', [
+            'pin' => $ident->siswa->pin,
+            'tel_match' => $sistel === $phone,
+        ]);
+        if ($ident->siswa->pin !== null && $sistel !== $phone) {
+            throw ValidationException::withMessages([
+                'phone' => ['Nomor Telepon yang anda masukkan salah'] //muncul pesan ini terus
+            ]);
+        }
 
         if (RateLimiter::tooManyAttempts('send-otp:' . $phone, $this->maxAttempts)) {
             throw ValidationException::withMessages([
@@ -152,9 +161,9 @@ class OtpController extends Controller
             $response = Http::timeout(30)->post($this->WAPI_URL, $payload);
             if (!$response) {
                 return back()->withErrors(['message' => 'Gagal mengirim OTP Request Timeout. Silahkan Coba lagi'])->withInput()->with([
-                'success' => false,
-                'message' => 'Request Timeout. Silakan coba lagi',
-            ]);;
+                    'success' => false,
+                    'message' => 'Request Timeout. Silakan coba lagi',
+                ]);;
             }
             RateLimiter::hit('send-otp:' . $phone, $this->decayMinutes * 60);
             // Logging yang lebih baik
@@ -243,14 +252,42 @@ class OtpController extends Controller
         }
     }
 
+    /**
+     * Format Indonesian phone number to standard +62 format
+     * 
+     * Handles various input formats:
+     * - 08123456789 → 628123456789
+     * - +628123456789 → 628123456789
+     * - 628123456789 → 628123456789
+     * - 8123456789 → 628123456789
+     * 
+     * @param string $number Raw phone number input
+     * @return string Formatted number in 628123456789 format
+     * @throws \InvalidArgumentException If number is invalid
+     */
     protected function formatPhoneNumber($number)
     {
+        // Remove all non-digit characters
         $number = preg_replace('/[^0-9]/', '', $number);
-        if (strpos($number, '0') === 0) {
+
+        // Remove leading 0 if present
+        if (str_starts_with($number, '0')) {
             $number = substr($number, 1);
-        } elseif (strpos($number, '62') === 0) {
+        }
+
+        // Handle +62 or 62 prefix
+        if (str_starts_with($number, '62')) {
             $number = substr($number, 2);
         }
-        return '62' . $number;
+
+        // Validate the remaining digits
+        $number = '62' . $number;
+
+        // Final validation
+        if (!preg_match('/^628[1-9][0-9]{7,10}$/', $number)) {
+            throw new \InvalidArgumentException('Nomor telepon tidak valid');
+        }
+
+        return $number;
     }
 }

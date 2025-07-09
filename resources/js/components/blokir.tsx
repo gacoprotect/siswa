@@ -76,9 +76,18 @@ export const Blokir: React.FC<Props> = ({ open, onClose, setLoading }) => {
         });
     };
     const redirect = () => {
-        router.post(route('siswa.blocked', pageData.nouid), {},{
-            
-        })
+        router.post(
+            route('siswa.blocked', pageData.nouid),
+            {},
+            {
+                onFinish: () => {
+                    onClose();
+                    setTimeout(() => {
+                        setLoading?.(false);
+                    }, 5000);
+                },
+            },
+        );
     };
     const handleOtpSubmit = (e: React.FormEvent) => {
         e.preventDefault();
