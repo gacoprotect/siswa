@@ -187,8 +187,8 @@ const PaymentInstruction: React.FC<PaymentDataResponse> = ({ order_id, transacti
                             </div>
                         </div>
                     )}
-                    {errors.message && <p className="text-center text-sm text-red-500">{errors.message}</p>}
-                    {errors.va_number && <p className="text-center text-sm text-red-500">{errors.va_number}</p>}
+                    {/* {errors.message && <p className="text-center text-sm text-red-500">{errors.message}</p>} */}
+                    {/* {errors.va_number && <p className="text-center text-sm text-red-500">{errors.va_number}</p>} */}
 
                     {errorCancel && <p className="mb-4 text-center text-sm text-red-500">{errorCancel}</p>}
 

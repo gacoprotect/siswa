@@ -9,7 +9,7 @@ class ExculSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::connection('mai2')->table('excul')->insert([
+        DB::connection('mai2')->table('texcul')->insert([
             [
                 'name' => 'Futsal',
                 'day' => 'Senin',

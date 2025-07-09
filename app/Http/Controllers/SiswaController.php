@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Helpers\MaskingHelper;
 use App\Models\Datmas\Indentitas;
 use App\Models\Trx\Tbalance;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -55,5 +56,18 @@ class SiswaController extends Controller
         return redirect()->route('siswa.index', ['nouid' => $nouid]);
     }
 
-    public function verifnope(Request $request) {}
+    public function blocked(Request $request, $nouid): RedirectResponse
+    {
+        try {
+            $identitas = Indentitas::where('nouid', $nouid)->update(['sta' => -1]);
+
+            return redirect()->intended(route('siswa.index', ['nouid' => $nouid]));
+        } catch (\Throwable $th) {
+
+            return back()->withErrors(['message' => 'Failed to block the user'])->with([
+                'success' => false,
+                'message'=> 'Gagal Blokir Kartu'
+            ]);
+        }
+    }
 }

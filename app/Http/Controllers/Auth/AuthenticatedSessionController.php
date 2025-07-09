@@ -13,47 +13,48 @@ use Inertia\Response;
 
 class AuthenticatedSessionController extends Controller
 {
-    /**
-     * Show the login page.
-     */
     public function create(Request $request): Response
     {
-        return Inertia::render('auth/login', [
+        $nouid = $request->route('nouid');
+
+        return Inertia::render('Auth/Login', [
+            'nouid' => $nouid,
             'canResetPassword' => Route::has('password.request'),
             'status' => $request->session()->get('status'),
         ]);
     }
 
-    /**
-     * Handle an incoming authentication request.
-     */
     public function store(LoginRequest $request)
     {
+        $nouid = $request->route('nouid');
+
         $request->authenticate();
 
         $request->session()->regenerate();
-        $page = $request->input('p');
-        if (Auth::check() && $page === 'riwayat') {
-            return redirect()->intended(route('transactions', [
-                'nouid' => $request->input('nouid')
-            ], absolute: false));
-        } else {
-            return redirect()->intended(route('siswa.index', [
-                'nouid' => $request->input('nouid')
-            ], absolute: false));
+        session(['current_nouid' => $nouid]);
+
+        // Redirect berdasarkan parameter atau default
+        if (in_array($request->input('p'),['riwayat', 'index'])) {
+            $redirectRoute = $request->input('p') === 'riwayat'
+                ? 'transactions'
+                : 'siswa.index';
+
+            return redirect()->route($redirectRoute, ['nouid' => $nouid]);
         }
+
+        return back()->with([
+            'success' => true,
+            'message' => 'Pin terverifikasi',
+        ]);
     }
 
-    /**
-     * Destroy an authenticated session.
-     */
     public function destroy(Request $request, $nouid): RedirectResponse
     {
-
         Auth::guard('siswa')->logout();
-        session()->forget('current_nouid');
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+        session()->forget('current_nouid');
 
         return redirect()->route('siswa.index', ['nouid' => $nouid]);
     }

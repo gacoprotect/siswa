@@ -1,11 +1,13 @@
+import { Blokir } from '@/components/blokir';
+import { ConfirmDialog } from '@/components/ConfirmDialog ';
 import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/Layout/AppLayout';
 import { formatIDR } from '@/lib/utils';
 import { Auth, DataSiswa, SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/react';
-import * as Dialog from '@radix-ui/react-dialog';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+    FaAtom,
     FaCog,
     FaExchangeAlt,
     FaFileInvoiceDollar,
@@ -32,30 +34,28 @@ import TagihanContent from './TagihanContent';
 
 // Type definitions
 type PageState = 'index' | 'topup' | 'riwayat' | 'tagihan';
-type ModalState = 'pin' | 'setupPin' | null;
+type ModalState = 'pin' | 'setupPin' | 'blokir' | null;
 
 export interface TagihanParam {
     nouid?: string;
     spr: number[] | [];
-    jen1: number[] | [];
     tagihan: number;
 }
 export default function SiswaDashboard() {
-    const {auth, data } = usePage<{ auth: Auth; data: DataSiswa }>().props;
+    const { auth, data } = usePage<{ auth: Auth; data: DataSiswa }>().props;
     console.log(data);
-    
+
     // State management
     const [siswaData, setSiswaData] = useState(data);
     const [activeItem, setActiveItem] = useState<number | null>(null);
     const [page, setPage] = useState<PageState>('index');
-    const [isBlocked, setIsBlocked] = useState<Boolean>(!data.active);
+    const [isBlocked, setIsBlocked] = useState<Boolean>(false);
     const [isLoading, setIsLoading] = useState(false);
     const [isHistory, setIsHistory] = useState(false);
     const [hasPined, setHasPined] = useState(data.siswa.has_pin);
     const [openModal, setOpenModal] = useState<ModalState>(null);
     const [tagihanParam, setTagihanParam] = useState<TagihanParam>({
         spr: [],
-        jen1: [],
         tagihan: 0,
     });
 
@@ -143,19 +143,18 @@ export default function SiswaDashboard() {
         }
     }, []);
 
-    // Logout handler
-    const handleLogout = useCallback(async () => {
-        if (confirm('Anda yakin ingin keluar?')) {
-            router.post(
-                route('siswa.logout', siswaData.nouid),
-                {},
-                {
-                    onStart: () => setIsLoading(true),
-                    onSuccess: () => setIsLoading(false),
-                    onError: () => setIsLoading(false),
-                },
-            );
-        }
+    const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+
+    const handleLogout = useCallback(() => {
+        router.post(
+            route('siswa.logout', siswaData.nouid),
+            {},
+            {
+                onStart: () => setIsLoading(true),
+                onSuccess: () => setIsLoading(false),
+                onError: () => setIsLoading(false),
+            },
+        );
     }, [siswaData.nouid]);
 
     // Formatted values
@@ -185,12 +184,6 @@ export default function SiswaDashboard() {
     const StudentInfo = () => {
         const [menuOpen, setMenuOpen] = useState(false);
         const [dialogOpen, setDialogOpen] = useState(false);
-
-        const handleBlockCard = () => {
-            // TODO: Tambahkan logika pemblokiran kartu di sini
-            console.log('Kartu diblokir!');
-            setDialogOpen(false);
-        };
 
         return (
             <div className="relative flex w-full flex-col items-start rounded-t-lg bg-white p-4 px-6">
@@ -231,26 +224,17 @@ export default function SiswaDashboard() {
                 </div>
 
                 {/* Dialog konfirmasi blokir */}
-                <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
-                    <Dialog.Portal>
-                        <Dialog.Overlay className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
-                        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6 shadow-lg">
-                            <Dialog.Title className="mb-2 text-xl font-bold text-gray-800">Konfirmasi Blokir</Dialog.Title>
-                            <Dialog.Description className="mb-4 text-sm text-gray-600">
-                                Apakah kamu yakin ingin memblokir kartu siswa ini?
-                            </Dialog.Description>
-
-                            <div className="flex justify-end space-x-3">
-                                <button onClick={() => setDialogOpen(false)} className="rounded-md bg-gray-100 px-4 py-2 text-sm hover:bg-gray-200">
-                                    Batal
-                                </button>
-                                <button onClick={handleBlockCard} className="rounded-md bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700">
-                                    Ya, Blokir
-                                </button>
-                            </div>
-                        </Dialog.Content>
-                    </Dialog.Portal>
-                </Dialog.Root>
+                <ConfirmDialog
+                    open={dialogOpen}
+                    onOpenChange={setDialogOpen}
+                    title="Konfirmasi Blokir"
+                    description="Apakah kamu yakin ingin memblokir kartu siswa ini?"
+                    confirmText="Ya, Blokir"
+                    onConfirm={() => {
+                        setOpenModal('blokir');
+                        setIsBlocked(true);
+                    }}
+                />
             </div>
         );
     };
@@ -259,13 +243,24 @@ export default function SiswaDashboard() {
     const ActionButtons = () => (
         <div className="grid w-full grid-cols-2 items-center gap-4 border-b-2 p-2 px-6">
             {auth.user ? (
-                <button
-                    onClick={handleLogout}
-                    className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-red-800 px-4 py-3 text-white shadow-sm transition-colors hover:bg-red-700"
-                >
-                    <FiLogOut className="text-lg" />
-                    <span>Keluar</span>
-                </button>
+                <>
+                    <button
+                        onClick={() => setLogoutDialogOpen(true)}
+                        className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-red-800 px-4 py-3 text-white shadow-sm transition-colors hover:bg-red-700"
+                    >
+                        <FiLogOut className="text-lg" />
+                        <span>Keluar</span>
+                    </button>
+
+                    <ConfirmDialog
+                        open={logoutDialogOpen}
+                        onOpenChange={setLogoutDialogOpen}
+                        title="Konfirmasi Logout"
+                        description="Anda yakin ingin keluar?"
+                        confirmText="Ya, Keluar"
+                        onConfirm={handleLogout}
+                    />
+                </>
             ) : (
                 <button
                     onClick={openPinModal}
@@ -334,12 +329,28 @@ export default function SiswaDashboard() {
         </div>
     );
 
+    if (isLoading) {
+        return (
+            <AppLayout title="Loading...">
+                <div className="flex min-h-screen flex-col items-center justify-center space-y-6 bg-blue-100">
+                    <FaAtom className="animate-spin-slow text-5xl text-blue-400" />
+                    <div className="relative">
+                        <div className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-2xl font-bold tracking-wider text-transparent">
+                            Memuat Data
+                        </div>
+                        <div className="animate-loading-line absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-600"></div>
+                    </div>
+                </div>
+            </AppLayout>
+        );
+    }
+
     return (
         <>
-            {isBlocked ? (
+            {!data.active ? (
                 <AppLayout title="Kartu Siswa">
-                    <div className='flex bg-white min-h-screen items-center'>
-                        <div className="flex w-full flex-col mx-2 items-center justify-center rounded-lg border-2 border-red-400 bg-red-50 p-6 text-center shadow-sm">
+                    <div className="flex min-h-screen items-center bg-white">
+                        <div className="mx-2 flex w-full flex-col items-center justify-center rounded-lg border-2 border-red-400 bg-red-50 p-6 text-center shadow-sm">
                             <h3 className="mb-2 text-lg font-semibold text-red-600">🔒 Kartu Diblokir</h3>
                             <p className="mb-4 text-sm text-red-700">
                                 Kartu ini telah diblokir dan tidak dapat digunakan. Silakan aktifkan kembali untuk melanjutkan.
@@ -391,11 +402,11 @@ export default function SiswaDashboard() {
                     ) : null}
                 </>
             )}
-
+            <Blokir open={openModal === 'blokir'} onClose={() => closeModal()} setLoading={(v) => setIsLoading(v)} />
             <PinPage
                 open={openModal === 'pin'}
                 hasPin={hasPined}
-                handle={isHistory ? 'riwayat' : page}
+                handle={isHistory ? 'riwayat' : 'auth'}
                 setPage={setPage}
                 setOpenSetupPin={openSetupPinModal}
                 onClose={(success) => {

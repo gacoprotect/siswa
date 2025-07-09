@@ -12,7 +12,7 @@ class ExculController extends Controller
     public function subs(Request $req, $nouid)
     {
         $v = $req->validate([
-            'excul' => 'required|integer|exists:mai2.excul,id'
+            'excul' => 'required|integer|exists:mai2.texcul,id'
         ]);
 
         try {

@@ -150,8 +150,6 @@ class DataValidator
             'paid_at' => 'nullable|date',
             'spr_id' => 'sometimes|array',
             'spr_id.*' => 'integer|exists:mai3.tsalpenrut,id',
-            'jen1' => 'sometimes|array',
-            'jen1.*' => 'integer|exists:mai3.tsalpenrut,id',
             'created_by' => 'required|integer|max:255',
         ]);
 
@@ -194,22 +192,56 @@ class DataValidator
     {
         $validator = Validator::make($data, [
             'trx_id' => 'required|integer|min:1|exists:mai4.ttrx,id',
-            'nouid' => 'required|string|max:50',
-            'spr_id' => 'required|array',
-            'spr_id.*' => 'integer|exists:mai3.tsalpenrut,id',
-            'jen1' => 'sometimes|array',
-            'jen1.*' => 'integer|exists:mai3.tsalpenrut,id',
-            'amount' => 'required|numeric|min:0',
+            'nouid' => 'required|string|max:50|exists:mai2.tindentitas,nouid',
+            'spr_id' => 'required|integer|exists:mai3.tsalpenrut,id|unique:mai4.tpaidbill,spr_id',
+            'nmr' => 'required|integer|min:1',
+            'jum' => 'required|numeric',
             'paid_at' => 'nullable|date',
-            'note' => 'nullable|string',
+            'ket' => 'nullable|string',
             'created_by' => 'required|integer',
-            'order_id' => 'required|string',
             'sta' => 'required|integer',
         ], [
-            'trx_id.required' => 'Invalid Transaction ID',
-            'trx_id.integer' => 'Invalid Transaction ID',
-            'paid_at.date_format' => 'Invalid date',
-            'jen1.json' => 'Invalid Data'
+            // Pesan untuk trx_id
+            'trx_id.required' => 'ID Transaksi wajib diisi',
+            'trx_id.integer' => 'ID Transaksi harus berupa angka',
+            'trx_id.min' => 'ID Transaksi tidak valid',
+            'trx_id.exists' => 'Transaksi tidak ditemukan',
+
+            // Pesan untuk nouid
+            'nouid.required' => 'Nomor UID wajib diisi',
+            'nouid.string' => 'Nomor UID harus berupa teks',
+            'nouid.max' => 'Nomor UID maksimal 50 karakter',
+            'nouid.exists' => 'Nomor UID tidak terdaftar',
+
+            // Pesan khusus untuk spr_id
+            'spr_id.required' => 'ID Saldo Penarikan Rutin wajib diisi',
+            'spr_id.integer' => 'ID Saldo Penarikan Rutin harus berupa angka',
+            'spr_id.exists' => 'Saldo Penarikan Rutin tidak ditemukan',
+            'spr_id.unique' => 'ID Saldo Penarikan Rutin sudah digunakan',
+
+            // Pesan untuk nmr
+            'nmr.required' => 'Nomor wajib diisi',
+            'nmr.integer' => 'Nomor harus berupa angka',
+            'nmr.min' => 'Nomor minimal 1',
+
+            // Pesan untuk jum
+            'jum.required' => 'Jumlah wajib diisi',
+            'jum.numeric' => 'Jumlah harus berupa angka',
+
+            // Pesan untuk paid_at
+            'paid_at.date' => 'Format tanggal pembayaran tidak valid',
+
+            // Pesan untuk created_by
+            'created_by.required' => 'ID Pembuat wajib diisi',
+            'created_by.integer' => 'ID Pembuat harus berupa angka',
+
+            // Pesan untuk sta
+            'sta.required' => 'Status wajib diisi',
+            'sta.integer' => 'Status harus berupa angka',
+
+            // Pesan umum (opsional)
+            'required' => ':attribute wajib diisi',
+            'integer' => ':attribute harus berupa angka',
         ]);
 
 

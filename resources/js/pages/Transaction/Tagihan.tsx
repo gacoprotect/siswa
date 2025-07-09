@@ -47,7 +47,6 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ siswa, tagihanParam, onClose 
 
     const { data, post, processing, setData, errors } = useForm({
         spr: tagihanParam.spr as number[],
-        jen1: tagihanParam.jen1 as number[],
         nouid: tagihanParam.nouid,
         payment_method: paymentMethod,
         amount: tagihanParam.tagihan,
@@ -120,9 +119,9 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ siswa, tagihanParam, onClose 
                 if (flash?.success === true) {
                     setLunas(true);
                     // Auto close setelah 5 detik jika pembayaran berhasil
-                    // setTimeout(() => {
-                    //     onClose?.();
-                    // }, 5000);
+                    setTimeout(() => {
+                        onClose?.();
+                    }, 10000);
                 }
             },
             onError: (errors) => {

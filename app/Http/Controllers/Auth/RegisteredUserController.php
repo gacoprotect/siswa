@@ -7,6 +7,7 @@ use App\Models\Datmas\Indentitas;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -42,26 +43,29 @@ class RegisteredUserController extends Controller
         ]);
 
         try {
-            $indentitas = Indentitas::with('siswa')
-                ->where('nouid', $nouid)
-                ->firstOrFail();
+            
+            return DB::transaction(function () use ($validated, $nouid) {
+                $indentitas = Indentitas::with('siswa')
+                    ->where('nouid', $nouid)
+                    ->firstOrFail();
 
-            if (!$indentitas->siswa) {
-                return back()->withErrors(['pin' => 'Data siswa tidak ditemukan']);
-            }
+                if (!$indentitas->siswa) {
+                    return back()->withErrors(['pin' => 'Data siswa tidak ditemukan']);
+                }
 
-            // Update PIN dan nomor telepon
-            $indentitas->siswa->update([
-                'pin' => $validated['pin'],
-                'tel' => $this->formatPhoneNumber($validated['phone']) // Simpan ke kolom tel
-            ]);
+                // Update PIN dan nomor telepon
+                $indentitas->siswa->update([
+                    'pin' => $validated['pin'],
+                    'tel' => $this->formatPhoneNumber($validated['phone']) // Simpan ke kolom tel
+                ]);
+                Indentitas::where('nouid', $nouid)->update(['sta' => 0]);
+                event(new Registered($indentitas->siswa));
 
-            event(new Registered($indentitas->siswa));
+                Auth::login($indentitas->siswa);
+                session(['current_nouid' => $nouid]);
 
-            Auth::login($indentitas->siswa);
-            session(['current_nouid' => $nouid]);
-
-            return redirect()->intended(route('siswa.index', ['nouid' => $nouid]));
+                return redirect()->intended(route('siswa.index', ['nouid' => $nouid]));
+            });
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             logger()->error('Indentitas not found', ['nouid' => $nouid, 'error' => $e->getMessage()]);
             return back()->withErrors(['pin' => 'Data identitas tidak ditemukan']);

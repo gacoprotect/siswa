@@ -15,17 +15,14 @@ interface DataTambahTagihan {
 
 interface SetTambahTagihan {
     spr: number[];
-    jen1: number[];
     data: DataTambahTagihan[];
 }
 
 export interface Summary {
     total_tagihan: number;
     total_pembayaran?: number;
-    sisa_tagihan: number;
     total_disc?: number;
     spr: number[];
-    jen1: number[];
 }
 
 const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -38,10 +35,8 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
 
     const [summary, setSummary] = useState<Summary>({
         total_tagihan: 0,
-        sisa_tagihan: 0,
         total_disc: 0,
         spr: [],
-        jen1: [],
     });
     useEffect(() => {
         const fetchData = async () => {
@@ -103,11 +98,7 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
                     const key = `${item.tah}-${normalizedMonth}-${item.ket}`;
                     return !existingKeys.has(key);
                 });
-
-                // Gabungkan dan urutkan data
                 const combined = [...prev, ...newItems];
-
-                // Urutkan berdasarkan tahun (desc) dan bulan (asc)
                 return combined.sort((a, b) => {
                     const yearCompare = parseInt(b.tah) - parseInt(a.tah);
                     if (yearCompare !== 0) return yearCompare;
@@ -131,12 +122,9 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
             });
 
             setSummary((prev) => {
-                // Buat mapping untuk pengecekan duplikat
                 const existingSpr = new Set(prev.spr);
-                const existingJen1 = new Set(prev.jen1);
                 const existingDataKeys = new Set(groupedData.map((item) => `${item.tah}-${item.bulan.toLowerCase()}-${item.ket}`));
 
-                // Hitung hanya data yang benar-benar baru
                 let totalNewAmount = 0;
                 const newSpr: number[] = [];
                 const newJen1: number[] = [];
@@ -149,9 +137,6 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
                         if (!existingSpr.has(items.spr[index])) {
                             newSpr.push(items.spr[index]);
                         }
-                        if (items.jen1[index] && !existingJen1.has(items.jen1[index])) {
-                            newJen1.push(items.jen1[index]);
-                        }
                         totalNewAmount += item.jumlah;
                     }
                 });
@@ -159,9 +144,7 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
                 return {
                     ...prev,
                     spr: [...prev.spr, ...newSpr],
-                    jen1: [...prev.jen1, ...newJen1],
                     total_tagihan: prev.total_tagihan + totalNewAmount,
-                    sisa_tagihan: prev.total_tagihan + totalNewAmount - (prev.total_pembayaran || 0) - (prev.total_disc || 0),
                 };
             });
         },
@@ -177,7 +160,6 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
             return {
                 ...prev,
                 total_tagihan: prev.total_tagihan - amountToRemove,
-                sisa_tagihan: prev.sisa_tagihan - amountToRemove,
             };
         });
     }, []);
@@ -210,18 +192,6 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
                         </div>
                         <div className="rounded-full bg-white p-3">
                             <FaFileInvoiceDollar className="text-green-500" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="rounded-lg bg-amber-50 p-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-gray-500">Sisa Tagihan</p>
-                            <p className="mt-1 text-2xl font-semibold text-gray-900">{formatCurrency(summary.sisa_tagihan)}</p>
-                        </div>
-                        <div className="rounded-full bg-white p-3">
-                            <FaExclamationTriangle className="text-amber-500" />
                         </div>
                     </div>
                 </div>
@@ -291,15 +261,21 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
                         {/* Summary Footer */}
                         <div className="mt-6 space-y-3 border-t pt-4">
                             {summary.total_disc ? (
-                                <div className="flex justify-between">
-                                    <span className="font-medium">Diskon:</span>
-                                    <span className="font-medium text-red-600">-{formatCurrency(summary.total_disc)}</span>
-                                </div>
+                                <>
+                                    <div className="flex justify-between">
+                                        <span className="font-medium">Total:</span>
+                                        <span className="font-medium text-red-600">{formatCurrency((summary.total_tagihan - summary.total_disc))}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="font-medium">Potongan :</span>
+                                        <span className="font-medium text-red-600">{formatCurrency(summary.total_disc)}</span>
+                                    </div>
+                                </>
                             ) : null}
 
                             <div className="flex justify-between text-lg font-semibold">
                                 <span>Total Tagihan:</span>
-                                <span className="text-blue-600">{formatCurrency(summary.total_tagihan - (summary.total_disc || 0))}</span>
+                                <span className="text-blue-600">{formatCurrency(summary.total_tagihan)}</span>
                             </div>
 
                             <div className="pt-4">

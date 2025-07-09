@@ -28,8 +28,8 @@ class LoginRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'nouid' => 'required|string',
+       return [
+            'nouid' => 'required|string|exists:mai2.tindentitas,nouid',
             'pin' => 'required|digits:6|numeric',
         ];
     }
@@ -42,36 +42,24 @@ class LoginRequest extends FormRequest
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
+
         $nouid = $this->input('nouid');
-        // Cari data indentitas berdasarkan nouid
-        $indentitas = Indentitas::where('nouid', $this->input('nouid'))
+        $indentitas = Indentitas::where('nouid', $nouid)
             ->with('siswa')
-            ->first();
+            ->firstOrFail();
 
-        // Verifikasi PIN
-        if (
-            !$indentitas ||
-            !$indentitas->siswa ||
-            !$this->verifyPin($indentitas->siswa, $this->input('pin'))
-        ) {
+        if (!$this->verifyPin($indentitas->siswa, $this->input('pin'))) {
             RateLimiter::hit($this->throttleKey());
-
             throw ValidationException::withMessages([
-                // 'pin' => __('auth.failed'),
                 'pin' => "PIN yang Anda Masukkan Salah",
             ]);
         }
-        if (!Auth::check()) {
-            // Login menggunakan guard siswa
-            Auth::guard('siswa')->login($indentitas->siswa);
-            session(['current_nouid' => $nouid]);
-            RateLimiter::clear($this->throttleKey());
-        }
+
+        Auth::guard('siswa')->login($indentitas->siswa);
+        session(['current_nouid' => $nouid]);
+        RateLimiter::clear($this->throttleKey());
     }
 
-    /**
-     * Verify the student's PIN
-     */
     protected function verifyPin($siswa, $pin): bool
     {
         return Hash::check($pin, $siswa->pin);

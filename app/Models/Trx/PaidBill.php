@@ -10,19 +10,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PaidBill extends Model
 {
     protected $connection = 'mai4';
-    protected $table = 'paidbill';
+    protected $table = 'tpaidbill';
     protected $primaryKey = 'id';
     protected $appends = [];
     public $timestamps = true;
     protected $fillable = [
         'trx_id',
         'nouid',
-        'order_id',
         'spr_id',
-        'jen1',
-        'amount',
+        'nmr',
+        'jum',
         'paid_at',
-        'note',
+        'ket',
         'created_by',
         'sta',
     ];
@@ -32,9 +31,7 @@ class PaidBill extends Model
         'updated_at',
     ];
     protected $casts = [
-        'spr_id' => 'array',
-        'jen1' => 'array',
-        'amount' => 'decimal:2',
+        'jum' => 'decimal:2',
         'paid_at' => 'datetime',
     ];
 }

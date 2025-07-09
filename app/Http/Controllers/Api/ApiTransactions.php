@@ -34,8 +34,6 @@ class ApiTransactions extends Controller
             $validated = $request->validate([
                 'spr' => 'required|array|min:1',
                 'spr.*' => 'required|integer|exists:mai3.tsalpenrut,id',
-                'jen1' => 'nullable|array',
-                'jen1.*' => 'integer|exists:mai3.tsalpenrut,id',
                 'tagihan' => 'required|numeric|min:10000',
             ]);
 
@@ -43,7 +41,7 @@ class ApiTransactions extends Controller
             $sprRecords = Tsalpenrut::whereIn('id', $validated['spr'])
                 ->get();
 
-            $totalTagihan = $sprRecords->where('jen', 0)->sum('jum');
+            $totalTagihan = $sprRecords->sum('jumlah');
             $totalDiskon = !empty($validated['jen1'])
                 ? Tsalpenrut::whereIn('id', $validated['jen1'])->sum('jum')
                 : 0;
@@ -52,7 +50,6 @@ class ApiTransactions extends Controller
                 'items' => $sprRecords,
                 'total_tagihan' => $totalTagihan,
                 'total_diskon' => abs($totalDiskon),
-                'sisa_tagihan' => $totalTagihan - abs($totalDiskon),
                 'orderId' => $orderId
             ];
             $trx = Ttrx::where('order_id', $orderId)->orWhere(function ($q) use ($nouid) {
@@ -150,12 +147,5 @@ class ApiTransactions extends Controller
                 'data' => null,
             ], 500);
         }
-    }
-
-    public function ApiTagihanSearch(Request $req, $nouid){
-        $v = $req->validate([
-            'month' => '',
-            'tahun' => '',
-        ]);
     }
 }

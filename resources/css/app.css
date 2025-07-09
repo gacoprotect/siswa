@@ -159,3 +159,38 @@
         @apply bg-background text-foreground;
     }
 }
+
+
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}
+
+@keyframes loading-line {
+  0% { width: 0; left: 0; right: auto; }
+  50% { width: 100%; left: 0; right: auto; }
+  51% { left: auto; right: 0; }
+  100% { width: 0; left: auto; right: 0; }
+}
+.animate-loading-line {
+  animation: loading-line 2s ease-in-out infinite;
+}
+
+@keyframes baseball-spin {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.1); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+.animate-baseball-spin {
+  animation: baseball-spin 1.5s ease-in-out infinite;
+}
+
+@keyframes baseball-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-360deg); }
+}
+.animate-baseball-rotate {
+  animation: baseball-rotate 2s linear infinite;
+}

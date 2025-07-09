@@ -8,10 +8,9 @@ interface Props {
 }
 
 const PaymentButton: React.FC<Props> = ({ setparam, summary }) => {
-    const handleBayar = ({ tagihan, spr, jen1 }: TagihanParam) => {
+    const handleBayar = ({ tagihan, spr }: TagihanParam) => {
         setparam({
             spr,
-            jen1,
             tagihan
         });
     };
@@ -22,7 +21,6 @@ const PaymentButton: React.FC<Props> = ({ setparam, summary }) => {
                 handleBayar({
                     tagihan: summary.total_tagihan,
                     spr: summary.spr,
-                    jen1: summary.jen1,
                 })
             }
             className="flex items-center gap-2 rounded-lg bg-green-600 p-2 text-sm text-white transition-colors hover:bg-green-700"

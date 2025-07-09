@@ -20,7 +20,7 @@ return new class extends Migration
         });
 
         // Tabel ekskul
-        Schema::connection('mai2')->create('excul', function (Blueprint $table) {
+        Schema::connection('mai2')->create('texcul', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('day');
@@ -39,7 +39,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::connection('mai2')->dropIfExists('excul');
+        Schema::connection('mai2')->dropIfExists('texcul');
         Schema::connection('mai2')->dropIfExists('tpel_excul');
     }
 };

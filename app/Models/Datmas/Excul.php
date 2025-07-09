@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Excul extends Model
 {
     protected $connection = 'mai2';
-    protected $table = 'excul';
+    protected $table = 'texcul';
     protected $primaryKey = 'id';
     public $timestamps = true;
     protected $appends =['coach'];

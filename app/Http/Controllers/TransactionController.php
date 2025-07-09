@@ -8,6 +8,7 @@ use App\Models\Spp\Tsalpenrut;
 use App\Models\Trx\PaidBill;
 use App\Models\Trx\Ttrx;
 use App\Models\Trx\Ttrxlog;
+use Carbon\Exceptions\Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -65,24 +66,32 @@ class TransactionController extends Controller
 
                 if (($v['for'] ?? null) === 'tagihan' && $v['type'] === "payment" && (int)$v['pt_id'] === 3) {
                     // logger('Memasuki blok createPaidBill', $v);
-
-                    $pb = self::createPaidBill([
-                        'trx_id' => $trx->id,
-                        'order_id' => $trx->order_id,
-                        'nouid' => $trx->nouid,
-                        'spr_id' => $trx->spr_id,
-                        'jen1' => $trx->jen1,
-                        'amount' => abs($v['amount']),
-                        'paid_at' => now(),
-                        'note' => $trx->note,
-                        'sta' => 1,
-                        'created_by' => 1
-                    ]);
-
-                    if (!$pb) {
-                        logger('Gagal createPaidBill', ['data' => $trx->toArray()]);
-                        throw new \RuntimeException("Failed to create paid bill");
-                    }
+                    $sprs = Tsalpenrut::whereIn('id', $trx->spr_id)
+                        ->orderBy('tah')
+                        ->orderBy('bulid')
+                        ->get();
+                    $sprs->each(function ($spr, $index) use ($trx) {
+                        try {
+                            $pb = self::createPaidBill([
+                                'trx_id'    => $trx->id,
+                                'nouid'     => $trx->nouid,
+                                'nmr'       => $index + 1,
+                                'spr_id'    => $spr->id,
+                                'jum'       => $spr->jumlah,
+                                'ket'       => $spr->ket,
+                                'sta'       => 1,
+                                'created_by' => 0,
+                                'paid_at'   => $trx->updated_at,
+                            ]);
+                            if (!$pb) {
+                                logger('Gagal createPaidBill', ['data' => $trx->toArray()]);
+                                throw new \RuntimeException("Failed to create paid bill");
+                            }
+                        } catch (\Throwable $e) {
+                            logger()->error("Failed to create paid bill for SPR #{$spr->id}: " . $e->getMessage());
+                            throw new \RuntimeException("Failed to create paid bill");
+                        }
+                    });
                 }
 
                 return $trx;
@@ -213,23 +222,32 @@ class TransactionController extends Controller
                         throw new \Exception("SPR record not found");
                     }
 
-                    $pb = self::createPaidBill([
-                        'trx_id' => $transaction->id,
-                        'order_id' => $transaction->order_id,
-                        'nouid' => $transaction->nouid,
-                        'spr_id' => $transaction->spr_id,
-                        'jen1' => $transaction->jen1,
-                        'amount' => abs($transaction->amount),
-                        'paid_at' => now(),
-                        'note' => $transaction->note,
-                        'sta' => 1,
-                        'created_by' => 1
-                    ]);
-
-                    if (!$pb) {
-                        logger('Gagal createPaidBill', ['data' => $transaction->toArray()]);
-                        throw new \RuntimeException("Failed to create paid bill");
-                    }
+                    $sprs = Tsalpenrut::whereIn('id', $transaction->spr_id)
+                        ->orderBy('tah')
+                        ->orderBy('bulid')
+                        ->get();
+                    $sprs->each(function ($spr, $index) use ($transaction) {
+                        try {
+                            $pb = self::createPaidBill([
+                                'trx_id'    => $transaction->id,
+                                'nouid'     => $transaction->nouid,
+                                'nmr'       => $index + 1,
+                                'spr_id'    => $spr->id,
+                                'jum'       => $spr->jumlah,
+                                'ket'       => $spr->ket,
+                                'sta'       => 1,
+                                'paid_at'   => $transaction->updated_at,
+                                'created_by' => 0,
+                            ]);
+                            if (!$pb) {
+                                logger('Gagal createPaidBill', ['data' => $transaction->toArray()]);
+                                throw new \RuntimeException("Failed to create paid bill");
+                            }
+                        } catch (\Throwable $e) {
+                            logger()->error("Failed to create paid bill for SPR #{$spr->id}: " . $e->getMessage());
+                            throw new \RuntimeException("Failed to create paid bill");
+                        }
+                    });
 
                     Tsalpenrut::whereIn('id', $transaction->spr_id)->update(['sta' => 2]);
                 }
@@ -261,9 +279,11 @@ class TransactionController extends Controller
             if ($mai2DbTransaction) DB::connection('mai2')->rollBack();
             if ($mainDbTransaction) DB::rollBack();
 
-            return back()->with([
+            return back()->withErrors([
+                'message' => "Pembayaran gagal : " . $e->getMessage()
+            ])->with([
                 'success' => false,
-                'message' => 'Simulasi pembayaran gagal: ' . $e->getMessage(),
+                'message' => 'Pembayaran gagal',
             ])->withInput();
         }
     }

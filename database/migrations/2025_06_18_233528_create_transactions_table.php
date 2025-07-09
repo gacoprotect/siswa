@@ -42,7 +42,6 @@ return new class extends Migration
             $table->enum('type', ['topup', 'payment', 'withdraw', 'refund'])->default('topup');
 
             $table->json('spr_id')->nullable(); // idspr
-            $table->json('jen1')->nullable(); // idspr jen=1
             $table->text('note')->nullable();
             $table->json('pay_data')->nullable();
             $table->text('failure_message')->nullable();
@@ -80,25 +79,23 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::connection('mai4')->create('paidbill', function (Blueprint $table) {
+        Schema::connection('mai4')->create('tpaidbill', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('trx_id')->unique(); // Referensi ke ttrx            
-            $table->string('order_id')->unique();
+            $table->unsignedBigInteger('trx_id');
             $table->string('nouid', 50)->collation('utf8mb3_general_ci');
-            $table->json('spr_id')->nullable(); // idspr
-            $table->json('jen1')->nullable(); // idspr jen=1
-            $table->decimal('amount', 16, 2); // Jumlah dibayar
+            $table->bigInteger('nmr');
+            $table->bigInteger('spr_id')->unique(); // idspr 
+            $table->decimal('jum', 16, 2); // Jumlah dibayar jika jen=1 maka minus
+            $table->text('ket')->nullable(); // Keterangan jika ada
+            $table->tinyInteger('sta')->default(0);
+            $table->tinyInteger('created_by')->default(0); 
             $table->timestamp('paid_at')->useCurrent(); // Waktu pembayaran
-            $table->text('note')->nullable(); // Keterangan jika ada
-            $table->string('created_by'); 
-            $table->boolean('sta');
             $table->timestamps();
 
             // Foreign Key Constraints
             $table->foreign('trx_id')->references('id')->on('ttrx')->onDelete('cascade');
 
             // Indexing
-            $table->index('order_id');
             $table->index('nouid');
         });
     }
@@ -108,7 +105,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::connection('mai4')->dropIfExists('paidbill');
+        Schema::connection('mai4')->dropIfExists('tpaidbill');
         Schema::connection('mai4')->dropIfExists('ttrxlog');
         Schema::connection('mai4')->dropIfExists('ttrx');
         Schema::connection('mai4')->dropIfExists('tbank');

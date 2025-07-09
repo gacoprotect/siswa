@@ -21,13 +21,12 @@ class TagihanController extends Controller
         if (!Auth::check()) {
             return redirect()->intended(route('siswa.index', $nouid));
         }
+
         $identitas = Indentitas::select('idok')
             ->where('nouid', $nouid)
             ->with(['tagihan' => function ($query) {
                 $currentYear = date('Y');
                 $currentMonth = date('n');
-
-                // logger(['month' => $currentMonth]); // 7
 
                 $query->whereIn('sta', [0, 1])
                     ->where(function ($query) use ($currentYear, $currentMonth) {
@@ -42,49 +41,19 @@ class TagihanController extends Controller
             }])
             ->firstOrFail();
 
-
-        // Ambil tagihan dengan jen == 0 (SPP) dan jen == 1 (diskon atau jenis lain) 
-        $tagihanJen0 = $identitas->tagihan->where('jen', 0)->values();
-        // cek jen1 sudah ada dalam kolom jen1(json) di table ttrx? jika ada maka abaikan
-        // Ambil semua ID tagihan jen == 1
-        $jen1Ids = $identitas->tagihan->where('jen', 1)->pluck('id')->toArray();
-
-        // Cek apakah salah satu dari ID tersebut sudah ada di JSON 'jen1' (ttrx)
-        $jen1Used = Ttrx::where('nouid', $nouid)
-            ->where(function ($query) use ($jen1Ids) {
-                foreach ($jen1Ids as $id) {
-                    $query->orWhereJsonContains('jen1', $id);
-                }
-            })
-            ->exists();
-
-        // Jika belum pernah digunakan, ambil tagihan jen==1
-        $tagihanJen1 = $jen1Used
-            ? collect([]) // Kosong jika sudah pernah dipakai
-            : $identitas->tagihan->where('jen', 1)->values();
-
-        $data = $tagihanJen0->map(function ($item) {
+        $data = $identitas->tagihan->map(function ($item) {
             return [
                 'tah'    => $item->tah,
+                'bulan'  => $item->bulan,
                 'ket'    => $item->ket,
                 'jumlah' => $item->jumlah,
-                'bulan'  => $item->bulan,
+                'jen' => $item->jen,
             ];
         });
 
-        $spr = $tagihanJen0->pluck('id')->values()->all();
-
-        // Hanya isi jen1 jika ada tagihan jen == 0
-        $jen1 = $tagihanJen0->isNotEmpty()
-            ? $tagihanJen1->pluck('id')->values()->all()
-            : [];
-
-        $total_disc = $tagihanJen0->isNotEmpty()
-            ? abs($tagihanJen1->sum('jumlah'))
-            : 0;
-
-        $totalTagihan = $tagihanJen0->sum('jumlah');
-        $sisaTagihan = max(0, $totalTagihan - $total_disc);
+        $spr = $identitas->tagihan->pluck('id')->values()->all();
+        $total_disc = $identitas->tagihan->where('jen', 1)->sum('jumlah');
+        $totalTagihan = max(0, $identitas->tagihan->sum('jumlah'));
 
         return response()->json([
             'status' => true,
@@ -92,9 +61,7 @@ class TagihanController extends Controller
             'summary' => [
                 'total_tagihan' => $totalTagihan,
                 'total_disc'    => $total_disc,
-                'sisa_tagihan'  => $sisaTagihan,
                 'spr'           => $spr,
-                'jen1'          => $jen1,
             ],
         ]);
     }
@@ -142,8 +109,6 @@ class TagihanController extends Controller
             $validated = $request->validate([
                 'spr' => 'required|array',
                 'spr.*' => 'integer|exists:mai3.tsalpenrut,id',
-                'jen1' => 'sometimes|array',
-                'jen1.*' => 'integer|exists:mai3.tsalpenrut,id',
                 'payment_method' => 'required|in:va,cash,wallet',
                 'amount' => 'required|numeric|min:1|max:100000000',
                 'orderId' => 'required|string|max:255'
@@ -180,7 +145,7 @@ class TagihanController extends Controller
                 throw new \RuntimeException("Saldo tidak mencukupi");
             }
 
-            // Siapkan data transaksi
+            // data transaksi
             $dataTrx = [
                 'siswa' => $identity->siswa,
                 'ttrx' => [
@@ -196,7 +161,6 @@ class TagihanController extends Controller
                     'note' => $identity->tagihan->pluck('ket')->implode(', '),
                     'expiry_time' => now()->addHours(6),
                     'spr_id' => $validated['spr'],
-                    'jen1' => $validated['jen1'] ?? [],
                     'created_by' => 1,
                 ],
             ];
