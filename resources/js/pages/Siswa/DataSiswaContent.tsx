@@ -1,3 +1,4 @@
+import { cn } from '@/lib/utils';
 import { Siswa, Wali } from '@/types';
 import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
@@ -83,6 +84,7 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                                         value={data.nis}
                                         onChange={(e) => setData('nis', e.target.value)}
                                         error={errors.nis}
+                                        disabled={true}
                                     />
                                     <EditDataRow
                                         icon={<FaUser />}
@@ -90,6 +92,7 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                                         value={data.namlen}
                                         onChange={(e) => setData('namlen', e.target.value)}
                                         error={errors.namlen}
+                                        disabled={true}
                                     />
                                     <EditDataRow
                                         icon={<FaGraduationCap />}
@@ -97,6 +100,7 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                                         value={data.kel}
                                         onChange={(e) => setData('kel', e.target.value)}
                                         error={errors.kel}
+                                        disabled={true}
                                     />
                                     <EditDataRow
                                         icon={<FaPhone />}
@@ -122,6 +126,18 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                                 </div>
                             </div>
 
+                            <div className="rounded-lg bg-white p-4 shadow-sm">
+                                <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-green-600">
+                                    <FaHome /> Catatan Kesehatan
+                                </h4>
+                                <textarea
+                                    className="w-full rounded border border-gray-300 p-2"
+                                    value={data.ala}
+                                    onChange={(e) => setData('ala', e.target.value)}
+                                    rows={4}
+                                />
+                                {errors.ala && <p className="mt-1 text-sm text-red-500">{errors.ala}</p>}
+                            </div>
                             <div className="rounded-lg bg-white p-4 shadow-sm">
                                 <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-green-600">
                                     <FaHome /> Alamat
@@ -258,18 +274,20 @@ type EditDataRowProps = {
     value: string;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     error?: string;
+    disabled?: boolean;
 };
 
-const EditDataRow = ({ icon, label, value, onChange, error }: EditDataRowProps) => (
+const EditDataRow = ({ disabled = false, icon, label, value, onChange, error }: EditDataRowProps) => (
     <div className="mb-4">
         <label className="mb-1 ml-8 block text-sm font-bold text-gray-700">{label}</label>
         <div className="flex items-center gap-2">
             <div className="text-xl text-gray-500">{icon}</div>
             <input
+                disabled={disabled}
                 type="text"
                 value={value}
                 onChange={onChange}
-                className={`w-full rounded border ${error ? 'border-red-500' : 'border-gray-300'} p-2 text-sm`}
+                className={cn(`w-full rounded border ${error ? 'border-red-500' : 'border-gray-300'} p-2 text-sm`, disabled && 'bg-gray-300')}
             />
         </div>
         {error && <p className="mt-1 text-xs text-red-500">{error}</p>}

@@ -2,7 +2,7 @@ import PaymentButton from '@/components/tagihanButton';
 import { BillTagihan } from '@/types';
 import { X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { FaExclamationTriangle, FaFileInvoice, FaFileInvoiceDollar, FaHistory, FaSpinner, FaTrashAlt } from 'react-icons/fa';
+import { FaFileInvoice, FaFileInvoiceDollar, FaHistory, FaSpinner, FaTrashAlt } from 'react-icons/fa';
 import { TagihanParam } from './Index';
 import TambahTagihan from './TambahTagihan';
 
@@ -220,7 +220,12 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
             ) : (
                 <div className="overflow-hidden rounded-lg border shadow-sm">
                     <div className="bg-white p-4">
-                        <h2 className="mb-4 text-lg font-semibold">Rincian Tagihan</h2>
+                        <div className="flex items-center justify-between">
+                            <h2 className="mb-4 text-lg font-semibold">Rincian Tagihan</h2>
+                            <span className="mb-4 rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700">
+                                {groupedData.filter((t) => t.jen === 0).length} Tagihan
+                            </span>
+                        </div>
 
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
@@ -264,7 +269,7 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
                                 <>
                                     <div className="flex justify-between">
                                         <span className="font-medium">Total:</span>
-                                        <span className="font-medium text-red-600">{formatCurrency((summary.total_tagihan - summary.total_disc))}</span>
+                                        <span className="font-medium text-red-600">{formatCurrency(summary.total_tagihan - summary.total_disc)}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="font-medium">Potongan :</span>
