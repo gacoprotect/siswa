@@ -19,6 +19,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        $publicApi = public_path('api');
+        $realApi = base_path('wilayah/static/api');
+
+        // Buat symlink hanya jika belum ada
+        if (!file_exists($publicApi)) {
+            symlink($realApi, $publicApi);
+        }
     }
 }

@@ -12,3 +12,4 @@ Route::get('bills/{nouid}/current', [ApiTransactions::class, 'getTambahTagihan']
 Route::get('bills/{nouid}/exists', [ApiTransactions::class, 'getExistTagihan'])->name('api.tagihan.exists');
 Route::get('siswa/{nouid}/index', [ApiDatmas::class, 'siswa'])->name('api.siswa');
 Route::get('siswa/{nouid}/excul', [ApiDatmas::class, 'getExcul'])->name('api.excul');
+Route::get('/wilayah/{kod?}', [ApiDatmas::class, 'getWilayah'])->name('api.wilayah');
