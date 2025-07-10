@@ -44,10 +44,6 @@ const TambahTagihan = ({ open, onClose, nouid, setTambahTagihan }: Props) => {
     const [selectedMonth, setSelectedMonth] = useState<number | ''>('');
     const [error, setError] = useState<string>('');
 
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = monthNames[now.getMonth()];
-
     const getData = useCallback(async () => {
         setLoading(true);
         try {
@@ -120,19 +116,6 @@ const TambahTagihan = ({ open, onClose, nouid, setTambahTagihan }: Props) => {
                 ) : (
                     <>
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                            {/* Dari */}
-                            <div>
-                                <label className="mb-2 block text-sm font-semibold text-gray-700">Dari:</label>
-                                <div className="flex flex-row gap-3">
-                                    <select disabled className="w-full rounded-md border bg-gray-100 px-4 py-2 text-gray-800">
-                                        <option>{currentMonth}</option>
-                                    </select>
-                                    <select disabled className="w-full rounded-md border bg-gray-100 px-4 py-2 text-gray-800">
-                                        <option>{currentYear}</option>
-                                    </select>
-                                </div>
-                            </div>
-
                             {/* Sampai */}
                             <div>
                                 <label className="mb-2 block text-sm font-semibold text-gray-700">Sampai:</label>
