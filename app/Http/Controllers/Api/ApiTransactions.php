@@ -85,22 +85,88 @@ class ApiTransactions extends Controller
             ], 500);
         }
     }
+    public function getExistTagihan(Request $request, $nouid)
+    {
+        $identitas = Indentitas::with(['tagihan' => function ($q) {
+            $currentYear = date('Y');
+            $currentMonth = date('n');
+            $q->whereIn('sta', [0, 1])
+                ->where(function ($q) use ($currentYear, $currentMonth) {
+                    $q->where('tah', '>', $currentYear)
+                        ->orWhere(function ($q) use ($currentYear, $currentMonth) {
+                            $q->where('tah', $currentYear)
+                                ->where('bulid', '>', $currentMonth);
+                        });
+                })
+                ->orderBy('tah', 'desc')
+                ->orderBy('bulid', 'asc');
+        }])->where('nouid', $nouid)->first();
+
+        // Siapkan array hasil
+        $result = [];
+
+        if ($identitas && $identitas->tagihan) {
+            foreach ($identitas->tagihan as $tagihan) {
+                $tahun = $tagihan->tah;
+                $bulan = (int) $tagihan->bulid; // pastikan integer
+
+                if (!isset($result[$tahun])) {
+                    $result[$tahun] = [];
+                }
+
+                if (!in_array($bulan, $result[$tahun])) {
+                    $result[$tahun][] = $bulan;
+                }
+            }
+
+            foreach ($result as &$bulanList) {
+                sort($bulanList);
+            }
+
+            ksort($result);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $result
+        ]);
+    }
+
     public function getTambahTagihan(Request $req, $nouid)
     {
         try {
-            $identitas = Indentitas::with(['tagihan' => function ($q) {
+            $messages = [
+                't.required' => 'Tahun harus diisi',
+                't.digits'   => 'Tahun harus 4 digit',
+                'b.between'  => 'Bulan harus antara 1-12',
+            ];
+
+            $v = $req->validate([
+                't' => 'required|numeric|digits:4|min:1900|max:' . (date('Y') + 5),
+                'b' => 'required|numeric|between:1,12',
+            ], $messages);
+
+            // Ambil data identitas & tagihan yang lebih baru dari (t, b)
+            $identitas = Indentitas::with(['tagihan' => function ($q) use ($v) {
                 $currentYear = date('Y');
                 $currentMonth = date('n');
-                $q->whereIn('sta', [0, 1])
-                    ->where(function ($q) use ($currentYear, $currentMonth) {
-                        $q->where('tah', '>', $currentYear)
-                            ->orWhere(function ($q) use ($currentYear, $currentMonth) {
-                                $q->where('tah', $currentYear)
-                                    ->where('bulid', '>', $currentMonth);
+                 $q->where(function ($q) use ($currentYear, $currentMonth) {
+                    $q->where('tah', '>', $currentYear)
+                        ->orWhere(function ($q) use ($currentYear, $currentMonth) {
+                            $q->where('tah', $currentYear)
+                                ->where('bulid', '>', $currentMonth);
+                        });
+                })
+                ->whereIn('sta', [0, 1])
+                    ->where(function ($q) use ($v) {
+                        $q->where('tah', '<', $v['t'])
+                            ->orWhere(function ($q) use ($v) {
+                                $q->where('tah', $v['t'])
+                                    ->where('bulid', '<=', $v['b']);
                             });
                     })
-                    ->orderBy('tah', 'desc')
-                    ->orderBy('bulid', 'asc');
+                    ->orderBy('tah')
+                    ->orderBy('bulid');
             }])->where('nouid', $nouid)->first();
 
             if (!$identitas || $identitas->tagihan->isEmpty()) {
@@ -111,24 +177,21 @@ class ApiTransactions extends Controller
                 ], 404);
             }
 
-            $grouped = [];
+            $spr = [];
+            $items = [];
+            $years = [];
+            $months = [];
 
             foreach ($identitas->tagihan as $tagihan) {
-                $tahun = $tagihan->tah;
-                $namaBulan = strtolower(\Carbon\Carbon::create()->month($tagihan->bulid)->translatedFormat('F'));
+                $spr[] = $tagihan->id;
+                $years[] = (int) $tagihan->tah;
+                $months[] = (int) $tagihan->bulid;
 
-                if (!isset($grouped[$tahun])) {
-                    $grouped[$tahun] = [];
-                }
-
-                if (!isset($grouped[$tahun][$namaBulan])) {
-                    $grouped[$tahun][$namaBulan] = [];
-                }
-
-                $grouped[$tahun][$namaBulan][] = [
+                $items[] = [
                     'id'     => $tagihan->id,
                     'tah'    => $tagihan->tah,
                     'bulid'  => $tagihan->bulid,
+                    'bulan'  => strtolower(\Carbon\Carbon::create()->month($tagihan->bulid)->translatedFormat('F')),
                     'jumlah' => $tagihan->jumlah,
                     'ket'    => $tagihan->ket,
                     'jen'    => $tagihan->jen,
@@ -138,7 +201,10 @@ class ApiTransactions extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $grouped
+                'data' => [
+                    'spr'   => $spr,
+                    'data'  => $items,
+                ]
             ]);
         } catch (\Throwable $th) {
             return response()->json([

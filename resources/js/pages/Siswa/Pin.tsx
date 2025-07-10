@@ -19,7 +19,7 @@ interface PinPageProps {
     onClose: (v: boolean) => void;
 }
 
-const PinPage: React.FC<PinPageProps> = ({ handle = 'auth', setPage, setOpenSetupPin, hasPin, open, onClose }) => {
+const PinPage: React.FC<PinPageProps> = ({ handle, setPage, setOpenSetupPin, hasPin, open, onClose }) => {
     const { errors, data: pageData } = usePage<{ errors: Record<string, string>; data: DataSiswa }>().props;
     const { data, setData, post, processing, reset } = useForm<PinFormData>({
         pin: '',

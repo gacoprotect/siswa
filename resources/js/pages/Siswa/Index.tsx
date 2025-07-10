@@ -406,7 +406,7 @@ export default function SiswaDashboard() {
             <PinPage
                 open={openModal === 'pin'}
                 hasPin={hasPined}
-                handle={isHistory ? 'riwayat' : 'auth'}
+                handle={!auth.user ? 'index' : isHistory ? 'riwayat' : 'auth'}
                 setPage={setPage}
                 setOpenSetupPin={openSetupPinModal}
                 onClose={(success) => {
