@@ -15,14 +15,14 @@ export default defineConfig({
         tailwindcss(),
     ],
     // Dev di Home Server package.json vite --host=0.0.0.0
-    // server: {
-    //     host: '0.0.0.0',      // agar bisa diakses oleh domain
-    //     port: 5173,
-    //     cors: true,
-    //     hmr: {
-    //         host: 'siswa.test', // arahkan ke domain dev kamu
-    //     }
-    // },
+    server: {
+        host: '0.0.0.0',      // agar bisa diakses oleh domain
+        port: 5173,
+        cors: true,
+        hmr: {
+            host: 'siswa.test', // arahkan ke domain dev kamu
+        }
+    },
     esbuild: {
         jsx: 'automatic',
     },

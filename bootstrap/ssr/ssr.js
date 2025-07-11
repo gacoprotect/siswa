@@ -345,7 +345,7 @@ createServer(
     page,
     render: ReactDOMServer.renderToString,
     title: (title) => `${title} - ${appName}`,
-    resolve: (name) => resolvePageComponent(`./pages/${name}.tsx`, /* @__PURE__ */ Object.assign({ "./pages/PaymentInstruction.tsx": () => import("./assets/PaymentInstruction-DGZFiZCB.js"), "./pages/Siswa/Index.tsx": () => import("./assets/Index-29owSBCa.js"), "./pages/Siswa/Pin.tsx": () => import("./assets/Pin-BbS95q2r.js"), "./pages/Siswa/SetupPin.tsx": () => import("./assets/SetupPin-lKqWeeuw.js"), "./pages/Siswa/lupa-pin.tsx": () => import("./assets/lupa-pin-Dq-z6BFu.js"), "./pages/Topup.tsx": () => import("./assets/Topup-CHKrc3UT.js"), "./pages/Transaction/Detail.tsx": () => import("./assets/Detail-MzKLMJJY.js"), "./pages/Transaction/History.tsx": () => import("./assets/History-DZmrJRA-.js"), "./pages/welcome.tsx": () => import("./assets/welcome-mLKFciuf.js") })),
+    resolve: (name) => resolvePageComponent(`./pages/${name}.tsx`, /* @__PURE__ */ Object.assign({ "./pages/PaymentInstruction.tsx": () => import("./assets/PaymentInstruction-BAWOGocu.js"), "./pages/Siswa/DataSiswaContent.tsx": () => import("./assets/DataSiswaContent-C60nKkkZ.js"), "./pages/Siswa/Excul.tsx": () => import("./assets/Excul-Y7xU6cUe.js"), "./pages/Siswa/Index.tsx": () => import("./assets/Index-Cni24UAi.js"), "./pages/Siswa/Pin.tsx": () => import("./assets/Pin-_xh2jcAH.js"), "./pages/Siswa/SearchTagihan.tsx": () => import("./assets/SearchTagihan-Dpkmh53W.js"), "./pages/Siswa/SetupPin.tsx": () => import("./assets/SetupPin-BumI-Ndq.js"), "./pages/Siswa/Tagihan.tsx": () => import("./assets/Tagihan-0wspsPHl.js"), "./pages/Siswa/TagihanContent.tsx": () => import("./assets/TagihanContent-KcHHrG4C.js"), "./pages/Siswa/TambahTagihan.tsx": () => import("./assets/TambahTagihan-BeFUbly4.js"), "./pages/Siswa/lupa-pin.tsx": () => import("./assets/lupa-pin-Dq-z6BFu.js"), "./pages/Topup.tsx": () => import("./assets/Topup-Cu3pQ8fJ.js"), "./pages/Transaction/Detail.tsx": () => import("./assets/Detail-B7iBo_-6.js"), "./pages/Transaction/History.tsx": () => import("./assets/History-HDwLruso.js"), "./pages/Transaction/Tagihan.tsx": () => import("./assets/Tagihan-B6YTCssC.js"), "./pages/welcome.tsx": () => import("./assets/welcome-B_ncGPUR.js") })),
     setup: ({ App, props }) => {
       global.route = (name, params, absolute) => T(name, params, absolute, {
         // @ts-expect-error
@@ -357,3 +357,6 @@ createServer(
     }
   })
 );
+export {
+  T
+};
