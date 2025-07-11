@@ -1,16 +1,51 @@
 import { cn } from '@/lib/utils';
 import { Siswa, Wali } from '@/types';
 import { useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { FaBirthdayCake, FaEdit, FaEnvelope, FaGraduationCap, FaHome, FaIdCard, FaPhone, FaUser, FaUserTie } from 'react-icons/fa';
 
 type DataSiswaContentProps = {
     nouid: string;
     siswa: Siswa;
 };
-
+interface Wilayah {
+    province: number;
+    regency: number;
+    district: number;
+    village: number;
+}
+interface Province {
+    id: string;
+    name: string;
+}
+interface Regency {
+    id: string;
+    province_id: string;
+    name: string;
+}
+interface District {
+    id: string;
+    regency_id: string;
+    name: string;
+}
+interface Village {
+    id: string;
+    district_id: string;
+    name: string;
+}
 const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => {
     const [isEditing, setIsEditing] = useState(false);
+    const [provinces, setProvinces] = useState<Province[]>([]);
+    const [regencies, setRegencies] = useState<Regency[]>([]);
+    const [districts, setdistricts] = useState<District[]>([]);
+    const [villages, setVillages] = useState<Village[]>([]);
+    const [selectedWilayah, setSelectedWilayah] = useState<Wilayah>({
+        province: 0,
+        regency: 0,
+        district: 0,
+        village: 0,
+    });
+
     const { data, setData, put, processing, errors } = useForm({
         nis: siswa.nis ?? '',
         namlen: siswa.namlen,
@@ -18,7 +53,29 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
         tel: siswa.tel ?? '',
         ttl: siswa.ttl ?? '',
         email: siswa.email ?? '',
-        ala: siswa.ala,
+        alamat: {
+            ids: 0, //
+            ala: '', // almat lengkap jalan
+            rt: '', // 12
+            rw: '', // 03,
+            cam: '', //	16.71.04,
+            lur: '', //	16.71.04.1002,
+            kodpos: '', //	30137,
+            dusun: '', //	bukit,
+            buj: '', //	,
+            lin: '', //,
+            temtin: '', //	,
+            trans: '', //	,
+            aga: '', //5,
+            ktp: '', //1671026,
+            goldar: '', //	4,
+            warneg: '', //	2,
+            neg: '', //,
+            bah: '', //	Indonesia,
+            anakke: '', //	1,
+            butuh: '', //	,
+            sakit: '', //,
+        },
         wali: {
             ayah: siswa.wali?.ayah ?? '',
             ibu: siswa.wali?.ibu ?? '',
@@ -28,13 +85,30 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
         prestasi: siswa.prestasi ?? [],
     });
 
+    const getProvinces = useCallback(async () => {
+        try {
+            const url = '/api/provinces.json';
+            const res = await fetch(url);
+            const json = await res.json();
+
+            if (!res.ok) throw new Error(json.message);
+
+            const data: Province[] = json || {};
+            setProvinces(data);
+        } catch (err) {
+            console.error('Gagal ambil tagihan:', err);
+        } finally {
+        }
+    }, []);
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        put(route('siswa.update', { nouid: nouid }), {
-            onSuccess: () => {
-                setIsEditing(false);
-            },
-        });
+        console.log(data);
+
+        // put(route('siswa.update', { nouid: nouid }), {
+        //     onSuccess: () => {
+        //         setIsEditing(false);
+        //     },
+        // });
     };
 
     return (
