@@ -84,12 +84,20 @@ export interface Siswa {
     ala?: string;
     pin?: string;
     wali?: Wali | null;
+    wilayah?: Wilayah | null;
+    tinggal?: string;
+    sakit?: string[];
 }
-
+export interface Wilayah {
+    prov: string;
+    kab: string;
+    kec: string;
+    kel: string;
+}
 export interface Wali {
-    ayah : string | null
-    ibu : string | null
+    nama: string | null
     tel: string
+    hub: string | null
 }
 
 export interface Bank {

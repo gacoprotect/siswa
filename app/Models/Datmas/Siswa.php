@@ -17,9 +17,8 @@ use Illuminate\Support\Facades\Hash;
 
 class Siswa extends Authenticatable
 {
-    use HasFactory;
     use LogsChanges;
-
+    use HasFactory;
     protected $connection = 'mai2';
     protected $table = 'tsiswa';
     protected $primaryKey = 'nis';

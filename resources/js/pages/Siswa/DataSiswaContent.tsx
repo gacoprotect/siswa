@@ -1,116 +1,290 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog ';
+import { NoteDialog } from '@/components/NoteDialog';
 import { cn } from '@/lib/utils';
 import { Siswa, Wali } from '@/types';
 import { useForm } from '@inertiajs/react';
-import { useCallback, useState } from 'react';
-import { FaBirthdayCake, FaEdit, FaEnvelope, FaGraduationCap, FaHome, FaIdCard, FaPhone, FaUser, FaUserTie } from 'react-icons/fa';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { FaBirthdayCake, FaEdit, FaEnvelope, FaGraduationCap, FaHandshake, FaHome, FaHotel, FaIdCard, FaMobileAlt, FaNotesMedical, FaPhone, FaPlus, FaTimes, FaUser, FaUserFriends, FaUserTie } from 'react-icons/fa';
 
 type DataSiswaContentProps = {
     nouid: string;
     siswa: Siswa;
 };
+
 interface Wilayah {
-    province: number;
-    regency: number;
-    district: number;
-    village: number;
+    prov: string;
+    kab: string;
+    kec: string;
+    kel: string;
 }
-interface Province {
+
+interface DataWilayah {
     id: string;
-    name: string;
+    nama: string;
+    level: string;
 }
-interface Regency {
-    id: string;
-    province_id: string;
-    name: string;
+
+interface DetailDataWilayah {
+    detail: DataWilayah;
+    hierarchy: DataWilayah[];
 }
-interface District {
-    id: string;
-    regency_id: string;
-    name: string;
+
+interface ResponseWilayah {
+    success: boolean;
+    level: string;
+    data: DataWilayah[] | DetailDataWilayah;
 }
-interface Village {
-    id: string;
-    district_id: string;
-    name: string;
+interface LivingOption {
+    id: number;
+    nama: string;
+    icon?: React.ReactNode;
 }
+
+const livingOptions: LivingOption[] = [
+    { id: 1, nama: 'Orang Tua', icon: <FaUserFriends /> },
+    { id: 2, nama: 'Wali', icon: <FaUserTie /> },
+    { id: 3, nama: 'Asrama', icon: <FaHotel /> },
+    { id: 4, nama: 'Tinggal Mandiri', icon: <FaUser /> },
+    { id: 5, nama: 'Lainnya', icon: <FaHome /> }
+];
 const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => {
     const [isEditing, setIsEditing] = useState(false);
-    const [provinces, setProvinces] = useState<Province[]>([]);
-    const [regencies, setRegencies] = useState<Regency[]>([]);
-    const [districts, setdistricts] = useState<District[]>([]);
-    const [villages, setVillages] = useState<Village[]>([]);
+    const [isDialogOpen, setIsDialogOpen] = useState(true);
+    const [provs, setProvs] = useState<DataWilayah[]>([]);
+    const [kabs, setKabs] = useState<DataWilayah[]>([]);
+    const [kecs, setKecs] = useState<DataWilayah[]>([]);
+    const [kels, setKels] = useState<DataWilayah[]>([]);
     const [selectedWilayah, setSelectedWilayah] = useState<Wilayah>({
-        province: 0,
-        regency: 0,
-        district: 0,
-        village: 0,
+        prov: siswa.wilayah?.prov || '',
+        kab: siswa.wilayah?.kab || '',
+        kec: siswa.wilayah?.kec || '',
+        kel: siswa.wilayah?.kel || '',
     });
 
-    const { data, setData, put, processing, errors } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
         nis: siswa.nis ?? '',
         namlen: siswa.namlen,
         kel: siswa.kel ?? '',
         tel: siswa.tel ?? '',
         ttl: siswa.ttl ?? '',
         email: siswa.email ?? '',
-        alamat: {
-            ids: 0, //
-            ala: '', // almat lengkap jalan
-            rt: '', // 12
-            rw: '', // 03,
-            cam: '', //	16.71.04,
-            lur: '', //	16.71.04.1002,
-            kodpos: '', //	30137,
-            dusun: '', //	bukit,
-            buj: '', //	,
-            lin: '', //,
-            temtin: '', //	,
-            trans: '', //	,
-            aga: '', //5,
-            ktp: '', //1671026,
-            goldar: '', //	4,
-            warneg: '', //	2,
-            neg: '', //,
-            bah: '', //	Indonesia,
-            anakke: '', //	1,
-            butuh: '', //	,
-            sakit: '', //,
+        ala: siswa.ala ?? '',
+        tinggal: siswa.tinggal ?? '',
+        wilayah: {
+            prov: siswa.wilayah?.prov || '',
+            kab: siswa.wilayah?.kab || '',
+            kec: siswa.wilayah?.kec || '',
+            kel: siswa.wilayah?.kel || '',
         },
         wali: {
-            ayah: siswa.wali?.ayah ?? '',
-            ibu: siswa.wali?.ibu ?? '',
+            nama: siswa.wali?.nama ?? '',
             tel: siswa.wali?.tel ?? '',
+            hub: siswa.wali?.hub ?? '',
         },
-        excul: siswa.excul ?? [],
-        prestasi: siswa.prestasi ?? [],
+        sakit: siswa.sakit ?? []
     });
+    const [healthNotes, setHealthNotes] = useState<string[]>(data.sakit || ['']);
 
-    const getProvinces = useCallback(async () => {
-        try {
-            const url = '/api/provinces.json';
-            const res = await fetch(url);
-            const json = await res.json();
-
-            if (!res.ok) throw new Error(json.message);
-
-            const data: Province[] = json || {};
-            setProvinces(data);
-        } catch (err) {
-            console.error('Gagal ambil tagihan:', err);
-        } finally {
-        }
-    }, []);
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        console.log(data);
-
-        // put(route('siswa.update', { nouid: nouid }), {
-        //     onSuccess: () => {
-        //         setIsEditing(false);
-        //     },
-        // });
+    const addHealthNote = () => {
+        setHealthNotes([...healthNotes, '']);
+        setData('sakit', [...healthNotes, '']);
     };
 
+    const removeHealthNote = (index: number) => {
+        const updatedNotes = healthNotes.filter((_, i) => i !== index);
+        setHealthNotes(updatedNotes);
+        setData('sakit', updatedNotes);
+    };
+
+    const handleHealthNoteChange = (index: number, value: string) => {
+        const updatedNotes = [...healthNotes];
+        updatedNotes[index] = value;
+        setHealthNotes(updatedNotes);
+        setData('sakit', updatedNotes);
+    };
+    const initialLoad = useRef(true);
+    const fetchWilayah = useCallback(async (url: string) => {
+        try {
+            const res = await fetch(url);
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.message);
+            return json;
+        } catch (err) {
+            console.error('Gagal ambil data wilayah:', err);
+            return { success: false, data: [] };
+        }
+    }, []);
+
+
+    const getProvs = useCallback(async () => {
+        const { data } = await fetchWilayah(route('api.wilayah'));
+        setProvs(data as DataWilayah[]);
+    }, [fetchWilayah]);
+
+    const getKabs = useCallback(async (provinceId: string) => {
+        if (!provinceId) {
+            setKabs([]);
+            return;
+        }
+        const { data } = await fetchWilayah(route('api.wilayah', provinceId));
+        setKabs(data as DataWilayah[]);
+    }, [fetchWilayah]);
+
+    const getKecs = useCallback(async (regencyId: string) => {
+        if (!regencyId) {
+            setKecs([]);
+            return;
+        }
+        const { data } = await fetchWilayah(route('api.wilayah', regencyId));
+        setKecs(data as DataWilayah[]);
+    }, [fetchWilayah]);
+
+    const getKels = useCallback(async (districtId: string) => {
+        if (!districtId) {
+            setKels([]);
+            return;
+        }
+        const { data } = await fetchWilayah(route('api.wilayah', districtId));
+        setKels(data as DataWilayah[]);
+    }, [fetchWilayah]);
+
+    useEffect(() => {
+        if (isEditing && initialLoad.current) {
+            initialLoad.current = false;
+            getProvs();
+
+            // Load data hierarki jika ada nilai awal
+            if (selectedWilayah.prov) {
+                getKabs(selectedWilayah.prov).then(() => {
+                    if (selectedWilayah.kab) {
+                        getKecs(selectedWilayah.kab).then(() => {
+                            if (selectedWilayah.kec) {
+                                getKels(selectedWilayah.kec);
+                            }
+                        });
+                    }
+                });
+            }
+        }
+    }, [isEditing, selectedWilayah.prov, selectedWilayah.kab, selectedWilayah.kec, getProvs, getKabs, getKecs, getKels]);
+
+
+    const handleProvinceChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const provinceId = e.target.value;
+        const newWilayah = {
+            prov: provinceId,
+            kab: '',
+            kec: '',
+            kel: '',
+        };
+
+        setSelectedWilayah(newWilayah);
+        setData('wilayah', newWilayah);
+
+        // Reset dropdown dependen
+        setKabs([]);
+        setKecs([]);
+        setKels([]);
+
+        if (provinceId) {
+            await getKabs(provinceId);
+        }
+    };
+
+    // Handler untuk perubahan kabupaten
+    const handleRegencyChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const regencyId = e.target.value;
+        const newWilayah = {
+            ...selectedWilayah,
+            kab: regencyId,
+            kec: '',
+            kel: '',
+        };
+
+        setSelectedWilayah(newWilayah);
+        setData('wilayah', newWilayah);
+
+        // Reset dropdown dependen
+        setKecs([]);
+        setKels([]);
+
+        if (regencyId) {
+            await getKecs(regencyId);
+        }
+    };
+
+    // Handler untuk perubahan kecamatan
+    const handleDistrictChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const districtId = e.target.value;
+        const newWilayah = {
+            ...selectedWilayah,
+            kec: districtId,
+            kel: '',
+        };
+
+        setSelectedWilayah(newWilayah);
+        setData('wilayah', newWilayah);
+
+        // Reset dropdown dependen
+        setKels([]);
+
+        if (districtId) {
+            await getKels(districtId);
+        }
+    };
+
+    // Handler untuk perubahan kelurahan
+    const handleVillageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const villageId = e.target.value;
+        const newWilayah = {
+            ...selectedWilayah,
+            kel: villageId,
+        };
+
+        setSelectedWilayah(newWilayah);
+        setData('wilayah', newWilayah);
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        post(route('siswa.update', { nouid: nouid }), {
+            onSuccess: () => {
+                setIsEditing(false);
+            },
+            onFinish:()=>{
+                setIsDialogOpen(true)
+            }
+        });
+    };
+
+    // Komponen Select untuk dropdown wilayah
+    const WilayahSelect = ({
+        options,
+        value,
+        onChange,
+        placeholder,
+        disabled,
+    }: {
+        options: DataWilayah[];
+        value: string;
+        onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+        placeholder: string;
+        disabled?: boolean;
+    }) => (
+        <select
+            value={value}
+            onChange={onChange}
+            disabled={disabled || options.length === 0}
+            className="w-full rounded border border-gray-300 p-2 text-sm"
+        >
+            <option value="">{placeholder}</option>
+            {options.map(item => (
+                <option key={item.id} value={item.id}>
+                    {item.nama}
+                </option>
+            ))}
+        </select>
+    );
     return (
         <div className="w-full space-y-6 p-4">
             <div className="flex flex-col justify-between space-y-3 md:flex-row md:items-center md:space-y-0">
@@ -202,27 +376,125 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
 
                             <div className="rounded-lg bg-white p-4 shadow-sm">
                                 <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-green-600">
-                                    <FaHome /> Catatan Kesehatan
+                                    <FaNotesMedical /> Catatan Kesehatan
                                 </h4>
-                                <textarea
-                                    className="w-full rounded border border-gray-300 p-2"
-                                    value={data.ala}
-                                    onChange={(e) => setData('ala', e.target.value)}
-                                    rows={4}
-                                />
-                                {errors.ala && <p className="mt-1 text-sm text-red-500">{errors.ala}</p>}
+
+                                <div className="space-y-3">
+                                    {healthNotes.map((note, index) => (
+                                        <div key={index} className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                value={note}
+                                                onChange={(e) => handleHealthNoteChange(index, e.target.value)}
+                                                className="flex-1 rounded border border-gray-300 p-2 text-sm"
+                                                placeholder={`Catatan kesehatan #${index + 1}`}
+                                            />
+                                            {healthNotes.length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeHealthNote(index)}
+                                                    className="rounded-full p-2 text-red-500 hover:bg-red-50"
+                                                >
+                                                    <FaTimes className="text-sm" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+
+                                    <button
+                                        type="button"
+                                        onClick={addHealthNote}
+                                        className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-600 hover:bg-green-100"
+                                    >
+                                        <FaPlus /> Tambah Catatan
+                                    </button>
+                                </div>
+
+                                {errors.sakit && (
+                                    <p className="mt-2 text-sm text-red-500">{errors.sakit}</p>
+                                )}
                             </div>
+
                             <div className="rounded-lg bg-white p-4 shadow-sm">
                                 <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-green-600">
                                     <FaHome /> Alamat
                                 </h4>
+                                <label className="mb-1 block text-sm font-medium text-gray-700">Alamat lengkap</label>
                                 <textarea
                                     className="w-full rounded border border-gray-300 p-2"
                                     value={data.ala}
                                     onChange={(e) => setData('ala', e.target.value)}
-                                    rows={4}
+                                    rows={2}
+                                    placeholder='Masukan Alamat Lengkap'
                                 />
                                 {errors.ala && <p className="mt-1 text-sm text-red-500">{errors.ala}</p>}
+
+                                <div className="mt-4 space-y-3">
+                                    <div>
+                                        <label className="mb-1 block text-sm font-medium text-gray-700">Provinsi</label>
+                                        <WilayahSelect
+                                            options={provs}
+                                            value={selectedWilayah.prov}
+                                            onChange={handleProvinceChange}
+                                            placeholder="Pilih Provinsi"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="mb-1 block text-sm font-medium text-gray-700">Kabupaten/Kota</label>
+                                        <WilayahSelect
+                                            options={kabs}
+                                            value={selectedWilayah.kab}
+                                            onChange={handleRegencyChange}
+                                            placeholder="Pilih Kabupaten/Kota"
+                                            disabled={!selectedWilayah.prov}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="mb-1 block text-sm font-medium text-gray-700">Kecamatan</label>
+                                        <WilayahSelect
+                                            options={kecs}
+                                            value={selectedWilayah.kec}
+                                            onChange={handleDistrictChange}
+                                            placeholder="Pilih Kecamatan"
+                                            disabled={!selectedWilayah.kab}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="mb-1 block text-sm font-medium text-gray-700">Kelurahan/Desa</label>
+                                        <WilayahSelect
+                                            options={kels}
+                                            value={selectedWilayah.kel}
+                                            onChange={handleVillageChange}
+                                            placeholder="Pilih Kelurahan/Desa"
+                                            disabled={!selectedWilayah.kec}
+                                        />
+                                    </div>
+
+                                    <div className="mb-4">
+                                        <label className="mb-1 flex items-center gap-2 text-sm font-medium text-gray-700">
+                                            <FaHome className="text-gray-500" />
+                                            Tinggal Dengan
+                                        </label>
+                                        <select
+                                            value={data.tinggal}
+                                            onChange={(e) => setData('tinggal', e.target.value)}
+                                            className="w-full rounded border border-gray-300 p-2 text-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        >
+                                            <option value="">Pilih Status Tinggal</option>
+                                            {livingOptions.map((option) => (
+                                                <option key={option.id} value={option.id}>
+                                                    {option.nama}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.tinggal && (
+                                            <p className="mt-1 text-xs text-red-500">{errors.tinggal}</p>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -230,29 +502,29 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                         <div className="space-y-4">
                             <div className="rounded-lg bg-white p-4 shadow-sm">
                                 <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-amber-600">
-                                    <FaUserTie /> Orang Tua
+                                    <FaUserTie /> Orang Tua / Wali
                                 </h4>
                                 <div className="space-y-3">
                                     <EditDataRow
                                         icon={<FaUser />}
-                                        label="Ayah"
-                                        value={data.wali.ayah}
-                                        onChange={(e) => setData('wali', { ...data.wali, ayah: e.target.value })}
-                                        error={errors.wali && typeof errors.wali === 'object' ? ((errors.wali as Wali).ayah ?? undefined) : undefined}
+                                        label="Nama"
+                                        value={data.wali.nama}
+                                        onChange={(e) => setData('wali', { ...data.wali, nama: e.target.value })}
+                                        error={errors.wali && typeof errors.wali === 'object' ? ((errors.wali as Wali).nama ?? undefined) : undefined}
                                     />
                                     <EditDataRow
                                         icon={<FaUser />}
-                                        label="Ibu"
-                                        value={data.wali.ibu}
-                                        onChange={(e) => setData('wali', { ...data.wali, ibu: e.target.value })}
-                                        error={errors.wali && typeof errors.wali === 'object' ? ((errors.wali as Wali).ibu ?? undefined) : undefined}
-                                    />
-                                    <EditDataRow
-                                        icon={<FaPhone />}
-                                        label="Kontak Darurat"
+                                        label="No. HP"
                                         value={data.wali.tel}
                                         onChange={(e) => setData('wali', { ...data.wali, tel: e.target.value })}
                                         error={errors.wali && typeof errors.wali === 'object' ? ((errors.wali as Wali).tel ?? undefined) : undefined}
+                                    />
+                                    <EditDataRow
+                                        icon={<FaPhone />}
+                                        label="Hubungan"
+                                        value={data.wali.hub}
+                                        onChange={(e) => setData('wali', { ...data.wali, hub: e.target.value })}
+                                        error={errors.wali && typeof errors.wali === 'object' ? ((errors.wali as Wali).hub ?? undefined) : undefined}
                                     />
                                 </div>
                             </div>
@@ -269,57 +541,51 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                                     <FaUser /> Identitas Diri
                                 </h4>
                                 <div className="space-y-3">
+                                    <DataRow icon={<FaIdCard />} label="NISN" value={siswa?.nisn ?? ''} />
                                     <DataRow icon={<FaIdCard />} label="NIS" value={siswa?.nis ?? ''} />
                                     <DataRow icon={<FaUser />} label="Nama" value={siswa.namlen} />
-                                    <DataRow icon={<FaGraduationCap />} label="Kelas" value={siswa?.kel ?? ''} />
-                                    <DataRow icon={<FaPhone />} label="Telepon" value={siswa?.tel ?? ''} />
+                                    {/* <DataRow icon={<FaGraduationCap />} label="Kelas" value={siswa?.kel ?? ''} /> */}
+                                    {/* <DataRow icon={<FaPhone />} label="Telepon" value={siswa?.tel ?? ''} /> */}
                                     <DataRow icon={<FaBirthdayCake />} label="TTL" value={siswa?.ttl ?? ''} />
-                                    <DataRow icon={<FaEnvelope />} label="Email" value={siswa?.email ?? ''} />
+                                    {/* <DataRow icon={<FaEnvelope />} label="Email" value={siswa?.email ?? ''} /> */}
                                 </div>
                             </div>
 
-                            <div className="rounded-lg bg-white p-4 shadow-sm">
+                            {/* <div className="rounded-lg bg-white p-4 shadow-sm">
                                 <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-green-600">
                                     <FaHome /> Alamat
                                 </h4>
                                 <p className="text-gray-700">{siswa.ala}</p>
-                            </div>
+                            </div> */}
                         </div>
 
                         {/* Kolom 2 */}
                         <div className="space-y-4">
                             <div className="rounded-lg bg-white p-4 shadow-sm">
                                 <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-amber-600">
-                                    <FaUserTie /> Orang Tua
+                                    <FaUserTie /> Orang Tua / Wali
                                 </h4>
                                 <div className="space-y-3">
-                                    <DataRow icon={<FaUser />} label="Ayah" value={siswa?.wali?.ayah ?? ''} />
-                                    <DataRow icon={<FaUser />} label="Ibu" value={siswa?.wali?.ibu ?? ''} />
-                                    <DataRow icon={<FaPhone />} label="Kontak Darurat" value={siswa?.wali?.tel ?? ''} />
-                                </div>
-                            </div>
-
-                            <div className="rounded-lg bg-white p-4 shadow-sm">
-                                <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-purple-600">
-                                    <FaGraduationCap /> Aktivitas
-                                </h4>
-                                <div className="space-y-3">
-                                    <div>
-                                        <p className="font-medium text-gray-700">Prestasi:</p>
-                                        <ul className="mt-1 list-disc space-y-1 pl-5">
-                                            {siswa?.prestasi?.map((item, index) => (
-                                                <li key={index} className="text-gray-700">
-                                                    {item}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
+                                    <DataRow icon={<FaUserFriends />} label="Nama Wali" value={siswa?.wali?.nama ?? ''} />
+                                    <DataRow icon={<FaHandshake />} label="Hubungan" value={siswa?.wali?.hub ?? ''} />
+                                    <DataRow icon={<FaMobileAlt />} label="Kontak" value={siswa?.wali?.tel ?? ''} />
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
+            <ConfirmDialog
+                open={isDialogOpen}
+                onOpenChange={setIsDialogOpen}
+                title="Edit Data Siswa"
+                description="Data Anda telah kami terima , perubahan data memerlukan verifikasi dari pihak sekolah"
+                confirmText="Mengerti"
+                cancelText = {null}
+                onConfirm={() => setIsDialogOpen(false)}
+                variant="primary"
+            />
+
         </div>
     );
 };

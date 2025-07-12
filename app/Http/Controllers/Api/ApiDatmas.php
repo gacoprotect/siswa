@@ -75,47 +75,115 @@ class ApiDatmas extends Controller
         }
     }
 
-    public function getWilayah(Request $req, $kod = '')
+    public function getWilayah(Request $req, $kod = null)
     {
         try {
-            $level = substr_count($kod, '.');
-            $nextLevel = $level + 1;
-
             $levelNames = ['provinsi', 'kabupaten', 'kecamatan', 'desa'];
-            $currentLevelName = $levelNames[$nextLevel] ?? 'unknown';
+            $maxLevel = count($levelNames) - 1;
 
-            if ($kod === '') {
-                // Ambil data provinsi (kod tanpa titik)
-                $wil = Wilayah::whereRaw("kod NOT LIKE '%.%'")
+            // Handle case ketika kode null (ambil semua provinsi)
+            if ($kod === null) {
+                $wilayah = Wilayah::whereRaw("kod NOT LIKE '%.%'")
                     ->orderBy('kod')
-                    ->get(['kod', 'nam']);
-            } else {
-                $wil = Wilayah::where('kod', 'like', $kod . '.%')
-                    ->whereRaw("LENGTH(kod) - LENGTH(REPLACE(kod, '.', '')) = ?", [$nextLevel])
-                    ->orderBy('kod')
-                    ->get(['kod', 'nam']);
+                    ->get(['kod as id', 'nam as nama']);
+
+                return response()->json([
+                    'success' => true,
+                    'level' => $levelNames[0],
+                    'data' => $wilayah->map(function ($item) use ($levelNames) {
+                        return [
+                            'id' => $item->id,
+                            'nama' => $item->nama,
+                            'level' => $levelNames[0]
+                        ];
+                    })
+                ]);
             }
 
-            // Tambah level ke setiap data
-            $wilayah = $wil->map(function ($item) use ($currentLevelName) {
-                return [
-                    'kod' => $item->kod,
-                    'nama' => $item->nam,
-                    'level' => $currentLevelName,
-                ];
-            });
+            // Validasi dan normalisasi input
+            $kod = trim($kod);
+            if (!preg_match('/^(\d+)(\.\d+)*$/', $kod)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Format kode wilayah tidak valid.',
+                ], 400);
+            }
+
+            $currentLevel = substr_count($kod, '.');
+
+            // Jika ini kode level terakhir (desa), kembalikan data lengkap
+            if ($currentLevel === $maxLevel) {
+                return $this->getFullHierarchy($kod);
+            }
+
+            // Validasi level
+            if ($currentLevel >= $maxLevel) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Level wilayah tidak tersedia.',
+                ], 400);
+            }
+
+            $nextLevel = $currentLevel + 1;
+
+            // Query untuk level berikutnya
+            $wilayah = Wilayah::where('kod', 'REGEXP', '^' . preg_quote($kod) . '\.\d+$')
+                ->orderBy('kod')
+                ->get(['kod as id', 'nam as nama']);
 
             return response()->json([
                 'success' => true,
-                'level' => $currentLevelName,
-                'data' => $wilayah,
+                'level' => $levelNames[$nextLevel] ?? 'unknown',
+                'data' => $wilayah->map(function ($item) use ($levelNames, $nextLevel) {
+                    return [
+                        'id' => $item->id,
+                        'nama' => $item->nama,
+                        'level' => $levelNames[$nextLevel] ?? 'unknown'
+                    ];
+                })
             ]);
         } catch (\Throwable $th) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal mengambil data wilayah.',
-                'error' => $th->getMessage(),
+                'message' => 'Terjadi kesalahan server.',
+                'error' => env('APP_DEBUG') ? $th->getMessage() : null
             ], 500);
         }
+    }
+
+    // Fungsi baru untuk mendapatkan hierarki lengkap
+    protected function getFullHierarchy($kod)
+    {
+        $levels = explode('.', $kod);
+        $hierarchy = [];
+        $currentCode = '';
+
+        foreach ($levels as $index => $part) {
+            $currentCode = $index === 0 ? $part : $currentCode . '.' . $part;
+            $wilayah = Wilayah::where('kod', $currentCode)
+                ->first(['kod as id', 'nam as nama']);
+
+            if (!$wilayah) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data wilayah tidak lengkap',
+                ], 404);
+            }
+
+            $hierarchy[] = [
+                'id' => $wilayah->id,
+                'nama' => $wilayah->nama,
+                'level' => ['provinsi', 'kabupaten', 'kecamatan', 'desa'][$index] ?? 'unknown'
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'level' => 'desa',
+            'data' => [
+                'detail' => end($hierarchy), // Data desa
+                'hierarchy' => $hierarchy   // Seluruh hierarki
+            ]
+        ]);
     }
 }

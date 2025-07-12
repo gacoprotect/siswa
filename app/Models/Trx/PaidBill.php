@@ -2,13 +2,16 @@
 
 namespace App\Models\Trx;
 
+use App\Models\BaseModel;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Datmas\Indentitas;
+use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PaidBill extends Model
 {
+    use LogsChanges;
     protected $connection = 'mai4';
     protected $table = 'tpaidbill';
     protected $primaryKey = 'id';

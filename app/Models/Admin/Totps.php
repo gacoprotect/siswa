@@ -2,11 +2,14 @@
 
 namespace App\Models\Admin;
 
+use App\Models\BaseModel;
+use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Totps extends Model
 {
+    use LogsChanges;
     use HasFactory;
 
     protected $connection = 'mai1';

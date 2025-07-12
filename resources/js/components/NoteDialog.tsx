@@ -9,13 +9,13 @@ interface ConfirmDialogProps {
     title: string;
     description: string;
     confirmText?: string;
-    cancelText?: string | null;
+    cancelText?: string;
     onConfirm: () => void;
     children?: ReactNode;
     variant?: 'danger' | 'primary';
 }
 
-export function ConfirmDialog({
+export function NoteDialog({
     open,
     onOpenChange,
     title,
@@ -41,10 +41,9 @@ export function ConfirmDialog({
                     <Dialog.Description className="mb-4 text-sm text-gray-600">{description}</Dialog.Description>
 
                     <div className="flex justify-end space-x-3">
-                        {cancelText !== null && (
-                            <button onClick={() => onOpenChange(false)} className="rounded-md bg-gray-100 px-4 py-2 text-sm hover:bg-gray-200">
-                                {cancelText}
-                            </button>)}
+                        <button onClick={() => onOpenChange(false)} className="rounded-md bg-gray-100 px-4 py-2 text-sm hover:bg-gray-200">
+                            {cancelText}
+                        </button>
                         <button
                             onClick={handleConfirm}
                             className={cn(

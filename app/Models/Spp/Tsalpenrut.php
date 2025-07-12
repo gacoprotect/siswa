@@ -2,14 +2,17 @@
 
 namespace App\Models\Spp;
 
+use App\Models\BaseModel;
 use App\Models\Datmas\Indentitas;
 use App\Models\Datmas\Siswa;
+use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 class Tsalpenrut extends Model
 {
+    use LogsChanges;
     use HasFactory;
 
     protected $connection = 'mai3';

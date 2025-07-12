@@ -2,14 +2,17 @@
 
 namespace App\Models\Datmas;
 
+use App\Models\BaseModel;
 use App\Models\Trx\Ttrx;
 use App\Models\Spp\Tsalpenrut;
+use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Indentitas extends Model
 {
+    use LogsChanges;
     use HasFactory;
 
     protected $connection = 'mai2';
