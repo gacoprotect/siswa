@@ -9,7 +9,7 @@ use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class PaidBill extends Model
+class PaidBill extends BaseModel
 {
     use LogsChanges;
     protected $connection = 'mai4';

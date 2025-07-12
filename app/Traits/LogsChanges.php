@@ -6,6 +6,7 @@ use App\Models\Admin\Loggable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Jenssegers\Agent\Agent;
 use Throwable;
 
 trait LogsChanges
@@ -25,6 +26,7 @@ trait LogsChanges
         int $sta = 0,
         bool $useTransaction = true
     ): bool {
+
         // Validate action type
         if (!in_array($action, ['create', 'update', 'delete', 'restore', 'forceDelete'])) {
             Log::error("Invalid log action type: {$action}", [
@@ -35,13 +37,30 @@ trait LogsChanges
         }
 
         try {
-            // Only get the attributes that are actually being changed
-            $oldData = $this->only(array_keys($newData));
-
-            // Skip logging if no actual changes detected (for update actions)
-            if ($action === 'update' && empty(array_diff_assoc($newData, $oldData))) {
-                return true;
+            // Get original values before any changes
+            $oldData = $this->getOriginal();
+            
+            // Only include fields that are in $newData
+            $oldData = array_intersect_key($oldData, $newData);
+            
+            // For create action, oldData should be empty
+            if ($action === 'create') {
+                $oldData = [];
             }
+            
+            // For delete action, oldData should be all original attributes
+            if ($action === 'delete') {
+                $oldData = $this->getOriginal();
+            }
+
+            $oldData = $this->convertArraysToJson($oldData);
+            $newData = $this->convertArraysToJson($newData);
+
+            logger()->debug('Compare Data', [
+                'OldData' => $oldData,
+                'NewData' => $newData,
+                'action' => $action,
+            ]);
 
             $logData = [
                 'loggable_type' => get_class($this),
@@ -51,8 +70,12 @@ trait LogsChanges
                 'old_data' => $oldData,
                 'new_data' => $newData,
                 'sta' => $sta,
-                // 'ip_address' => request()?->ip(),
-                // 'user_agent' => request()?->userAgent(),
+                'ip' => request()?->ip(),
+                'ua' => request()?->userAgent(),
+                'url' => request()?->fullUrl(),
+                'method' => request()?->method(),
+                'meta' => $this->getAdditionalMetaData(),
+                'log_date' => now()->toDateString(),
             ];
 
             if ($useTransaction) {
@@ -86,6 +109,8 @@ trait LogsChanges
      */
     public function logCreation(bool $useTransaction = true): bool
     {
+        logger()->debug('logCreation dipanggil', ['model' => get_class($this), 'id' => $this->id]);
+
         return $this->logChange($this->getAttributes(), 'create', 0, $useTransaction);
     }
 
@@ -94,6 +119,8 @@ trait LogsChanges
      */
     public function logDeletion(bool $useTransaction = true): bool
     {
+        logger()->debug('logDeletion dipanggil', ['model' => get_class($this), 'id' => $this->id]);
+
         return $this->logChange([], 'delete', 0, $useTransaction);
     }
 
@@ -102,6 +129,61 @@ trait LogsChanges
      */
     public function logRestoration(bool $useTransaction = true): bool
     {
+        logger()->debug('logRestoration dipanggil', ['model' => get_class($this), 'id' => $this->id]);
+
         return $this->logChange($this->getAttributes(), 'restore', 0, $useTransaction);
+    }
+
+    protected function convertArraysToJson(array $data): array
+    {
+        return array_map(function ($value) {
+            if (is_array($value)) {
+                return json_encode($value);
+            }
+            // Handle cases where value is already JSON encoded
+            if (is_string($value) && json_decode($value) !== null) {
+                return $value;
+            }
+            return $value;
+        }, $data);
+    }
+
+    protected function getAdditionalMetaData(): array
+    {
+        return [
+            'locale' => app()->getLocale(),
+            'agent' => $this->parseUserAgent(),
+            'extra' => [] // Placeholder for custom data
+        ];
+    }
+
+    protected function parseUserAgent(): array
+    {
+        $agent = new Agent();
+
+        return [
+            'browser' => [
+                'name' => $agent->browser(),
+                'version' => $agent->version($agent->browser())
+            ],
+            'platform' => [
+                'name' => $agent->platform(),
+                'version' => $agent->version($agent->platform())
+            ],
+            'device' => [
+                'type' => $this->getDeviceType($agent),
+                'model' => $agent->device()
+            ],
+            'is_robot' => $agent->isRobot(),
+            'robot_name' => $agent->robot()
+        ];
+    }
+
+    protected function getDeviceType(Agent $agent): string
+    {
+        if ($agent->isMobile()) return 'mobile';
+        if ($agent->isTablet()) return 'tablet';
+        if ($agent->isDesktop()) return 'desktop';
+        return 'unknown';
     }
 }

@@ -5,9 +5,11 @@ namespace App\Models\Admin;
 use App\Models\Datmas\Indentitas;
 use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Loggable extends Model
 {
+    use SoftDeletes;
     protected $connection = 'mai1';
     protected $table = 'tloggable'; // Pastikan ini ada
 
@@ -23,6 +25,12 @@ class Loggable extends Model
         'old_data',
         'new_data',
         'sta',
+        'ip',
+        'ua',
+        'url',
+        'method',
+        'meta',
+        'log_date',
         'created_at',
         'updated_at',
     ];
@@ -30,6 +38,8 @@ class Loggable extends Model
     protected $casts = [
         'old_data' => 'array',
         'new_data' => 'array',
+        'log_date' => 'date',
+        'meta' => 'array',
     ];
 
     public function loggable()

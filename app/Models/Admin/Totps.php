@@ -7,7 +7,7 @@ use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Totps extends Model
+class Totps extends BaseModel
 {
     use LogsChanges;
     use HasFactory;

@@ -8,15 +8,15 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Excul extends Model
+class Excul extends BaseModel
 {
     use LogsChanges;
-
+    
     protected $connection = 'mai2';
-    protected $table = 'texcul';
+    protected $table = 'texcul'; // Pastikan ini sesuai dengan nama tabel di database
     protected $primaryKey = 'id';
-    public $timestamps = true;
-    protected $appends =['coach'];
+
+    protected $appends = ['coach'];
     protected $fillable = [
         'name',
         'day',
@@ -24,6 +24,7 @@ class Excul extends Model
         'quota',
         'registered',
         'icon',
+        'pel_id',
     ];
     protected $hidden = [
         'pel_id',
@@ -31,7 +32,7 @@ class Excul extends Model
         "updated_at",
 
     ];
-    protected $cast = [
+    protected $casts = [
         'registered' => 'boolean',
         'time' => 'string',
     ];

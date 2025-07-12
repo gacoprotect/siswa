@@ -7,7 +7,7 @@ use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Tbank extends Model
+class Tbank extends BaseModel
 {
     use LogsChanges;
     use HasFactory;

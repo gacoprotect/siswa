@@ -20,7 +20,19 @@ return new class extends Migration
             $table->json('old_data')->nullable(); // data lama
             $table->json('new_data'); // data yang diajukan
             $table->unsignedTinyInteger('sta')->default(0); //0 = pending, 1 = approved, 2 = rejected
+
+            $table->string('ip', 45)->nullable();
+            $table->text('ua')->nullable();
+            $table->string('url')->nullable();
+            $table->string('method')->nullable();
+
+            $table->json('meta')->nullable();
+            $table->date('log_date')->index();
+            
+            
+            $table->softDeletes();
             $table->timestamps();
+            $table->index(['loggable_type', 'loggable_id', 'created_at']);
         });
     }
 

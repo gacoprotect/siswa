@@ -19,6 +19,27 @@ class Siswa extends Authenticatable
 {
     use LogsChanges;
     use HasFactory;
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::created(function ($model) {
+            $model->logCreation();
+        });
+
+        static::updated(function ($model) {
+            $model->logChange($model->getChanges(), 'update');
+        });
+
+        static::deleted(function ($model) {
+            $model->logDeletion();
+        });
+
+        // static::restored(function ($model) {
+        //     $model->logRestoration();
+        // });
+    }
     protected $connection = 'mai2';
     protected $table = 'tsiswa';
     protected $primaryKey = 'nis';

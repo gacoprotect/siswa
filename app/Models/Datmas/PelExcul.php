@@ -6,7 +6,7 @@ use App\Models\BaseModel;
 use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Model;
 
-class PelExcul extends Model
+class PelExcul extends BaseModel
 {
     use LogsChanges;
     protected $connection = 'mai2';

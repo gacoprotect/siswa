@@ -7,7 +7,7 @@ use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Ttrxlog extends Model
+class Ttrxlog extends BaseModel
 {
     use LogsChanges;
     use HasFactory;

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Ttrx extends Model
+class Ttrx extends BaseModel
 {
     use LogsChanges;
     use HasFactory;
