@@ -3,7 +3,7 @@
 namespace App\Models\Datmas;
 
 use App\Models\BaseModel;
-use App\Models\Trx\Ttrx;
+use App\Models\Saving\Ttrx;
 use App\Models\Spp\Tsalpenrut;
 use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Casts\Attribute;

@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tloggable', function (Blueprint $table) {
+        Schema::connection('mai4')->create('tloggable', function (Blueprint $table) {
             $table->id();
             $table->string('loggable_type'); //App\Models\Siswa
             $table->unsignedBigInteger('loggable_id'); // ID siswa
@@ -41,6 +41,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tloggable');
+        Schema::connection('mai4')->dropIfExists('tloggable');
     }
 };

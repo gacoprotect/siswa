@@ -5,9 +5,9 @@ use Illuminate\Support\Facades\DB;
 
 use App\Models\Tsalpenrut;
 use App\Models\Siswa;
-use App\Models\Trx\Tpt;
-use App\Models\Trx\Ttrx;
-use App\Models\Trx\Ttrxlog;
+use App\Models\Saving\Tpt;
+use App\Models\Saving\Ttrx;
+use App\Models\Saving\Ttrxlog;
 
 function getSiswa($nouid)
 {

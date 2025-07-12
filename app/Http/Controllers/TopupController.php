@@ -3,15 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Datmas\Indentitas; // Corrected model name (assuming typo fix)
-use App\Models\Trx\Ttrx;
-use App\Models\Spp\Tsalpenrut;
-use App\Services\MidtransService;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use App\Models\Saving\Ttrx;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rules\Exists;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class TopupController extends Controller
@@ -84,7 +79,7 @@ class TopupController extends Controller
             logger()->error('Topup failed: ' . $e->getMessage());
 
             // Jika transaksi sempat dibuat tapi gagal, set status = failed
-            if (isset($transaction) && $transaction instanceof \App\Models\Trx\Ttrx) {
+            if (isset($transaction) && $transaction instanceof \App\Models\Saving\Ttrx) {
                 $transaction->update([
                     'status' => 'failed',
                     'failure_message' => $e->getMessage(),

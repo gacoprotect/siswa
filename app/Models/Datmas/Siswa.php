@@ -3,10 +3,9 @@
 namespace App\Models\Datmas;
 
 use App\Helpers\MaskingHelper;
-use App\Models\Trx\Ttrx;
+use App\Models\Saving\Ttrx;
 use App\Models\Spp\Tsalpenrut;
-use App\Models\Trx\Tbalance;
-use App\Models\Trx\Ttrxlog;
+use App\Models\Saving\Ttrxlog;
 use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Foundation\Auth\User as Authenticatable;

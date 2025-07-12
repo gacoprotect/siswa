@@ -1,30 +1,24 @@
 <?php
 
-namespace App\Models\Trx;
+namespace App\Models\Saving;
 
 use App\Models\BaseModel;
 use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Ttrxlog extends BaseModel
+class Tbank extends BaseModel
 {
     use LogsChanges;
     use HasFactory;
 
     protected $connection = 'mai4';
-    protected $table = 'ttrxlog';
+    protected $table = 'tbank';
     protected $primaryKey = 'id';
     public $timestamps = true;
     protected $fillable = [
-        'nouid',
-        'nis',
-        'bb',
-        'ab',
-        'trx_id',
-        'amount',
-        'action',
-        'description',
-        'created_by',
+        'id',
+        'code',
+        'bank'
     ];
 }

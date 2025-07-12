@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Admin;
+namespace App\Models\Saving;
 
 use App\Models\Datmas\Indentitas;
 use App\Traits\LogsChanges;
@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Loggable extends Model
 {
     use SoftDeletes;
-    protected $connection = 'mai1';
+    protected $connection = 'mai4';
     protected $table = 'tloggable'; // Pastikan ini ada
 
     // Tambahkan ini untuk memastikan Laravel tidak menebak nama tabel

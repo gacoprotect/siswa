@@ -2,7 +2,7 @@
 
 namespace App\Traits;
 
-use App\Models\Admin\Loggable;
+use App\Models\Saving\Loggable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;

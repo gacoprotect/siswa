@@ -4,10 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Helpers\DataValidator;
 use App\Models\Datmas\Indentitas;
-use App\Models\Trx\Ttrx;
+use App\Models\Saving\Ttrx;
 use App\Models\Spp\Tsalpenrut;
-use App\Models\Trx\Tbalance;
-use App\Models\Trx\Ttrxlog;
+use App\Models\Saving\Ttrxlog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;

@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\Datmas\Indentitas;
 use App\Models\Spp\Tsalpenrut;
-use App\Models\Trx\Ttrx;
+use App\Models\Saving\Ttrx;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
