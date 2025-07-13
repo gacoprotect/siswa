@@ -3,6 +3,7 @@
 namespace App\Models\Datmas;
 
 use App\Models\BaseModel;
+use App\Models\Saving\PaidBill;
 use App\Models\Saving\Ttrx;
 use App\Models\Spp\Tsalpenrut;
 use App\Traits\LogsChanges;
@@ -41,7 +42,8 @@ class Indentitas extends BaseModel
         'tagihan',
         'siswa',
         'transactions',
-        'active'
+        'active',
+        'trx'
     ];
     protected $casts = [
         'idmen' => 'integer',
@@ -75,10 +77,12 @@ class Indentitas extends BaseModel
             return $this->sta !== -1;
         });
     }
-
-
     public function getTotalTagihanAttribute()
     {
         return $this->tagihan->sum('jumlah');
+    }
+    public function paidBill()
+    {
+        return $this->hasMany(PaidBill::class, 'nouid', 'nouid');
     }
 }

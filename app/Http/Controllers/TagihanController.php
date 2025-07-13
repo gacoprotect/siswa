@@ -246,6 +246,10 @@ class TagihanController extends Controller
                     if ($updatedRows === 0) {
                         throw new \RuntimeException("Gagal memperbarui status SPR");
                     }
+
+                    $trx->update([
+                        'paid_at' => now(),
+                    ]);
                 }
 
                 return [
@@ -349,5 +353,42 @@ class TagihanController extends Controller
 
             throw $e;
         }
+    }
+
+    public function history(Request $req, $nouid)
+    {
+        $ident = Indentitas::with(['siswa',
+            'trx' => function ($query) {
+                $query->select('id', 'order_id', 'amount', 'paid_at', 'status', 'type', 'nouid') // Include foreign key
+                    ->where('status', 'success')
+                    ->where('type', 'payment')
+                    ->orderBy('created_at', 'desc')
+                    ->with(['paidBill' => function ($q) {
+                        $q->select('id', 'nmr', 'jum', 'ket', 'sta', 'trx_id')
+                            ->where('sta', 1)
+                            ->whereNotNull('paid_at')
+                            ->orderBy('trx_id')
+                            ->orderBy('nmr');
+                    }]);
+            }
+        ])->where('nouid', $nouid)->firstOrFail();
+
+        // Transform data for better structure
+        $formattedTrx = $ident->trx->map(function ($transaction) {
+            return [
+                'order_id' => $transaction->order_id,
+                'amount' => $transaction->amount,
+                'paid_at' => $transaction->paid_at,
+                'bills' => $transaction->paidBill
+            ];
+        });
+
+        return response()->json([
+            'student' => [
+                'nouid' => $ident->nouid,
+                'name' => $ident->siswa->namlen // Add other student fields as needed
+            ],
+            'transactions' => $formattedTrx
+        ]);
     }
 }

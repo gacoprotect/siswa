@@ -8,6 +8,7 @@ use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Ttrx extends BaseModel
 {
@@ -47,6 +48,7 @@ class Ttrx extends BaseModel
         'id'
     ];
     protected $casts = [
+        'paid_at' => 'datetime:j F Y',
         'spr_id' => 'array',
         'jen1' => 'array',
         'pay_data' => 'array',
@@ -74,5 +76,9 @@ class Ttrx extends BaseModel
     public function getBankAttribute(): BelongsTo
     {
         return $this->belongsTo(Tbank::class, 'bank_id', 'id');
+    }
+    public function paidBill(): HasMany
+    {
+        return $this->hasMany(PaidBill::class, 'trx_id', 'id');
     }
 }

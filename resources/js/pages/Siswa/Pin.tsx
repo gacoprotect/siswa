@@ -67,6 +67,7 @@ const PinPage: React.FC<PinPageProps> = ({ handle, setPage, setOpenSetupPin, has
                     inputRefs.current[0]?.focus();
                 }
             },
+            onFinish: () => reset(),
         });
     };
 

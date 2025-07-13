@@ -79,7 +79,7 @@ class TransactionController extends Controller
                                 'spr_id'    => $spr->id,
                                 'jum'       => $spr->jumlah,
                                 'ket'       => $spr->ket,
-                                'sta'       => 1,
+                                'sta'       => 0,
                                 'created_by' => 0,
                                 'paid_at'   => $trx->updated_at,
                             ]);
@@ -235,7 +235,7 @@ class TransactionController extends Controller
                                 'spr_id'    => $spr->id,
                                 'jum'       => $spr->jumlah,
                                 'ket'       => $spr->ket,
-                                'sta'       => 1,
+                                'sta'       => 0,
                                 'paid_at'   => $transaction->updated_at,
                                 'created_by' => 0,
                             ]);
@@ -258,7 +258,7 @@ class TransactionController extends Controller
                 }
             }
 
-            $transaction->update(['status' => 'success']);
+            $transaction->update(['paid_at' => now(), 'status' => 'success']);
 
             DB::commit();
             DB::connection('mai2')->commit();
