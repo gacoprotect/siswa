@@ -86,11 +86,6 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                 kel: siswa.safe?.wilayah?.kel || '',
             },
         },
-        wali: {
-            nama: siswa.wali?.nama ?? '',
-            tel: siswa.wali?.tel ?? '',
-            hub: siswa.wali?.hub ?? '',
-        },
     });
     const [healthNotes, setHealthNotes] = useState<string[]>(data.safe.sakit || ['']);
 
@@ -380,18 +375,19 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                                         disabled={true}
                                     />
                                     <EditDataRow
-                                        icon={<FaPhone />}
-                                        label="Telepon"
-                                        value={data.tel}
-                                        onChange={(e) => setData('tel', e.target.value)}
-                                        error={errors.tel}
-                                    />
-                                    <EditDataRow
                                         icon={<FaBirthdayCake />}
                                         label="TTL"
                                         value={data.ttl}
                                         onChange={(e) => setData('ttl', e.target.value)}
                                         error={errors.ttl}
+                                        disabled={true}
+                                    />
+                                    <EditDataRow
+                                        icon={<FaPhone />}
+                                        label="Telepon"
+                                        value={data.tel}
+                                        onChange={(e) => setData('tel', e.target.value)}
+                                        error={errors.tel}
                                     />
                                     <EditDataRow
                                         icon={<FaEnvelope />}
@@ -467,7 +463,7 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                                         name='rt'
                                         prefix="RT"
                                         value={data.safe?.rt}
-                                        onChange={(v) => setData('safe', { 
+                                        onChange={(v) => setData('safe', {
                                             ...data.safe,
                                             rt: v as string
                                         })}
@@ -478,14 +474,14 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                                         name='rw'
                                         prefix="RW"
                                         value={data.safe?.rw}
-                                        onChange={(v) => setData('safe', { 
+                                        onChange={(v) => setData('safe', {
                                             ...data.safe,
                                             rw: v as string
                                         })}
                                         error={errors.safe}
                                     />
 
-                                   
+
                                 </div>
                                 <div className="mt-4 space-y-3">
                                     <div>
@@ -555,38 +551,6 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                                             <p className="mt-1 text-xs text-red-500">{errors.tinggal}</p>
                                         )} */}
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Kolom 2 */}
-                        <div className="space-y-4">
-                            <div className="rounded-lg bg-white p-4 shadow-sm">
-                                <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-amber-600">
-                                    <FaUserTie /> Orang Tua / Wali
-                                </h4>
-                                <div className="space-y-3">
-                                    <EditDataRow
-                                        icon={<FaUser />}
-                                        label="Nama"
-                                        value={data.wali.nama}
-                                        onChange={(e) => setData('wali', { ...data.wali, nama: e.target.value })}
-                                        error={errors.wali && typeof errors.wali === 'object' ? ((errors.wali as Wali).nama ?? undefined) : undefined}
-                                    />
-                                    <EditDataRow
-                                        icon={<FaUser />}
-                                        label="No. HP"
-                                        value={data.wali.tel}
-                                        onChange={(e) => setData('wali', { ...data.wali, tel: e.target.value })}
-                                        error={errors.wali && typeof errors.wali === 'object' ? ((errors.wali as Wali).tel ?? undefined) : undefined}
-                                    />
-                                    <EditDataRow
-                                        icon={<FaPhone />}
-                                        label="Hubungan"
-                                        value={data.wali.hub}
-                                        onChange={(e) => setData('wali', { ...data.wali, hub: e.target.value })}
-                                        error={errors.wali && typeof errors.wali === 'object' ? ((errors.wali as Wali).hub ?? undefined) : undefined}
-                                    />
                                 </div>
                             </div>
                         </div>
