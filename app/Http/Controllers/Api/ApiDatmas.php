@@ -131,8 +131,14 @@ class ApiDatmas extends Controller
                 ->orderBy('kod')
                 ->get(['kod as id', 'nam as nama']);
 
+            $code = $req->route('kod'); //33.06.07
+            $wil = Wilayah::where('kod', $code)
+                ->select('kod as id', 'nam as nama')
+                ->firstOrFail();
+
             return response()->json([
                 'success' => true,
+                'wilayah' => $wil,
                 'level' => $levelNames[$nextLevel] ?? 'unknown',
                 'data' => $wilayah->map(function ($item) use ($levelNames, $nextLevel) {
                     return [

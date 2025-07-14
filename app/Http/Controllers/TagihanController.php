@@ -365,7 +365,6 @@ class TagihanController extends Controller
                     ->orderBy('created_at', 'desc')
                     ->with(['paidBill' => function ($q) {
                         $q->select('id', 'nmr', 'jum', 'ket', 'sta', 'trx_id')
-                            ->where('sta', 1)
                             ->whereNotNull('paid_at')
                             ->orderBy('trx_id')
                             ->orderBy('nmr');
@@ -384,11 +383,11 @@ class TagihanController extends Controller
         });
 
         return response()->json([
-            'student' => [
-                'nouid' => $ident->nouid,
-                'name' => $ident->siswa->namlen // Add other student fields as needed
+            'success' => true,
+            'data' => [
+                'nouid' => $ident->nouid,// Add other student fields as needed
+                'trx' => $formattedTrx
             ],
-            'transactions' => $formattedTrx
         ]);
     }
 }

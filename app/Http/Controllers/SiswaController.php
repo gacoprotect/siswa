@@ -11,8 +11,9 @@ use Illuminate\Support\Facades\Auth;
 
 class SiswaController extends Controller
 {
-    public function index($nouid)
+    public function index(Request $request)
     {
+        $nouid = $request->route('nouid');
 
         $ident = Indentitas::with('siswa')->where('nouid', $nouid)->firstOrFail();
         if (!$ident) {
@@ -65,8 +66,20 @@ class SiswaController extends Controller
 
             return back()->withErrors(['message' => 'Failed to block the user'])->with([
                 'success' => false,
-                'message'=> 'Gagal Blokir Kartu'
+                'message' => 'Gagal Blokir Kartu'
             ]);
         }
+    }
+
+    public function test(Request $request, $nouid)
+    {
+        $test = Indentitas::with(['siswa.safe'])->where('nouid', $nouid)->firstOrFail();
+        $siswa = Indentitas::with(['siswa.safe' => function ($qu) {
+            $qu->select('ids', 'ala as alamat', 'rt', 'rw', 'cam as kec', 'lur', 'kodpos', 'dusun', 'temtin', 'sakit');
+        }])->where('nouid', $nouid)->firstOrFail();
+        return response()->json([
+            'success' => true,
+            'data' => $test
+        ]);
     }
 }

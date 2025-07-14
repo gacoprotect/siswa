@@ -13,19 +13,19 @@ use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('welcome');
-});
 
-// Route::middleware(['auth', 'verified'])->group(function () {
-//     Route::get('dashboard', function () {
-//         return Inertia::render('dashboard');
-//     })->name('dashboard');
-// });
+
+Route::middleware(['guest'])->group(function () {
+    Route::get('/', function () {
+        return Inertia::render('welcome');
+    });
+});
 
 Route::middleware(['web'])->group(function () {
     Route::prefix('/{nouid}')->group(function () {
+        Route::get('/login', [SiswaController::class, 'index'])->name('login');
         Route::get('/', [SiswaController::class, 'index'])->name('siswa.index');
+        Route::get('/test', [SiswaController::class, 'test'])->name('siswa.test');
         Route::post('/verify-pin', [AuthenticatedSessionController::class, 'store'])->name('siswa.verify-pin');
         Route::post('/register-phone', [RegisteredUserController::class, 'verifphone'])->name('siswa.verify-nope');
         Route::get('/setup-pin', [SiswaController::class, 'showSetupPinForm'])->name('siswa.show-setup-pin');
@@ -34,8 +34,8 @@ Route::middleware(['web'])->group(function () {
         Route::post('/lupa-pin', [OtpController::class, 'forgotRequestOtp'])->name('siswa.forgot-pin');
         Route::post('/otp/send', [OtpController::class, 'sendOtp'])->name('otp.send');
         Route::post('/otp/verify', [OtpController::class, 'verifyOtp'])->name('otp.verif');
-        
-        Route::middleware(['verify.nouid', 'auth:siswa'])->group(function () {
+
+        Route::middleware(['verify.nouid'])->group(function () {
             Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('siswa.logout');
             Route::get('/update', [SiswaController::class, 'update'])->name('siswa.update');
             Route::post('/blocked', [SiswaController::class, 'blocked'])->name('siswa.blocked');
@@ -53,7 +53,7 @@ Route::middleware(['web'])->group(function () {
             Route::get('/tagihan', [TagihanController::class, 'index'])->name('tagihan.index');
             Route::get('/tagihan/pay', [TagihanController::class, 'show'])->name('tagihan.show');
             Route::post('/tagihan/pay', [TagihanController::class, 'handlePay'])->name('tagihan.pay');
-            Route::post('/bills/new', [TagihanController::class, 'newTagihan'])->name('api.tagihan.new');
+            Route::get('/tagihan/history', [TagihanController::class, 'history'])->name('tagihan.history');
 
 
 

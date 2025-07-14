@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
 
 class LoginRequest extends FormRequest
 {
@@ -28,9 +29,22 @@ class LoginRequest extends FormRequest
      */
     public function rules(): array
     {
-       return [
+        return [
             'nouid' => 'required|string|exists:mai2.tindentitas,nouid',
             'pin' => 'required|digits:6|numeric',
+        ];
+    }
+
+    /**
+     * Custom validation messages.
+     *
+     * @return array
+     */
+    public function messages(): array
+    {
+        return [
+            'nouid.exists' => 'Nomor identitas tidak valid.',
+            'pin.digits' => 'PIN harus terdiri dari 6 digit angka.',
         ];
     }
 
@@ -43,26 +57,47 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        $nouid = $this->input('nouid');
-        $indentitas = Indentitas::where('nouid', $nouid)
-            ->with('siswa')
-            ->firstOrFail();
+        try {
+            $nouid = $this->input('nouid');
+            $indentitas = Indentitas::where('nouid', $nouid)
+                ->with('siswa')
+                ->firstOrFail();
 
-        if (!$this->verifyPin($indentitas->siswa, $this->input('pin'))) {
-            RateLimiter::hit($this->throttleKey());
+            if (!$this->verifyPin($indentitas->siswa, $this->input('pin'))) {
+                RateLimiter::hit($this->throttleKey());
+                Log::warning('Failed login attempt', ['nouid' => $nouid, 'ip' => $this->ip()]);
+                throw ValidationException::withMessages([
+                    'pin' => "PIN yang Anda Masukkan Salah",
+                ]);
+            }
+
+            Auth::guard('siswa')->login($indentitas->siswa);
+            session(['current_nouid' => $nouid]);
+            RateLimiter::clear($this->throttleKey());
+            
+            Log::info('User logged in successfully', ['nouid' => $nouid]);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::error('User not found during login', ['nouid' => $nouid, 'error' => $e->getMessage()]);
             throw ValidationException::withMessages([
-                'pin' => "PIN yang Anda Masukkan Salah",
+                'nouid' => 'Data siswa tidak ditemukan.',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Login process failed', ['nouid' => $nouid, 'error' => $e->getMessage()]);
+            throw ValidationException::withMessages([
+                'nouid' => 'Terjadi kesalahan saat proses login.',
             ]);
         }
-
-        Auth::guard('siswa')->login($indentitas->siswa);
-        session(['current_nouid' => $nouid]);
-        RateLimiter::clear($this->throttleKey());
     }
 
     protected function verifyPin($siswa, $pin): bool
     {
-        return Hash::check($pin, $siswa->pin);
+        try {
+            return Hash::check($pin, $siswa->pin);
+        } catch (\Exception $e) {
+            Log::error('PIN verification failed', ['error' => $e->getMessage()]);
+            return false;
+        }
     }
 
     /**
@@ -79,6 +114,9 @@ class LoginRequest extends FormRequest
         event(new Lockout($this));
 
         $seconds = RateLimiter::availableIn($this->throttleKey());
+        $throttleKey = $this->throttleKey();
+
+        Log::warning('Login rate limited', ['key' => $throttleKey, 'attempts' => 5]);
 
         throw ValidationException::withMessages([
             'pin' => __('auth.throttle', [

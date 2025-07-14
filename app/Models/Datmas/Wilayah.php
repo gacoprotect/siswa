@@ -11,13 +11,11 @@ class Wilayah extends BaseModel
     use LogsChanges;
     protected $connection = 'mai2';
     protected $table = 'twilayah';
+    public $incrementing = false;
+    protected $keyType = 'string';
     protected $primaryKey = 'kod';
     protected $appends = [];
     protected $hidden = [
         'sta',
-    ];
-    protected $visible = [
-        'kod',
-        'nam',
     ];
 }
