@@ -53,14 +53,14 @@ trait LogsChanges
                 $oldData = $this->getOriginal();
             }
 
-            $oldData = $this->convertArraysToJson($oldData);
-            $newData = $this->convertArraysToJson($newData);
+            // $oldData = $this->convertArraysToJson($oldData);
+            // $newData = $this->convertArraysToJson($newData);
 
-            logger()->debug('Compare Data', [
-                'OldData' => $oldData,
-                'NewData' => $newData,
-                'action' => $action,
-            ]);
+            // logger()->debug('Compare Data', [
+            //     'OldData' => $oldData,
+            //     'NewData' => $newData,
+            //     'action' => $action,
+            // ]);
 
             $logData = [
                 'loggable_type' => get_class($this),
