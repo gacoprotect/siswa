@@ -37,7 +37,7 @@ Route::middleware(['web'])->group(function () {
 
         Route::middleware(['verify.nouid'])->group(function () {
             Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('siswa.logout');
-            Route::get('/update', [SiswaController::class, 'update'])->name('siswa.update');
+            Route::post('/update', [SiswaController::class, 'update'])->name('siswa.update');
             Route::post('/blocked', [SiswaController::class, 'blocked'])->name('siswa.blocked');
             Route::get('/topup', [TopupController::class, 'index'])->name('topup');
             Route::post('/topup/charge', [TopupController::class, 'charge'])->name('topup.charge');

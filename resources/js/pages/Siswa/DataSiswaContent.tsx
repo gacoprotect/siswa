@@ -1,4 +1,5 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog ';
+import InputGroup from '@/components/InputGroup';
 import { NoteDialog } from '@/components/NoteDialog';
 import { cn } from '@/lib/utils';
 import { Siswa, Wali } from '@/types';
@@ -49,16 +50,16 @@ const livingOptions: LivingOption[] = [
 ];
 const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => {
     const [isEditing, setIsEditing] = useState(false);
-    const [isDialogOpen, setIsDialogOpen] = useState(true);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [provs, setProvs] = useState<DataWilayah[]>([]);
     const [kabs, setKabs] = useState<DataWilayah[]>([]);
     const [kecs, setKecs] = useState<DataWilayah[]>([]);
     const [kels, setKels] = useState<DataWilayah[]>([]);
     const [selectedWilayah, setSelectedWilayah] = useState<Wilayah>({
-        prov: siswa.wilayah?.prov || '',
-        kab: siswa.wilayah?.kab || '',
-        kec: siswa.wilayah?.kec || '',
-        kel: siswa.wilayah?.kel || '',
+        prov: siswa.safe?.wilayah?.prov || '',
+        kab: siswa.safe?.wilayah?.kab || '',
+        kec: siswa.safe?.wilayah?.kec || '',
+        kel: siswa.safe?.wilayah?.kel || '',
     });
 
     const { data, setData, post, processing, errors } = useForm({
@@ -68,39 +69,56 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
         tel: siswa.tel ?? '',
         ttl: siswa.ttl ?? '',
         email: siswa.email ?? '',
-        ala: siswa.ala ?? '',
-        tinggal: siswa.tinggal ?? '',
-        wilayah: {
-            prov: siswa.wilayah?.prov || '',
-            kab: siswa.wilayah?.kab || '',
-            kec: siswa.wilayah?.kec || '',
-            kel: siswa.wilayah?.kel || '',
+        safe: {
+            ala: siswa.safe?.ala ?? '',
+            rt: siswa.safe?.rt ?? '',
+            rw: siswa.safe?.rw ?? '',
+            kec: siswa.safe?.kec ?? '',//16.71.04
+            lur: siswa.safe?.lur ?? '', //16.71.04.1002
+            kodpos: siswa.safe?.kodpos ?? '',
+            dusun: siswa.safe?.dusun ?? '',
+            temtin: siswa.safe?.temtin ?? '',
+            sakit: siswa.safe?.sakit ?? [],
+            wilayah: {
+                prov: siswa.safe?.wilayah?.prov || '',
+                kab: siswa.safe?.wilayah?.kab || '',
+                kec: siswa.safe?.wilayah?.kec || '',
+                kel: siswa.safe?.wilayah?.kel || '',
+            },
         },
         wali: {
             nama: siswa.wali?.nama ?? '',
             tel: siswa.wali?.tel ?? '',
             hub: siswa.wali?.hub ?? '',
         },
-        sakit: siswa.sakit ?? []
     });
-    const [healthNotes, setHealthNotes] = useState<string[]>(data.sakit || ['']);
+    const [healthNotes, setHealthNotes] = useState<string[]>(data.safe.sakit || ['']);
 
     const addHealthNote = () => {
         setHealthNotes([...healthNotes, '']);
-        setData('sakit', [...healthNotes, '']);
+        setData('safe', {
+            ...data.safe,
+            sakit: [...healthNotes, '']
+        });
     };
 
     const removeHealthNote = (index: number) => {
         const updatedNotes = healthNotes.filter((_, i) => i !== index);
         setHealthNotes(updatedNotes);
-        setData('sakit', updatedNotes);
+        setData('safe', {
+            ...data.safe,
+            sakit: updatedNotes
+        });
     };
 
     const handleHealthNoteChange = (index: number, value: string) => {
         const updatedNotes = [...healthNotes];
         updatedNotes[index] = value;
         setHealthNotes(updatedNotes);
-        setData('sakit', updatedNotes);
+        setData('safe', {
+            ...data.safe,
+            sakit: updatedNotes
+        });
     };
     const initialLoad = useRef(true);
     const fetchWilayah = useCallback(async (url: string) => {
@@ -179,8 +197,10 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
         };
 
         setSelectedWilayah(newWilayah);
-        setData('wilayah', newWilayah);
-
+        setData('safe', {
+            ...data.safe,
+            wilayah: newWilayah
+        });
         // Reset dropdown dependen
         setKabs([]);
         setKecs([]);
@@ -202,7 +222,10 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
         };
 
         setSelectedWilayah(newWilayah);
-        setData('wilayah', newWilayah);
+        setData('safe', {
+            ...data.safe,
+            wilayah: newWilayah
+        });
 
         // Reset dropdown dependen
         setKecs([]);
@@ -223,7 +246,10 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
         };
 
         setSelectedWilayah(newWilayah);
-        setData('wilayah', newWilayah);
+        setData('safe', {
+            ...data.safe,
+            wilayah: newWilayah
+        });
 
         // Reset dropdown dependen
         setKels([]);
@@ -242,7 +268,10 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
         };
 
         setSelectedWilayah(newWilayah);
-        setData('wilayah', newWilayah);
+        setData('safe', {
+            ...data.safe,
+            wilayah: newWilayah
+        });
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -251,7 +280,7 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
             onSuccess: () => {
                 setIsEditing(false);
             },
-            onFinish:()=>{
+            onFinish: () => {
                 setIsDialogOpen(true)
             }
         });
@@ -410,9 +439,9 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                                     </button>
                                 </div>
 
-                                {errors.sakit && (
-                                    <p className="mt-2 text-sm text-red-500">{errors.sakit}</p>
-                                )}
+                                {/* {errors.safe?.sakit && (
+                                    <p className="mt-2 text-sm text-red-500">{errors.safe?.sakit}</p>
+                                )} */}
                             </div>
 
                             <div className="rounded-lg bg-white p-4 shadow-sm">
@@ -422,13 +451,42 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                                 <label className="mb-1 block text-sm font-medium text-gray-700">Alamat lengkap</label>
                                 <textarea
                                     className="w-full rounded border border-gray-300 p-2"
-                                    value={data.ala}
-                                    onChange={(e) => setData('ala', e.target.value)}
+                                    value={data.safe?.ala}
+                                    onChange={(e) => setData('safe', {
+                                        ...data.safe,
+                                        ala: e.target.value
+                                    })}
                                     rows={2}
                                     placeholder='Masukan Alamat Lengkap'
                                 />
-                                {errors.ala && <p className="mt-1 text-sm text-red-500">{errors.ala}</p>}
+                                {/* {errors.safe?.ala && <p className="mt-1 text-sm text-red-500">{errors.safe?.ala}</p>} */}
 
+                                <div className='grid grid-cols-2 gap-4'>
+                                    <InputGroup
+
+                                        name='rt'
+                                        prefix="RT"
+                                        value={data.safe?.rt}
+                                        onChange={(v) => setData('safe', { 
+                                            ...data.safe,
+                                            rt: v as string
+                                        })}
+                                        error={errors.safe}
+                                    />
+                                    <InputGroup
+
+                                        name='rw'
+                                        prefix="RW"
+                                        value={data.safe?.rw}
+                                        onChange={(v) => setData('safe', { 
+                                            ...data.safe,
+                                            rw: v as string
+                                        })}
+                                        error={errors.safe}
+                                    />
+
+                                   
+                                </div>
                                 <div className="mt-4 space-y-3">
                                     <div>
                                         <label className="mb-1 block text-sm font-medium text-gray-700">Provinsi</label>
@@ -479,8 +537,11 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                                             Tinggal Dengan
                                         </label>
                                         <select
-                                            value={data.tinggal}
-                                            onChange={(e) => setData('tinggal', e.target.value)}
+                                            value={data.safe?.temtin}
+                                            onChange={(e) => setData('safe', {
+                                                ...data.safe,
+                                                temtin: e.target.value
+                                            })}
                                             className="w-full rounded border border-gray-300 p-2 text-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                         >
                                             <option value="">Pilih Status Tinggal</option>
@@ -490,9 +551,9 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                                                 </option>
                                             ))}
                                         </select>
-                                        {errors.tinggal && (
+                                        {/* {errors.tinggal && (
                                             <p className="mt-1 text-xs text-red-500">{errors.tinggal}</p>
-                                        )}
+                                        )} */}
                                     </div>
                                 </div>
                             </div>
@@ -581,7 +642,7 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                 title="Edit Data Siswa"
                 description="Data Anda telah kami terima , perubahan data memerlukan verifikasi dari pihak sekolah"
                 confirmText="Mengerti"
-                cancelText = {null}
+                cancelText={null}
                 onConfirm={() => setIsDialogOpen(false)}
                 variant="primary"
             />
@@ -609,7 +670,7 @@ const DataRow = ({ icon, label, value }: DataRowProps) => (
 
 // Komponen untuk menampilkan baris data dalam mode edit
 type EditDataRowProps = {
-    icon: React.ReactNode;
+    icon?: React.ReactNode;
     label: string;
     value: string;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -621,7 +682,7 @@ const EditDataRow = ({ disabled = false, icon, label, value, onChange, error }: 
     <div className="mb-4">
         <label className="mb-1 ml-8 block text-sm font-bold text-gray-700">{label}</label>
         <div className="flex items-center gap-2">
-            <div className="text-xl text-gray-500">{icon}</div>
+            {icon && (<div className="text-xl text-gray-500">{icon}</div>)}
             <input
                 disabled={disabled}
                 type="text"

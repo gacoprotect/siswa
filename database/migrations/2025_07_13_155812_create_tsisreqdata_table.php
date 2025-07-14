@@ -34,7 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::connection('mai4')->dropIfExists('student_data_requests');
         Schema::connection('mai4')->dropIfExists('tsisreqdata');
     }
 };

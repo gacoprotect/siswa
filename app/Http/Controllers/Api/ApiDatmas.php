@@ -20,7 +20,9 @@ class ApiDatmas extends Controller
 
             logger()->debug('Mencari identitas siswa', ['nouid' => $v['nouid']]);
 
-            $ident = Indentitas::with('siswa')->where('nouid', $v['nouid'])->firstOrFail();
+            $ident = Indentitas::with(['siswa.safe' => function ($qu) {
+                $qu->select('ids', 'ala', 'rt', 'rw', 'cam', 'lur', 'kodpos', 'dusun', 'temtin', 'sakit');
+            }])->where('nouid', $v['nouid'])->firstOrFail();
 
             return response()->json([
                 'success' => true,
@@ -132,13 +134,19 @@ class ApiDatmas extends Controller
                 ->get(['kod as id', 'nam as nama']);
 
             $code = $req->route('kod'); //33.06.07
+            $cLevel = substr_count($code, '.');
             $wil = Wilayah::where('kod', $code)
                 ->select('kod as id', 'nam as nama')
                 ->firstOrFail();
 
+            $d = array_merge(
+                $wil->toArray(),
+                ['level' => $levelNames[$cLevel] ?? 'unknown']
+            );
+
             return response()->json([
                 'success' => true,
-                'wilayah' => $wil,
+                'wilayah' => $d,
                 'level' => $levelNames[$nextLevel] ?? 'unknown',
                 'data' => $wilayah->map(function ($item) use ($levelNames, $nextLevel) {
                     return [

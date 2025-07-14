@@ -84,9 +84,21 @@ export interface Siswa {
     ala?: string;
     pin?: string;
     wali?: Wali | null;
-    wilayah?: Wilayah | null;
-    tinggal?: string;
-    sakit?: string[];
+    safe?: SiswaSafe;
+    [key: string]: any;
+}
+export interface SiswaSafe {
+    ids: number,
+    ala: string,
+    rt: string,
+    rw: string,
+    kec: string,//16.71.04
+    lur: string, //16.71.04.1002
+    kodpos: string,
+    dusun: string,
+    temtin: string,
+    sakit: string[],
+    wilayah: Wilayah,
 }
 export interface Wilayah {
     prov: string;
