@@ -110,12 +110,12 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ siswa, tagihanParam, onClose 
         setData('payment_method', paymentMethod);
     }, [paymentMethod, setData]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (isSubmitDisabled) return;
 
-        post(route('tagihan.pay', tagihanParam.nouid), {
+        await post(route('tagihan.pay', tagihanParam.nouid), {
             preserveScroll: true,
             onSuccess: () => {
                 if (flash?.success === true) {
@@ -175,7 +175,7 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ siswa, tagihanParam, onClose 
                             <div className='flex items-center justify-center'>
                                 <h1 className="text-2xl font-bold text-center">Pembayaran Tagihan</h1>
                             </div>)}
-                        <div className="mt-3 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 bg-gray-100 p-2">
+                        <div className="mt-3grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 bg-gray-100 p-2">
                             <div>
                                 <p className="text-sm font-bold sm:text-base">
                                     NIS: {siswa.nis} - {siswa.namlen.toUpperCase()}

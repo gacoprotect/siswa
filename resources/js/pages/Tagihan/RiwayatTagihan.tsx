@@ -44,7 +44,7 @@ type ApiResponse = ApiResponseSuccess | ApiResponseError;
 const RiwayatTagihan = ({ nouid }: { nouid: string }) => {
     const [loading, setLoading] = useState(true);
     const [year, setYear] = useState(dayjs().format('YYYY'));
-    const [month, setMonth] = useState(dayjs().format('MM'));
+    const [month, setMonth] = useState(dayjs().month() + 1); // Gunakan angka (1-12)
     const [showAll, setShowAll] = useState(true);
     const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
     const [data, setData] = useState<ApiResponseSuccess['data'] | null>(null);
@@ -98,10 +98,10 @@ const RiwayatTagihan = ({ nouid }: { nouid: string }) => {
         fetchData();
     }, []);
 
-    const handleFilterSubmit = () => {
-        const params = showAll ? {} : {
+    const handleFilterSubmit = (all = true) => {
+        const params = all ? {} : {
             t: year,
-            m: parseInt(month, 10) // Convert string month to number
+            m: month, // Convert string month to number
         };
         fetchData(params);
     };
@@ -153,19 +153,29 @@ const RiwayatTagihan = ({ nouid }: { nouid: string }) => {
         <div className="p-4 max-w-4xl mx-auto">
             <div className="flex flex-col gap-4 mb-8">
                 <div className="flex gap-2 sm:self-end">
-                    <button
+                    {showAll ? (<button
                         onClick={() => {
-                            setShowAll(!showAll);
-                            handleFilterSubmit();
+                            setShowAll(false);
+                            handleFilterSubmit(false);
                         }}
                         className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-xl shadow-sm hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1 disabled:opacity-50"
                         disabled={loading}
                     >
-                        {showAll ? 'Filter' : 'Tampilkan Semua'}
-                    </button>
+                        Filter
+                    </button>) : (
+                        <button
+                            onClick={() => {
+                                setShowAll(true);
+                                handleFilterSubmit(true);
+                            }}
+                            className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-xl shadow-sm hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1 disabled:opacity-50"
+                            disabled={loading}
+                        >
+                            Tampilkan Semua
+                        </button>)}
                     {!showAll && (
                         <button
-                            onClick={handleFilterSubmit}
+                            onClick={() => handleFilterSubmit(false)}
                             className="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-xl shadow-sm hover:bg-green-700 transition focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-1 disabled:opacity-50"
                             disabled={loading}
                         >
@@ -203,7 +213,7 @@ const RiwayatTagihan = ({ nouid }: { nouid: string }) => {
                             </label>
                             <select
                                 value={month}
-                                onChange={(e) => setMonth(e.target.value)}
+                                onChange={(e) => setMonth(Number(e.target.value))} // Konversi ke number
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                                 disabled={loading}
                             >
@@ -211,7 +221,7 @@ const RiwayatTagihan = ({ nouid }: { nouid: string }) => {
                                     const monthNumber = i + 1;
                                     return (
                                         <option key={monthNumber} value={monthNumber}>
-                                            {dayjs().month(i).format('MMMM')}
+                                            {dayjs().month(i).format('MMMM')} {/* Menampilkan nama bulan */}
                                         </option>
                                     );
                                 })}
@@ -229,9 +239,9 @@ const RiwayatTagihan = ({ nouid }: { nouid: string }) => {
                     </div>
                 ) : (
                     data.trx.map((trx) => (
-                        <div key={trx.order_id} className="bg-white rounded-lg shadow overflow-hidden">
+                        <div key={trx.order_id} className="bg-gray-100 rounded-lg shadow overflow-hidden">
                             <div
-                                className="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                                className="flex justify-between items-center p-4 cursor-pointer bg-gray-200 hover:bg-gray-50 transition-colors"
                                 onClick={() => setExpandedItems(prev => ({
                                     ...prev,
                                     [trx.order_id]: !prev[trx.order_id]
@@ -262,8 +272,7 @@ const RiwayatTagihan = ({ nouid }: { nouid: string }) => {
                                         {trx.bills.map(bill => (
                                             <div key={bill.id} className="flex justify-between items-center py-2 border-b last:border-b-0">
                                                 <div>
-                                                    <p className="font-medium text-gray-800">{bill.ket}</p>
-                                                    <p className="text-sm text-gray-500">No: {bill.nmr}</p>
+                                                    <p className="font-medium text-gray-800">{bill.nmr}. {bill.ket}</p>
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="font-medium text-gray-800">

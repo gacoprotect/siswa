@@ -3,16 +3,18 @@ import { Summary } from '@/pages/Tagihan/TagihanContent';
 import { FaFileInvoiceDollar } from 'react-icons/fa';
 
 interface Props {
+    onClose: () => void
     setparam: (v: TagihanParam) => void;
     summary: Summary
 }
 
-const PaymentButton: React.FC<Props> = ({ setparam, summary }) => {
+const PaymentButton: React.FC<Props> = ({ onClose, setparam, summary }) => {
     const handleBayar = ({ tagihan, spr }: TagihanParam) => {
         setparam({
             spr,
             tagihan
         });
+        onClose()
     };
 
     return (

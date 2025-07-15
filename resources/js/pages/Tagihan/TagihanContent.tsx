@@ -34,41 +34,41 @@ const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; se
     const [buatTagihanModal, setBuatTagihanModal] = useState(false);
     const [groupedData, setGroupedData] = useState<BillTagihan[]>([]);
     const [error, setError] = useState<string | null>(null);
-
-    const [summary, setSummary] = useState<Summary>({
+    const initialSummary = {
         total_tagihan: 0,
         total_disc: 0,
         spr: [],
-    });
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setIsLoading(true);
-                setError(null);
+    } as Summary;
+    const [summary, setSummary] = useState<Summary>(initialSummary);
+    const fetchData = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
 
-                const response = await fetch(route('tagihan.index', nouid));
+            const response = await fetch(route('tagihan.index', nouid));
 
-                if (!response.ok) {
-                    throw new Error('Gagal memuat data tagihan');
-                }
-
-                const data = await response.json();
-
-                if (data.success) {
-                    throw new Error('Terjadi kesalahan server');
-                }
-
-                setGroupedData(data.data);
-                setSummary(data.summary);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'Terjadi kesalahan jaringan');
-            } finally {
-                setIsLoading(false);
+            if (!response.ok) {
+                throw new Error('Gagal memuat data tagihan');
             }
-        };
 
+            const data = await response.json();
+
+            if (data.success) {
+                throw new Error('Terjadi kesalahan server');
+            }
+
+            setGroupedData(data.data);
+            setSummary(data.summary);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Terjadi kesalahan jaringan');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [nouid])
+
+    useEffect(() => {
         fetchData();
-    }, [nouid]);
+    }, [fetchData]);
     // Format mata uang
     const formatCurrency = (amount: number): string => {
         return new Intl.NumberFormat('id-ID', {
@@ -77,17 +77,6 @@ const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; se
             minimumFractionDigits: 0,
         }).format(amount);
     };
-
-    // Cek apakah tagihan di masa depan
-    const getIsFutureBill = (tah: string, bulan: string): boolean => {
-        const monthNumber = monthNames.indexOf(bulan) + 1;
-        const currentDate = new Date();
-        const currentYear = currentDate.getFullYear();
-        const currentMonth = currentDate.getMonth() + 1;
-
-        return parseInt(tah) > currentYear || (parseInt(tah) === currentYear && monthNumber > currentMonth);
-    };
-
     const handleTambahTagihan = useCallback(
         (items: SetTambahTagihan) => {
             if (!items?.data?.length) return;
@@ -153,18 +142,6 @@ const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; se
         [groupedData],
     );
 
-    // Hapus tagihan (lokal)
-    const handleDelete = useCallback((item: DataTambahTagihan) => {
-        setGroupedData((prev) => prev.filter((bill) => !(bill.tah === item.tah && bill.bulan === item.bulan && bill.ket === item.ket)));
-
-        setSummary((prev) => {
-            const amountToRemove = item.jumlah;
-            return {
-                ...prev,
-                total_tagihan: prev.total_tagihan - amountToRemove,
-            };
-        });
-    }, []);
     if (isLoading) {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center space-y-3">
@@ -182,6 +159,8 @@ const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; se
             </div>
         );
     }
+
+
     return (
         <div className="space-y-6 p-4">
             {/* Summary Cards */}
@@ -202,7 +181,10 @@ const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; se
             {/* Action Buttons */}
             <div className="flex gap-3">
                 <button
-                    onClick={() => setBuatTagihanModal(true)}
+                    onClick={() => {
+                        setRiwayat(false)
+                        setBuatTagihanModal(true)
+                    }}
                     className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
                 >
                     <FaFileInvoice />
@@ -215,7 +197,7 @@ const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; se
             </div>
 
             {/* Bills Table */}
-            {riwayat ? (<RiwayatTagihan nouid={nouid}/>) : (groupedData.length === 0 ? (
+            {riwayat ? (<RiwayatTagihan nouid={nouid} />) : (groupedData.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center">
                     <p className="text-gray-500">Tidak ada data tagihan</p>
                 </div>
@@ -240,20 +222,9 @@ const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; se
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 bg-white">
                                     {groupedData.map((item) => {
-                                        const isFutureBill = getIsFutureBill(item.tah, item.bulan);
-
                                         return (
                                             <tr key={`${item.tah}-${item.bulan}-${item.ket}`}>
                                                 <td className="flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap text-gray-900">
-                                                    {isFutureBill && (
-                                                        <button
-                                                            onClick={() => handleDelete(item)}
-                                                            className="text-red-500 hover:text-red-700"
-                                                            title="Hapus Tagihan"
-                                                        >
-                                                            <FaTrashAlt />
-                                                        </button>
-                                                    )}
                                                     {item.tah} - {item.bulan}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm whitespace-nowrap text-gray-900">{formatCurrency(item.jumlah)}</td>
@@ -284,9 +255,14 @@ const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; se
                                 <span>Total Tagihan:</span>
                                 <span className="text-blue-600">{formatCurrency(summary.total_tagihan)}</span>
                             </div>
-
-                            <div className="pt-4" onClick={onClose}>
-                                <PaymentButton setparam={setTagihanParam} summary={summary} />
+                            <div className="pt-4 flex items-center gap-4">
+                                <button className="rounded-lg bg-red-600 p-2 text-sm text-white transition-colors hover:bg-red-700"
+                                    onClick={() => {
+                                        fetchData()
+                                    }}>
+                                    Batal
+                                </button>
+                                <PaymentButton onClose={onClose} setparam={setTagihanParam} summary={summary} />
                             </div>
                         </div>
                     </div>
