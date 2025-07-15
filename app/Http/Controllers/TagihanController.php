@@ -355,39 +355,109 @@ class TagihanController extends Controller
         }
     }
 
-    public function history(Request $req, $nouid)
+    public function history(Request $request, $nouid)
     {
-        $ident = Indentitas::with(['siswa',
-            'trx' => function ($query) {
-                $query->select('id', 'order_id', 'amount', 'paid_at', 'status', 'type', 'nouid') // Include foreign key
-                    ->where('status', 'success')
-                    ->where('type', 'payment')
-                    ->orderBy('created_at', 'desc')
-                    ->with(['paidBill' => function ($q) {
-                        $q->select('id', 'nmr', 'jum', 'ket', 'sta', 'trx_id')
-                            ->whereNotNull('paid_at')
-                            ->orderBy('trx_id')
-                            ->orderBy('nmr');
-                    }]);
+        try {
+            $validated = $request->validate([
+                't' => 'sometimes|digits:4|integer|min:2000|max:' . (date('Y') + 1),
+                'm' => [
+                    'sometimes',
+                    function ($attribute, $value, $fail) {
+                        $month = is_numeric($value) ? (int)$value : $value;
+
+                        if (!is_numeric($month)) {
+                            $fail('Bulan harus berupa angka.');
+                            return;
+                        }
+
+                        $monthInt = (int)$month;
+                        if ($monthInt < 1 || $monthInt > 12) {
+                            $fail('Bulan harus antara 1 dan 12.');
+                        }
+                    },
+                ],
+            ]);
+
+            if (isset($validated['m'])) {
+                $validated['m'] = (int)$validated['m'];
             }
-        ])->where('nouid', $nouid)->firstOrFail();
 
-        // Transform data for better structure
-        $formattedTrx = $ident->trx->map(function ($transaction) {
-            return [
-                'order_id' => $transaction->order_id,
-                'amount' => $transaction->amount,
-                'paid_at' => $transaction->paid_at,
-                'bills' => $transaction->paidBill
-            ];
-        });
+            $query = Indentitas::with([
+                'siswa',
+                'trx' => function ($query) use ($validated) {
+                    $query->where('status', 'success')
+                        ->where('type', 'payment')
+                        ->when(isset($validated['t']) && isset($validated['m']), function ($q) use ($validated) {
+                            $q->whereYear('paid_at', $validated['t'])
+                                ->whereMonth('paid_at', $validated['m']);
+                        })
+                        ->orderBy('paid_at', 'desc');
+                }
+            ])->where('nouid', $nouid);
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'nouid' => $ident->nouid,// Add other student fields as needed
-                'trx' => $formattedTrx
-            ],
-        ]);
+            $ident = $query->first();
+
+            if (!$ident) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Student data not found',
+                    'error_code' => 'STUDENT_NOT_FOUND'
+                ], 404);
+            }
+
+            if (!$ident->siswa) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Student profile not found',
+                    'error_code' => 'STUDENT_PROFILE_NOT_FOUND'
+                ], 404);
+            }
+
+            // Transform data
+            $formattedTrx = $ident->trx->map(function ($transaction) {
+                return [
+                    'order_id' => $transaction->order_id,
+                    'amount' => (int) $transaction->amount,
+                    'paid_at' => $transaction->paid_at->toDateTimeString(),
+                    'bills' => $transaction->paidBill->map(function ($bill) {
+                        return [
+                            'id' => $bill->id,
+                            'nmr' => (int) $bill->nmr,
+                            'jum' => $bill->jum,
+                            'ket' => $bill->ket,
+                            'sta' => (int) $bill->sta,
+                            'trx_id' => $bill->trx_id
+                        ];
+                    })
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'nouid' => $ident->nouid,
+                    'trx' => $formattedTrx
+                ],
+                'meta' => [
+                    'filter' => [
+                        'year' => $validated['t'] ?? null,
+                        'month' => $validated['m'] ?? null
+                    ]
+                ]
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid filter parameters',
+                'errors' => $e->errors(),
+                'error_code' => 'VALIDATION_ERROR'
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while processing your request',
+                'error_code' => 'SERVER_ERROR'
+            ], 500);
+        }
     }
 }

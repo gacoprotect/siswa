@@ -4,6 +4,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { FaArrowAltCircleLeft, FaSpinner } from 'react-icons/fa';
 import { TagihanParam } from '../Siswa/Index';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface TagihanItem {
     id: number;
@@ -31,6 +32,7 @@ interface PaymentPageProps {
 
 const PaymentPage: React.FC<PaymentPageProps> = ({ siswa, tagihanParam, onClose }) => {
     const { flash } = usePage<SharedData>().props;
+    const isMobile = useIsMobile();
     const [isLoading, setIsLoading] = useState(true);
     const [exist, setExist] = useState(false);
     const [lunas, setLunas] = useState(false);
@@ -163,14 +165,17 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ siswa, tagihanParam, onClose 
                         <FaArrowAltCircleLeft className="text-primary-foreground" />
                         <span>Kembali</span>
                     </button>
-                    <h1 className="text-2xl font-bold text-white">Pembayaran Tagihan</h1>
+                    {!isMobile && (<h1 className="text-2xl font-bold text-white">Pembayaran Tagihan</h1>)}
                 </div>
 
                 <>
                     {/* Detail Siswa */}
                     <div className="border-b p-4 sm:p-6">
-                        <h2 className="mb-3 text-lg font-semibold sm:mb-4 sm:text-xl">Data Siswa</h2>
-                        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
+                        {isMobile && (
+                            <div className='flex items-center justify-center'>
+                                <h1 className="text-2xl font-bold text-center">Pembayaran Tagihan</h1>
+                            </div>)}
+                        <div className="mt-3 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 bg-gray-100 p-2">
                             <div>
                                 <p className="text-sm font-bold sm:text-base">
                                     NIS: {siswa.nis} - {siswa.namlen.toUpperCase()}
@@ -320,11 +325,10 @@ const PaymentPage: React.FC<PaymentPageProps> = ({ siswa, tagihanParam, onClose 
                                         <button
                                             type="submit"
                                             disabled={isSubmitDisabled}
-                                            className={`rounded-md px-6 py-3 text-base font-medium text-white shadow-sm transition-colors ${
-                                                isSubmitDisabled
-                                                    ? 'cursor-not-allowed bg-gray-400'
-                                                    : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none'
-                                            }`}
+                                            className={`rounded-md px-6 py-3 text-base font-medium text-white shadow-sm transition-colors ${isSubmitDisabled
+                                                ? 'cursor-not-allowed bg-gray-400'
+                                                : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none'
+                                                }`}
                                         >
                                             {processing ? (
                                                 <span className="flex items-center justify-center">

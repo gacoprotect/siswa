@@ -13,7 +13,7 @@ const AppLayout = ({ children, title, className = '' }: AppLayoutProps) => {
         <div className="min-h-screen">
             <Head title={title} />
             <div className="mx-auto min-h-screen max-w-xl rounded-t-lg bg-primary shadow-sm">
-                <main className={`min-h-[calc(100vh-4rem)] ${className}`}>
+                <main className={`${className}`}>
                     <ToastContainer
                         position="top-right"
                         autoClose={3000}

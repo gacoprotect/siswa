@@ -7,6 +7,7 @@ import { Auth, DataSiswa, SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+    FaArrowAltCircleLeft,
     FaAtom,
     FaCog,
     FaExchangeAlt,
@@ -30,7 +31,7 @@ import DataSiswaContent from './DataSiswaContent';
 import Excul from './Excul';
 import PinPage from './Pin';
 import SetupPinPage from './SetupPin';
-import TagihanContent from './TagihanContent';
+import TagihanContent from '../Tagihan/TagihanContent';
 
 // Type definitions
 type PageState = 'index' | 'topup' | 'riwayat' | 'tagihan';
@@ -85,6 +86,7 @@ export default function SiswaDashboard() {
                             setTagihanParam(v);
                             navigateToPage('tagihan');
                         }}
+                        onClose={()=>setActiveItem(null)}
                     />
                 ),
             },
@@ -95,7 +97,7 @@ export default function SiswaDashboard() {
                 content: <DataSiswaContent nouid={siswaData.nouid} siswa={siswaData.siswa} />,
             },
             {
-                title: 'Ekstrakurikuler',
+                title: 'Kegiatan',
                 icon: <FaFootballBall className="h-6 w-6 text-rose-600" />,
                 color: 'border-rose-700 bg-rose-50 hover:bg-rose-100',
                 content: <Excul nouid={data.nouid} />,
@@ -165,16 +167,18 @@ export default function SiswaDashboard() {
         if (activeItem === null) return null;
         const item = menuItems[activeItem];
         return item?.content ? (
-            <div className="relative rounded-xl border border-t-4 border-gray-800 bg-blue-50 p-2 pt-8 shadow-lg">
-                <button
-                    onClick={() => setActiveItem(null)}
-                    className="absolute top-3 right-3 text-gray-500 transition hover:text-red-500"
-                    aria-label="Tutup"
-                >
-                    <FaTimes className="h-5 w-5" />
-                </button>
-                {item.content}
-            </div>
+            <AppLayout title={item?.title || 'MAI'}>
+                <div className="min-h-screen overflow-hidden rounded-lg bg-white shadow-md">
+                    <div className="flex items-center justify-between bg-primary px-4 py-4 text-primary-foreground">
+                        <button onClick={() => setActiveItem(null)} className="flex items-center space-x-2 transition-opacity hover:opacity-80" aria-label="Kembali">
+                            <FaArrowAltCircleLeft className="text-primary-foreground" />
+                            <span>Kembali</span>
+                        </button>
+                        <h1 className="text-2xl font-bold text-white">{item?.title}</h1>
+                    </div>
+                    {item.content}
+                </div>
+            </AppLayout>
         ) : (
             <div>Konten tidak tersedia</div>
         );
@@ -366,7 +370,8 @@ export default function SiswaDashboard() {
                 </AppLayout>
             ) : (
                 <>
-                    {page === 'index' ? (
+
+                    {activeItem !== null ? (renderActiveContent) : page === 'index' ? (
                         <AppLayout title={siswaData?.siswa.namlen || 'Login'}>
                             <StudentInfo />
                             <ActionButtons />
@@ -375,7 +380,7 @@ export default function SiswaDashboard() {
                                 <>
                                     <BalanceSection />
                                     <MenuItems />
-                                    {renderActiveContent}
+
                                 </>
                             )}
                         </AppLayout>

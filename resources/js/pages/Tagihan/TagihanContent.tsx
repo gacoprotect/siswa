@@ -3,8 +3,9 @@ import { BillTagihan } from '@/types';
 import { X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { FaFileInvoice, FaFileInvoiceDollar, FaHistory, FaSpinner, FaTrashAlt } from 'react-icons/fa';
-import { TagihanParam } from './Index';
+import { TagihanParam } from '../Siswa/Index';
 import TambahTagihan from './TambahTagihan';
+import RiwayatTagihan from './RiwayatTagihan';
 
 interface DataTambahTagihan {
     tah: string;
@@ -27,8 +28,9 @@ export interface Summary {
 
 const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
-const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanParam: (v: TagihanParam) => void }) => {
+const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; setTagihanParam: (v: TagihanParam) => void; onClose: () => void }) => {
     const [isLoading, setIsLoading] = useState(false); // Tidak perlu loading untuk operasi lokal
+    const [riwayat, setRiwayat] = useState(false);
     const [buatTagihanModal, setBuatTagihanModal] = useState(false);
     const [groupedData, setGroupedData] = useState<BillTagihan[]>([]);
     const [error, setError] = useState<string | null>(null);
@@ -165,9 +167,9 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
     }, []);
     if (isLoading) {
         return (
-            <div className="flex flex-row items-center justify-center space-x-3 py-4">
+            <div className="flex min-h-screen flex-col items-center justify-center space-y-3">
                 <FaSpinner className="animate-spin text-3xl text-blue-600" />
-                <span className="text-lg font-bold text-blue-600">Memuat data</span>
+                <span className="text-lg text-gray-700">Memuat data...</span>
             </div>
         );
     }
@@ -206,14 +208,14 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
                     <FaFileInvoice />
                     Buat Tagihan
                 </button>
-                <button className="flex items-center gap-2 rounded-lg bg-gray-600 px-4 py-2 text-white hover:bg-gray-700">
+                <button onClick={() => (setRiwayat(!riwayat))} className="flex items-center gap-2 rounded-lg bg-gray-600 px-4 py-2 text-white hover:bg-gray-700">
                     <FaHistory />
                     Riwayat
                 </button>
             </div>
 
             {/* Bills Table */}
-            {groupedData.length === 0 ? (
+            {riwayat ? (<RiwayatTagihan nouid={nouid}/>) : (groupedData.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center">
                     <p className="text-gray-500">Tidak ada data tagihan</p>
                 </div>
@@ -283,13 +285,13 @@ const TagihanContent = ({ nouid, setTagihanParam }: { nouid: string; setTagihanP
                                 <span className="text-blue-600">{formatCurrency(summary.total_tagihan)}</span>
                             </div>
 
-                            <div className="pt-4">
+                            <div className="pt-4" onClick={onClose}>
                                 <PaymentButton setparam={setTagihanParam} summary={summary} />
                             </div>
                         </div>
                     </div>
                 </div>
-            )}
+            ))}
 
             {/* Add Bill Modal */}
             <TambahTagihan setTambahTagihan={handleTambahTagihan} open={buatTagihanModal} onClose={() => setBuatTagihanModal(false)} nouid={nouid} />
