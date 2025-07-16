@@ -1,6 +1,6 @@
 import { Modal } from '@/components/ui/Modal';
 import { DataSiswa } from '@/types';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { FaKey } from 'react-icons/fa';
 
@@ -105,9 +105,11 @@ const PinPage: React.FC<PinPageProps> = ({ handle, setPage, setOpenSetupPin, has
             }
         }
     };
-
+    const register= () => {
+        router.get(route('register',data.nouid))
+    }
     return (
-        <Modal title={hasPin ? '' : 'Anda Belum Membuat PIN'} isOpen={open} onClose={() => onClose(false)}>
+        <Modal title={hasPin ? '' : 'Anda Belum Terverifikasi'} isOpen={open} onClose={() => onClose(false)}>
             {hasPin ? (
                 <div className="flex items-center justify-center">
                     <Head title="Masukkan PIN" />
@@ -170,13 +172,13 @@ const PinPage: React.FC<PinPageProps> = ({ handle, setPage, setOpenSetupPin, has
                 </div>
             ) : (
                 <div className="flex flex-col items-center justify-center space-y-4 rounded-xl p-6 text-center">
-                    <p className="max-w-md text-sm">Silakan verifikasi nomor WhatsApp Anda dan buat PIN terlebih dahulu sebelum melanjutkan.</p>
+                    <p className="max-w-md text-sm">Untuk melanjutkan silahkan verifikasi identitas diri Anda terlebih dahulu</p>
                     <button
-                        onClick={setOpenSetupPin}
+                        onClick={register}
                         className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-white px-4 py-3 text-indigo-600 shadow-sm transition-colors hover:bg-indigo-50"
                     >
                         <FaKey className="text-lg" />
-                        <span>Buat PIN</span>
+                        <span>Verifikasi Sekarang</span>
                     </button>
                 </div>
             )}

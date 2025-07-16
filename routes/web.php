@@ -6,6 +6,8 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\ExculController;
 use App\Http\Controllers\OtpController;
+use App\Http\Controllers\Saving\SignatureController;
+use App\Http\Controllers\Saving\SnkController;
 use App\Http\Controllers\SiswaController;
 use App\Http\Controllers\TagihanController;
 use App\Http\Controllers\TopupController;
@@ -20,9 +22,16 @@ Route::middleware(['guest'])->group(function () {
         return Inertia::render('welcome');
     });
 });
-
+Route::prefix('/snk')->group(function () {
+    // Route::get('/', [SnkController::class, 'index']) ->name('snk.index');          // SNK aktif
+    Route::get('/{version?}', [SnkController::class, 'show'])->name('snk.show');
+    Route::get('/snk/sign', [SignatureController::class, 'verify'])->name('snk.sign');
+});
 Route::middleware(['web'])->group(function () {
     Route::prefix('/{nouid}')->group(function () {
+        Route::get('register', [RegisteredUserController::class, 'create'])->name('register');
+        Route::post('register', [RegisteredUserController::class, 'store']);
+
         Route::get('/login', [SiswaController::class, 'index'])->name('login');
         Route::get('/', [SiswaController::class, 'index'])->name('siswa.index');
         Route::get('/test', [SiswaController::class, 'test'])->name('siswa.test');

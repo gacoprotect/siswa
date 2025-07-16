@@ -44,9 +44,8 @@ export const PhoneStep: React.FC<PhoneStepProps> = ({
               id="phone"
               name="phone"
               autoComplete="tel"
-              className={`block w-full rounded-md border-2 ${
-                errors.phone ? 'border-red-500' : 'border-gray-300'
-              } py-2 pl-12 focus:border-blue-500 focus:ring-blue-500`}
+              className={`block w-full rounded-md border-2 ${errors.phone ? 'border-red-500' : 'border-gray-300'
+                } py-2 pl-12 focus:border-blue-500 focus:ring-blue-500`}
               placeholder="8123456789"
               value={phone}
               onChange={(e) => onPhoneChange(e.target.value.replace(/\D/g, ''))}
@@ -59,9 +58,8 @@ export const PhoneStep: React.FC<PhoneStepProps> = ({
           <button
             type="submit"
             disabled={processing || phone.length < 10}
-            className={`flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm ${
-              phone.length >= 10 ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' : 'cursor-not-allowed bg-gray-400'
-            } focus:ring-2 focus:ring-offset-2 focus:outline-none`}
+            className={`flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm ${phone.length >= 10 ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' : 'cursor-not-allowed bg-gray-400'
+              } focus:ring-2 focus:ring-offset-2 focus:outline-none`}
           >
             {processing ? 'Mengirim OTP...' : 'Kirim Kode OTP'}
           </button>
