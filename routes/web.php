@@ -22,15 +22,17 @@ Route::middleware(['guest'])->group(function () {
         return Inertia::render('welcome');
     });
 });
-Route::prefix('/snk')->group(function () {
-    // Route::get('/', [SnkController::class, 'index']) ->name('snk.index');          // SNK aktif
-    Route::get('/{version?}', [SnkController::class, 'show'])->name('snk.show');
-    Route::get('/snk/sign', [SignatureController::class, 'verify'])->name('snk.sign');
-});
+// Route::prefix('/snk')->group(function () {
+//     // Route::get('/', [SnkController::class, 'index']) ->name('snk.index');          // SNK aktif
+//     // Route::get('/{version}', [SnkController::class, 'show'])->name('snk.getshow');
+//     // Route::get('/snk/sign', [SignatureController::class, 'verify'])->name('snk.sign');
+// });
 Route::middleware(['web'])->group(function () {
     Route::prefix('/{nouid}')->group(function () {
         Route::get('register', [RegisteredUserController::class, 'create'])->name('register');
         Route::post('register', [RegisteredUserController::class, 'store']);
+        Route::post('/snk', [SnkController::class, 'show'])->name('snk.show');
+        Route::get('/snk/sign', [SignatureController::class, 'verify'])->name('snk.sign');
 
         Route::get('/login', [SiswaController::class, 'index'])->name('login');
         Route::get('/', [SiswaController::class, 'index'])->name('siswa.index');

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import Section from './section'
 import { countries } from 'countries-list'
 import { cn } from '@/lib/utils'
+import { AlertCircle } from 'lucide-react'
 
 interface PersonalFormProps {
     data: {
@@ -13,9 +14,9 @@ interface PersonalFormProps {
         paspor: string
     }
     step: 'WNI' | 'WNA' | null
-    setData: (field: string, value: string) => void
     setStep: (step: 'WNI' | 'WNA' | null) => void
     errors?: Record<string, string>;
+    onChange?: (field: string, value: string) => void
 }
 
 type CountryOption = {
@@ -27,9 +28,9 @@ type CountryOption = {
 const PersonalForm: React.FC<PersonalFormProps> = ({
     data,
     step,
-    setData,
     setStep,
-    errors
+    errors,
+    onChange
 }) => {
     const [isCountryOpen, setIsCountryOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
@@ -78,8 +79,8 @@ const PersonalForm: React.FC<PersonalFormProps> = ({
 
     // Handle country selection
     const handleCountrySelect = (country: CountryOption) => {
-        setData('warneg', country.code)
-        setData('warnegName', country.name)
+        onChange?.('warneg', country.code)
+        onChange?.('warnegName', country.name)
         setInputValue(country.name)
         setIsCountryOpen(false)
         setSearchTerm('')
@@ -103,8 +104,8 @@ const PersonalForm: React.FC<PersonalFormProps> = ({
         if (data.warneg) {
             const selectedCountry = countryList.find(c => c.code === data.warneg)
             if (!selectedCountry || !value.includes(selectedCountry.name)) {
-                setData('warneg', '')
-                setData('warnegName', '')
+                onChange?.('warneg', '')
+                onChange?.('warnegName', '')
                 setStep(null)
             }
         }
@@ -118,8 +119,8 @@ const PersonalForm: React.FC<PersonalFormProps> = ({
                 setIsCountryOpen(true)
                 setSearchTerm('')
                 setInputValue('')
-                setData('warneg', '')
-                setData('warnegName', '')
+                onChange?.('warneg', '')
+                onChange?.('warnegName', '')
                 setStep(null)
             }
         }
@@ -133,7 +134,7 @@ const PersonalForm: React.FC<PersonalFormProps> = ({
                     <div className="space-y-1 relative">
                         <label
                             htmlFor="warneg"
-                            className="block text-sm font-medium text-gray-700"
+                            className={cn(`block text-sm font-medium text-gray-700`, inputValue.trim() && !data.warneg && 'text-red-500')}
                         >
                             Kewarganegaraan *
                         </label>
@@ -142,10 +143,12 @@ const PersonalForm: React.FC<PersonalFormProps> = ({
                                 id="warneg"
                                 type="text"
                                 ref={inputRef}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                                className={cn('w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary',
+                                    errors?.warneg && 'border-red-500', inputValue.trim() && !data.warneg && 'border-2 border-red-500'
+                                )}
                                 value={inputValue || searchTerm}
                                 onFocus={() => setIsCountryOpen(true)}
-                                onChange={handleInputChange}
+                                onChange={(e) => handleInputChange(e)}
                                 onKeyDown={handleKeyDown}
                                 placeholder="Pilih negara"
                                 required
@@ -172,26 +175,49 @@ const PersonalForm: React.FC<PersonalFormProps> = ({
                                     )}
                                 </div>
                             )}
+                            {errors?.warneg && (
+                                <p className="flex items-center gap-2 text-xs text-red-500 mt-1">
+                                    <AlertCircle className="text-red-500 w-4 h-4" />
+                                    {errors?.warneg}
+                                </p>
+                            )}
+                            {inputValue.trim() && !data.warneg && (
+                                <p className="flex items-center gap-2 text-xs text-red-500 mt-1">
+                                    <AlertCircle className="text-red-500 w-4 h-4" />
+                                    Anda belum memilih Negara
+                                </p>
+                            )}
                         </div>
                     </div>
 
                     {/* Name Input */}
-                    {step !== null && (
+                    {inputValue.trim() && data.warneg && (
                         <div className='space-y-1'>
                             <label
                                 htmlFor="nama"
-                                className='block text-sm font-medium text-gray-700'
+                                className={cn(`block text-sm font-medium text-gray-700`, errors?.nama && 'text-red-500')}
                             >
                                 {step === 'WNI' ? 'Nama sesuai KTP' : 'Nama Lengkap'} *
                             </label>
                             <input
                                 id="nama"
                                 type='text'
-                                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary'
+                                className={cn('w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary',
+                                    errors?.nama && 'border-red-500'
+                                )}
                                 value={data.nama}
-                                onChange={e => setData('nama', e.target.value)}
-                                // required
+                                onChange={e => {
+                                    onChange?.('nama', e.target.value)
+                                    onChange?.('nama', e.target.value)
+                                }}
+                                required
                             />
+                            {errors?.nama && (
+                                <p className="flex items-center gap-2 text-xs text-red-500 mt-1">
+                                    <AlertCircle className="text-red-500 w-4 h-4" />
+                                    {errors?.nama}
+                                </p>
+                            )}
                         </div>
                     )}
                 </div>
@@ -203,7 +229,7 @@ const PersonalForm: React.FC<PersonalFormProps> = ({
                             <div className='space-y-1'>
                                 <label
                                     htmlFor="nik"
-                                    className='block text-sm font-medium text-gray-700'
+                                    className={cn(`block text-sm font-medium text-gray-700`, errors?.nik && 'text-red-500')}
                                 >
                                     NIK *
                                 </label>
@@ -218,26 +244,28 @@ const PersonalForm: React.FC<PersonalFormProps> = ({
                                     value={data.nik}
                                     onChange={e => {
                                         if (/^\d*$/.test(e.target.value) && e.target.value.length <= 16) {
-                                            setData('nik', e.target.value)
+                                            onChange?.('nik', e.target.value)
                                         }
+                                        onChange?.('nik', e.target.value)
                                     }}
                                     minLength={16}  // Minimum 16 karakter
                                     maxLength={16}  // Maksimum 16 karakter
-                                    // required
+                                    required={step === 'WNI'}
                                     title="NIK harus 16 digit angka"
                                 />
-                                {data.nik.length > 0 && data.nik.length < 16 && (
-                                    <p className="text-xs text-red-500 mt-1">NIK harus 16 digit</p>
-                                )}
+
                                 {errors?.nik && (
-                                    <p className="text-xs text-red-500 mt-1">errors?.nik</p>
+                                    <p className="flex items-center gap-2 text-xs text-red-500 mt-1">
+                                        <AlertCircle className="text-red-500 w-4 h-4" />
+                                        {errors?.nik}
+                                    </p>
                                 )}
                             </div>
 
                             <div className='space-y-1'>
                                 <label
                                     htmlFor="kk"
-                                    className='block text-sm font-medium text-gray-700'
+                                    className={cn(`block text-sm font-medium text-gray-700`, errors?.kk && 'text-red-500')}
                                 >
                                     Nomor KK
                                 </label>
@@ -246,20 +274,25 @@ const PersonalForm: React.FC<PersonalFormProps> = ({
                                     type='text'
                                     pattern="[0-9]*"
                                     inputMode="numeric"
-                                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary'
-                                    value={data.kk}
+                                    className={cn('w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary',
+                                        errors?.kk && 'border-red-500'
+                                    )} value={data.kk}
                                     onChange={e => {
                                         if (/^\d*$/.test(e.target.value) && e.target.value.length <= 16) {
-                                            setData('kk', e.target.value)
+                                            onChange?.('kk', e.target.value)
                                         }
+                                        onChange?.('kk', e.target.value)
                                     }}
-                                    // required
+                                    required={step === 'WNI'}
                                     minLength={16}  // Minimum 16 karakter
                                     maxLength={16}  // Maksimum 16 karakter
                                     title="Nomor KK harus 16 digit angka"
                                 />
-                                {data.kk.length > 0 && data.kk.length < 16 && (
-                                    <p className="text-xs text-red-500 mt-1">No.KK harus 16 digit</p>
+                                {errors?.kk && (
+                                    <p className="flex items-center gap-2 text-xs text-red-500 mt-1">
+                                        <AlertCircle className="text-red-500 w-4 h-4" />
+                                        {errors?.kk}
+                                    </p>
                                 )}
                             </div>
                         </div>
@@ -267,7 +300,7 @@ const PersonalForm: React.FC<PersonalFormProps> = ({
                         <div className='space-y-1'>
                             <label
                                 htmlFor="paspor"
-                                className='block text-sm font-medium text-gray-700'
+                                className={cn(`block text-sm font-medium text-gray-700`, errors?.paspor && 'text-red-500')}
                             >
                                 Nomor Paspor *
                             </label>
@@ -276,9 +309,18 @@ const PersonalForm: React.FC<PersonalFormProps> = ({
                                 type='text'
                                 className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary'
                                 value={data.paspor}
-                                onChange={e => setData('paspor', e.target.value)}
-                                // required={step === 'WNA'}
+                                onChange={e => {
+                                    onChange?.('paspor', e.target.value)
+                                    onChange?.('paspor', e.target.value)
+                                }}
+                                required={step === 'WNA'}
                             />
+                            {errors?.paspor && (
+                                <p className="flex items-center gap-2 text-xs text-red-500 mt-1">
+                                    <AlertCircle className="text-red-500 w-4 h-4" />
+                                    {errors?.paspor}
+                                </p>
+                            )}
                         </div>
                     ))}
             </div>

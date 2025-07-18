@@ -3,12 +3,13 @@
 namespace App\Models\Saving;
 
 use App\Models\BaseModel;
-use App\Saving\Models\Timagable;
+use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Tregistrasi extends BaseModel
 {
+    use LogsChanges;
     use HasFactory;
 
 

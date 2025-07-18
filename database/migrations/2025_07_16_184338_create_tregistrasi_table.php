@@ -71,6 +71,7 @@ return new class extends Migration
             $table->id();
             $table->string('nouid')->index()->comment('Referensi ke tregistrasi.nouid');
             $table->string('sign')->comment('Tanda tangan digital (enkripsi/hash)');
+            $table->text('payload')->comment("signature payload");
             $table->string('snk_version', 20)->comment('Versi Syarat dan Ketentuan');
             $table->ipAddress('ip_address')->nullable()->comment('IP saat menyetujui');
             $table->string('user_agent')->nullable()->comment('Device user saat menyetujui');

@@ -2,15 +2,19 @@ import { cn } from '@/lib/utils';
 import { ChangeEvent, HTMLInputTypeAttribute, ReactNode } from 'react';
 import { BsStarFill } from 'react-icons/bs';
 
-interface InputGroupProps {
+interface InputGroupProps<T = string | number | boolean> {
+    id?: string
     label?: string;
     value?: string | number;
-    onChange: (value: string | number | boolean | null) => void;
+    onChange: (value: T) => void;
+    onBlur?: () => void;
+    touched?: boolean;
     checked?: boolean;
     error?: string;
     name: string;
     type?: HTMLInputTypeAttribute | 'currency' | 'rating' | 'textarea' | 'checkbox' | 'toggle';
     placeholder?: string;
+    classNameInput?: string;
     className?: string;
     required?: boolean;
     disabled?: boolean;
@@ -18,19 +22,27 @@ interface InputGroupProps {
     subfix?: string | ReactNode;
     rows?: number;
     tsize?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-    min?: string | number;
+    min?: number | undefined;
+    minLength?: number | undefined;
+    max?: number | undefined;
+    maxLength?: number | undefined;
+
 }
 
 const InputGroup: React.FC<InputGroupProps> = ({
+    id,
     label,
     name,
     type = 'text',
     value,
     onChange,
+    onBlur,
+    touched,
     checked = false,
     error,
     placeholder,
     className = '',
+    classNameInput = '',
     required = false,
     disabled = false,
     prefix = '',
@@ -38,6 +50,9 @@ const InputGroup: React.FC<InputGroupProps> = ({
     rows = 4,
     tsize,
     min,
+    minLength,
+    max,
+    maxLength,
 }) => {
     const commonClass = `
     [type='number']::-webkit-outer-spin-button,
@@ -68,13 +83,14 @@ const InputGroup: React.FC<InputGroupProps> = ({
         if (type === 'textarea') {
             return (
                 <textarea
-                    id={name}
+                    id={id ?? name}
                     name={name}
                     rows={rows}
                     value={value as string}
                     onChange={handleChange}
+                    onBlur={onBlur}
                     placeholder={placeholder || `Enter ${String(label).toLowerCase()}`}
-                    className={commonClass}
+                    className={cn(commonClass, classNameInput)}
                     required={required}
                     disabled={disabled}
                     aria-invalid={!!error}
@@ -101,7 +117,7 @@ const InputGroup: React.FC<InputGroupProps> = ({
             );
         }
         if (type === 'checkbox') {
-            return <input type="checkbox" id={name} name={name} checked={checked} onChange={(e) => onChange?.(e.target.checked)} className="" />;
+            return <input type="checkbox" id={name} name={name} checked={checked} onChange={(e) => onChange?.(e.target.checked)} className={classNameInput} />;
         }
         if (type === 'toggle') {
             const text = {
@@ -122,7 +138,7 @@ const InputGroup: React.FC<InputGroupProps> = ({
             const textToggleSize = text[tsize ?? 'md'];
             return (
                 <label className={`relative inline-flex items-center ${toggleSize}`}>
-                    <input type="checkbox" className="peer sr-only" checked={checked} onChange={(e) => onChange?.(e.target.checked)} name={name} />
+                    <input type="checkbox" className={cn("peer sr-only", classNameInput)} checked={checked} onChange={(e) => onChange?.(e.target.checked)} name={name} />
                     <div className="h-full w-full rounded-full bg-gray-300 transition-colors duration-300 peer-checked:bg-green-500" />
                     <div className="absolute top-0.5 left-0.5 aspect-square h-[calc(100%-4px)] rounded-full bg-white shadow transition-transform duration-300 peer-checked:right-0.5 peer-checked:left-auto" />
                     <span className={`absolute right-2 ${textToggleSize} font-medium text-gray-600 peer-checked:hidden`}>No</span>
@@ -133,13 +149,14 @@ const InputGroup: React.FC<InputGroupProps> = ({
 
         return (
             <input
-                id={name}
+                id={id ?? name}
                 name={name}
                 type={type === 'currency' ? 'number' : type}
                 value={value as string | number}
                 onChange={handleChange}
+                onBlur={onBlur}
                 placeholder={placeholder ? placeholder : label ? `Ketik ${label?.toLowerCase()}` : `Ketik ${name?.toLowerCase()}`}
-                className={cn(
+                className={cn(classNameInput,
                     commonClass,
                     'appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
                 )}
@@ -149,6 +166,9 @@ const InputGroup: React.FC<InputGroupProps> = ({
                 aria-describedby={error ? `${name}-error` : undefined}
                 step={type === 'currency' ? '0.01' : undefined}
                 min={min}
+                max={min}
+                maxLength={maxLength}
+                minLength={minLength}
             />
         );
     };
@@ -180,11 +200,12 @@ const InputGroup: React.FC<InputGroupProps> = ({
                 )}
             </div>
 
-            {error && (
-                <p id={`${name}-error`} className="mt-1 text-sm text-red-600">
-                    {error}
-                </p>
-            )}
+            {
+                touched || error && (
+                    <p id={`${name}-error`} className="mt-1 text-sm text-red-600">
+                        {error}
+                    </p>
+                )}
         </div>
     );
 };

@@ -4,13 +4,17 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Datmas\Indentitas;
-use App\Saving\Models\Timagable;
+use App\Models\Saving\Timagable;
+use App\Models\Saving\Tregistrasi;
+use App\Models\Saving\Tsignsnk;
+use App\Models\Saving\Tsnk;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class RegisteredUserController extends Controller
 {
@@ -19,8 +23,25 @@ class RegisteredUserController extends Controller
      */
     public function create(Request $req, $nouid)
     {
+        $snk = Tsnk::with(['points' => fn($q) => $q->orderBy('nmr')])
+            ->where('is_active', true)
+            ->latest('version')
+            ->first();
+        $siswa = Indentitas::with('siswa')->where('nouid', $nouid)->first()->siswa;
         return Inertia::render('Register/Register', [
-            'nouid' => $nouid
+            'nouid' => $nouid,
+            'siswa' => $siswa->namlen,
+            'snk' => [
+                'version' => $snk->version,
+                'effective' => $snk->effective,
+                'title' => $snk->title,
+                'summary' => $snk->summary,
+                'points' => $snk->points->map(fn($point) => [
+                    'nmr' => $point->nmr,
+                    'title' => $point->title,
+                    'content' => $point->content,
+                ]),
+            ],
         ]);
     }
 
@@ -30,100 +51,142 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
+
     public function store(Request $req, $nouid)
     {
-        logger('REQUEST', ['data' => $req->all()]);
-        // [2025-07-16 18:14:21] local.DEBUG: REQUEST {"data":{"nama":"WAHYU WIJAYA","warneg":"ID","warnegName":"Indonesia","nik":"3306071507000002","kk":"3306071507000002","paspor":null,"alamat1":{"addr":"jalan jalan","rt":"004","rw":"002","kec":"33.06.07","desa":"33.06.07.2017","kodpos":"54171","prov":"33","kab":"33.06","provName":"JAWA TENGAH","kabName":"KAB. PURWOREJO","kecName":"Banyuurip","desaName":"Tanjunganom"},"alamat2":{"addr":"jalan jalan","rt":"004","rw":"002","kec":"33.06.10","desa":"33.06.10.2008","kodpos":"54171","prov":"33","kab":"33.06","provName":"JAWA TENGAH","kabName":"KAB. PURWOREJO","kecName":"Butuh","desaName":"Tamansari"},"temtin":"1","hub":"Ayah","tel":"081808856626","email":"gacoprotect@gmail.com","pasporFile":null,"ktpPreview":null,"pasporPreview":null,"ktpFilePreview":"blob:http://siswa.test/b05c54a8-c9c2-4c8f-80fc-dcb0f4bb727f","ktpFile":{"Illuminate\\Http\\UploadedFile":"C:\\xampp\\tmp\\phpD95A.tmp"}}} 
+        logger('REGISTRATION REQUEST', ['data' => $req->all()]);
 
-        $v = $req->validate([
-            "nama" => "required|string|max:100",
-            "warneg" => "required|string|max:100",
-            "warnegName" => "required|string|max:100",
+        try {
+            return DB::transaction(function () use ($req, $nouid) {
 
-            // WNI hanya jika warneg = 'ID'
-            "nik" => "nullable|numeric|digits:16",
-            "kk" => "nullable|numeric|digits:16",
-            "ktpFile" => "nullable|file|mimes:jpg,jpeg,png,pdf|max:2048",
+                // Validasi dasar
+                $validated = $req->validate([
+                    "nama" => "required|string|max:100",
+                    "warneg" => "required|string|max:100",
+                    "warnegName" => "required|string|max:100",
+                    "nik" => "nullable|numeric|digits:16",
+                    "kk" => "nullable|numeric|digits:16",
+                    "ktpFile" => "nullable|file|mimes:jpg,jpeg,png,pdf|max:2048",
+                    "paspor" => "nullable|string|max:50",
+                    "pasporFile" => "nullable|file|mimes:jpg,jpeg,png,pdf|max:2048",
+                    "alamat1" => "required|array",
+                    "alamat1.addr" => "required|string|max:255",
+                    "alamat1.rt" => "required|string|max:10",
+                    "alamat1.rw" => "required|string|max:10",
+                    "alamat1.kec" => "required|string|max:20",
+                    "alamat1.desa" => "required|string|max:20",
+                    "alamat1.kodpos" => "required|string|max:10",
+                    "alamat1.prov" => "required|string|max:10",
+                    "alamat1.kab" => "required|string|max:10",
+                    "temtin" => "required|in:0,1",
+                    "alamat2" => "required_if:temtin,1|array",
+                    "alamat2.addr" => "required_if:temtin,1|string|max:255",
+                    "alamat2.rt" => "required_if:temtin,1|string|max:10",
+                    "alamat2.rw" => "required_if:temtin,1|string|max:10",
+                    "alamat2.kec" => "required_if:temtin,1|string|max:20",
+                    "alamat2.desa" => "required_if:temtin,1|string|max:20",
+                    "alamat2.kodpos" => "required_if:temtin,1|string|max:10",
+                    "alamat2.prov" => "required_if:temtin,1|string|max:10",
+                    "alamat2.kab" => "required_if:temtin,1|string|max:10",
+                    "hub" => "required|string|in:0,1,2",
+                    "tel" => "required|string|max:16",
+                    "email" => "required|email|max:100",
+                    "sign" => "required|string",
+                    "payload" => "required|string",
+                ]);
 
-            // WNA hanya jika warneg != 'ID' dan tidak null/''
-            "paspor" => "nullable|string|max:50",
-            "pasporFile" => "nullable|file|mimes:jpg,jpeg,png,pdf|max:2048",
+                // Validasi khusus WNI/WNA
+                if ($req->warneg === 'ID') {
+                    $req->validate([
+                        'nik' => 'required|numeric|digits:16',
+                        'kk' => 'required|numeric|digits:16',
+                        'ktpFile' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
+                    ]);
+                } else {
+                    $req->validate([
+                        'paspor' => 'required|string|max:50',
+                        'pasporFile' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
+                    ]);
+                }
+                $snk_version = decrypt($req->payload)["snk_version"];
+                // Simpan data registrasi
+                $registrasi = Tregistrasi::create([
+                    'nouid' => $nouid,
+                    'nama' => $req->nama,
+                    'warneg' => $req->warneg,
+                    'warneg_name' => $req->warnegName,
+                    'nik' => $req->warneg === 'ID' ? $req->nik : null,
+                    'kk' => $req->warneg === 'ID' ? $req->kk : null,
+                    'paspor' => $req->warneg !== 'ID' ? $req->paspor : null,
+                    'alamat1' => $req->alamat1,
+                    'alamat2' => $req->temtin == 1 ? $req->alamat2 : null,
+                    'temtin' => $req->temtin,
+                    'hub' => $req->hub,
+                    'tel' => $req->tel,
+                    'email' => $req->email,
+                    'sta' => 0,
+                    'updated_by' => 0
+                ]);
 
-            // Alamat 1
-            "alamat1.addr" => "required|string|max:255",
-            "alamat1.rt" => "required|string|max:10",
-            "alamat1.rw" => "required|string|max:10",
-            "alamat1.kec" => "required|string|max:20",
-            "alamat1.desa" => "required|string|max:20",
-            "alamat1.kodpos" => "required|string|max:10",
-            "alamat1.prov" => "required|string|max:10",
-            "alamat1.kab" => "required|string|max:10",
-            "alamat1.provName" => "nullable|string",
-            "alamat1.kabName" => "nullable|string",
-            "alamat1.kecName" => "nullable|string",
-            "alamat1.desaName" => "nullable|string",
+                // Simpan file KTP/Paspor
+                $fileField = $req->warneg === 'ID' ? 'ktpFile' : 'pasporFile';
+                $fileType = $req->warneg === 'ID' ? 'ktp' : 'paspor';
 
-            // Alamat 2 hanya jika temtin == 1
-            "temtin" => "required|in:0,1",
-            "alamat2.addr" => "required_if:temtin,1|string|max:255",
-            "alamat2.rt" => "required_if:temtin,1|string|max:10",
-            "alamat2.rw" => "required_if:temtin,1|string|max:10",
-            "alamat2.kec" => "required_if:temtin,1|string|max:20",
-            "alamat2.desa" => "required_if:temtin,1|string|max:20",
-            "alamat2.kodpos" => "required_if:temtin,1|string|max:10",
-            "alamat2.prov" => "required_if:temtin,1|string|max:10",
-            "alamat2.kab" => "required_if:temtin,1|string|max:10",
-            "alamat2.provName" => "nullable|string",
-            "alamat2.kabName" => "nullable|string",
-            "alamat2.kecName" => "nullable|string",
-            "alamat2.desaName" => "nullable|string",
+                if ($req->hasFile($fileField)) {
+                    $file = $req->file($fileField);
+                    $path = $file->store('public/doc/reg');
 
-            "hub" => "required|string|in:Ayah,Ibu,Wali",
-            "tel" => "required|string|max:16",
-            "email" => "required|email|max:100",
-        ]);
-        /**
-         * use App\Saving\Models\Timagable;
-         * field = [
-         *   'name',
-         *   'path',
-         *   'mime_type',
-         *   'size',
-         *   'imagable_id',
-         *   'imagable_type',
-         * ]
-         * use App\Saving\Models\Tregistrasi;
-         * field =[
-         *   'nouid',
-         *   'nama',
-         *   'warneg',
-         *   'warneg_name',
-         *   'nik',
-         *   'kk',
-         *   'paspor',
-         *   'alamat1',
-         *   'alamat2',
-         *   'temtin',
-         *   'hub',
-         *   'tel',
-         *   'email',
-         *   'sta',
-         *   'updated_by',
-         *   'reject_reason'
-         * ]
-         * 
-         */
-        if ($req->warneg === 'ID') { // WNI
-            $req->validate([
-                'nik' => 'required|numeric|digits:16',
-                'kk' => 'required|numeric|digits:16',
-                'ktpFile' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
+                    Timagable::create([
+                        'name' => $fileType . '_' . $nouid,
+                        'path' => str_replace('public/', '', $path),
+                        'mime_type' => $file->getMimeType(),
+                        'size' => $file->getSize(),
+                        'imagable_id' => $registrasi->id,
+                        'imagable_type' => Tregistrasi::class
+                    ]);
+                }
+
+                // Simpan tanda tangan
+                Tsignsnk::create([
+                    'nouid' => $nouid,
+                    'sign' => $req->sign,
+                    'payload' => $req->payload,
+                    'snk_version' => $snk_version,
+                    'ip_address' => $req->ip(),
+                    'user_agent' => $req->userAgent()
+                ]);
+
+            
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Pendaftaran berhasil',
+                    'data' => [
+                        'nouid' => $nouid,
+                        'registrasi_id' => $registrasi->id
+                    ]
+                ]);
+            });
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+            return back()
+                ->withErrors($e->validator)
+                ->withInput()
+                ->with([
+                    'success' => false,
+                    'message' => 'Validasi gagal',
+                ]);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            logger()->error('Registration Error: ' . $th->getMessage(), [
+                'trace' => $th->getTraceAsString()
             ]);
-        } else { // WNA
-            $req->validate([
-                'paspor' => 'required|string',
-                'pasporFile' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
-            ]);
+
+            return back()->with([
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'error' => env('APP_DEBUG') ? $th->getMessage() : null
+            ], 500)->withError(['message' => $th->getMessage() ?? null]);
         }
     }
 

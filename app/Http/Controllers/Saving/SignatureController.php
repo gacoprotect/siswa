@@ -9,10 +9,10 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class SignatureController extends Controller
 {
-    public static function getSign(array $signatureData): array
+    public static function getSign(array $signatureData, $nouid): array
     {
         $sign = hash('sha256', json_encode($signatureData));
-        $qrCodeUrl = route('snk.sign', ['sign' => $sign]);
+        $qrCodeUrl = route('snk.sign', ['sign' => $sign,'nouid' => $nouid,]);
 
         $qrCodeSvg = (string) QrCode::format('svg')->size(80)->generate($qrCodeUrl);
 

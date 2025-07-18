@@ -65,7 +65,7 @@ trait LogsChanges
             $logData = [
                 'loggable_type' => get_class($this),
                 'loggable_id' => $this->id,
-                'user_id' => Auth::id(),
+                'user_id' => Auth::id() ?? 0,
                 'action' => $action,
                 'old_data' => $oldData,
                 'new_data' => $newData,

@@ -1,6 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Section from './section';
 import axios from 'axios';
+import InputGroup from '../InputGroup';
+import { SelectInput } from '../SelectInput';
+import { FaSpinner } from 'react-icons/fa';
 
 interface Address {
     addr: string;
@@ -20,7 +23,7 @@ interface AlamatProps {
         alamat2: Address;
     };
     step: 'WNI' | 'WNA' | null;
-    setData: (key: string, value: string | Address) => void;
+    onChange: (key: string, value: string | Address) => void;
     errors?: Record<string, string>;
 }
 
@@ -28,100 +31,8 @@ interface RegionOption {
     id: string;
     nama: string;
 }
-interface InputFieldProps {
-    id: string;
-    label: string;
-    placeholder: string;
-    value: string;
-    onChange: (value: string) => void;
-    onBlur: () => void;
-    required?: boolean;
-    type?: string;
-    error?: string;
-    touched?: boolean;
-    validation?: {
-        max?: number;
-        min?: number;
-        maxLength?: number;
-        minLength?: number;
-        pattern?: string;
-    };
-}
 
-const InputField: React.FC<InputFieldProps> = React.memo(({
-    id,
-    label,
-    placeholder,
-    value,
-    onChange,
-    onBlur,
-    required = false,
-    type = 'text',
-    error,
-    touched,
-    validation
-}) => {
-    const [localValue, setLocalValue] = useState(value);
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        setLocalValue(value);
-    }, [value]);
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let newValue = e.target.value;
-
-        // Validasi khusus untuk tipe number
-        if (type === 'number') {
-            // Hanya menerima angka
-            newValue = newValue.replace(/\D/g, '');
-
-            // Validasi maxLength jika ada
-            if (validation?.maxLength && newValue.length > validation.maxLength) {
-                return;
-            }
-
-            // Validasi min/max jika ada
-            if (validation?.min !== undefined && parseInt(newValue) < validation.min) {
-                newValue = validation.min.toString();
-            }
-            if (validation?.max !== undefined && newValue && parseInt(newValue) > validation.max) {
-                newValue = validation.max.toString();
-            }
-        }
-
-        setLocalValue(newValue);
-        onChange(newValue);
-    };
-
-    const showError = touched && error;
-
-    return (
-        <div className='space-y-1'>
-            <label htmlFor={id} className='block text-sm font-medium text-gray-700'>
-                {label} {required && '*'}
-            </label>
-            <input
-                ref={inputRef}
-                id={id}
-                placeholder={placeholder}
-                className={`w-full px-3 py-2 border ${showError ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-primary`}
-                value={localValue}
-                onChange={handleChange}
-                onBlur={onBlur}
-                required={required}
-                type={type === 'number' ? 'text' : type} // Gunakan type text untuk number agar bisa validasi length
-                inputMode={type === 'number' ? 'numeric' : undefined}
-                maxLength={validation?.maxLength}
-                minLength={validation?.minLength}
-                pattern={validation?.pattern}
-            />
-            {showError && <p className="text-xs text-red-500 mt-1">{error}</p>}
-        </div>
-    );
-});
-
-const AlamatForm: React.FC<AlamatProps> = ({ step, data, setData, errors = {} }) => {
+const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => {
     const [loading, setLoading] = useState({
         prov: false,
         kab: false,
@@ -140,12 +51,14 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, setData, errors = {} })
     useEffect(() => {
         fetchRegions('provinsi');
     }, []);
+
     useEffect(() => {
         if (step === 'WNA') {
-            setData('temtin', '0');
+            onChange('temtin', '0');
             setTouchedFields(prev => ({ ...prev, temtin: true }));
         }
-    }, [step, setData]);
+    }, [step, onChange]);
+
     const fetchRegions = async (level: 'provinsi' | 'kabupaten' | 'kecamatan' | 'kelurahan', parentId?: string) => {
         const key = level === 'provinsi' ? 'prov' :
             level === 'kabupaten' ? 'kab' :
@@ -189,10 +102,10 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, setData, errors = {} })
             ...(name && { [`${level}Name`]: name })
         };
 
-        setData(addressType, updatedAddress);
+        onChange(addressType, updatedAddress);
 
         if (level === 'prov') {
-            setData(addressType, {
+            onChange(addressType, {
                 ...updatedAddress,
                 kab: '',
                 kec: '',
@@ -202,7 +115,7 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, setData, errors = {} })
             if (value) await fetchRegions('kabupaten', value);
         }
         else if (level === 'kab') {
-            setData(addressType, {
+            onChange(addressType, {
                 ...updatedAddress,
                 kec: '',
                 desa: '',
@@ -211,14 +124,14 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, setData, errors = {} })
             if (value) await fetchRegions('kecamatan', value);
         }
         else if (level === 'kec') {
-            setData(addressType, {
+            onChange(addressType, {
                 ...updatedAddress,
                 desa: '',
             });
             setRegions(prev => ({ ...prev, kelurahan: [] }));
             if (value) await fetchRegions('kelurahan', value);
         }
-    }, [data, setData]);
+    }, [data, onChange]);
 
     const handleAddressChange = useCallback((
         addressType: 'alamat1' | 'alamat2',
@@ -226,11 +139,11 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, setData, errors = {} })
         value: string
     ) => {
         setTouchedFields(prev => ({ ...prev, [`${addressType}.${field}`]: true }));
-        setData(addressType, {
+        onChange(addressType, {
             ...data[addressType],
             [field]: value
         });
-    }, [data, setData]);
+    }, [data, onChange]);
 
     const renderRegionSelect = useCallback((
         addressType: 'alamat1' | 'alamat2',
@@ -247,44 +160,39 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, setData, errors = {} })
             (level === 'desa' && !data[addressType].kec);
 
         const fieldKey = `${addressType}.${level}`;
-        const showError = touchedFields[fieldKey] && errors[fieldKey];
+        const showError = touchedFields[fieldKey] || errors?.[fieldKey];
+        
+        const selectOptions = options.map(option => ({
+            value: option.id,
+            label: option.nama,
+            disabled: false
+        }));
 
         return (
-            <div className='space-y-1'>
-                <label className='block text-sm font-medium text-gray-700'>
-                    {label} {required && '*'}
-                </label>
-                <select
-                    className={`w-full px-3 py-2 text-sm border ${showError ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50`}
-                    value={value}
-                    onChange={(e) => {
-                        const selectedOption = options.find(opt => opt.id === e.target.value);
-                        handleRegionChange(
-                            addressType,
-                            level,
-                            e.target.value,
-                            selectedOption?.nama
-                        );
-                    }}
-                    disabled={disabled}
-                    required={required}
-                    onBlur={() => setTouchedFields(prev => ({ ...prev, [fieldKey]: true }))}
-                >
-                    <option className='text-sm' value=''>-- Pilih {label} --</option>
-                    {isLoading ? (
-                        <option>Memuat...</option>
-                    ) : (
-                        options.map(option => (
-                            <option className='text-sm' key={option.id} value={option.id}>
-                                {option.nama}
-                            </option>
-                        ))
-                    )}
-                </select>
-                {showError && (
-                    <p className="text-xs text-red-500 mt-1">{errors[fieldKey]}</p>
-                )}
-            </div>
+            <SelectInput
+                name={fieldKey}
+                id={`${addressType}-${level}`}
+                allowEmpty
+                label={label}
+                value={value}
+                onChange={(val) => {
+                    const selectedOption = options.find(opt => opt.id === val);
+                    handleRegionChange(
+                        addressType,
+                        level,
+                        val,
+                        selectedOption?.nama
+                    );
+                    onChange(fieldKey, val)
+                }}
+                options={isLoading ? [] : selectOptions}
+                placeholder={isLoading ? 'Loading...' : `-- Pilih --`}
+                disabled={disabled}
+                required={required}
+                errors={errors}
+                // triggerClassName={showError ? 'border-destructive' : ''}
+            // onBlur={() => setTouchedFields(prev => ({ ...prev, [fieldKey]: true }))}
+            />
         );
     }, [data, loading, touchedFields, errors, handleRegionChange]);
 
@@ -311,14 +219,14 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, setData, errors = {} })
                         'prov',
                         'Provinsi',
                         currentRegions.provinsi,
-                        // required
+                        required
                     )}
                     {renderRegionSelect(
                         addressType,
                         'kab',
                         'Kabupaten/Kota',
                         currentRegions.kabupaten,
-                        // required
+                        required
                     )}
                 </div>
 
@@ -328,82 +236,76 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, setData, errors = {} })
                         'kec',
                         'Kecamatan',
                         currentRegions.kecamatan,
-                        // required
+                        required
                     )}
                     {renderRegionSelect(
                         addressType,
                         'desa',
                         'Desa/Kelurahan',
                         currentRegions.kelurahan,
-                        // required
+                        required
                     )}
                 </div>
 
-                <InputField
+                <InputGroup
+                    name={`${addressType}.addr`}
                     id={`${prefix}-addr`}
                     label="Alamat Lengkap"
                     placeholder="Jl. Contoh No. 123"
                     value={data[addressType].addr}
-                    onChange={(value) => handleAddressChange(addressType, 'addr', value)}
+                    onChange={(value) => handleAddressChange(addressType, 'addr', value as string)}
                     onBlur={() => setTouchedFields(prev => ({ ...prev, [`${addressType}.addr`]: true }))}
-                    // required={required}
+                    required={required}
                     type="text"
-                    error={errors[`${addressType}.addr`]}
+                    error={errors?.[`${addressType}.addr`]}
                     touched={touchedFields[`${addressType}.addr`]}
                 />
 
                 <div className='grid grid-cols-3 gap-3'>
-                    <InputField
+                    <InputGroup
+                        name={`${addressType}.rt`}
                         id={`${prefix}-rt`}
                         label="RT"
                         placeholder="001"
                         value={data[addressType].rt}
-                        onChange={(value) => handleAddressChange(addressType, 'rt', value)}
+                        onChange={(value) => handleAddressChange(addressType, 'rt', value as string)}
                         onBlur={() => setTouchedFields(prev => ({ ...prev, [`${addressType}.rt`]: true }))}
-                        // required={required}
+                        required={required}
                         type="number"
-                        error={errors[`${addressType}.rt`]}
+                        error={errors?.[`${addressType}.rt`]}
                         touched={touchedFields[`${addressType}.rt`]}
-                        validation={{
-                            max: 999,
-                            minLength: 3,
-                            maxLength: 3
-                        }}
+                        maxLength={3}
+                        max={3}
                     />
 
-                    <InputField
+                    <InputGroup
+                        name={`${addressType}.rw`}
                         id={`${prefix}-rw`}
                         label="RW"
                         placeholder="002"
                         value={data[addressType].rw}
-                        onChange={(value) => handleAddressChange(addressType, 'rw', value)}
+                        onChange={(value) => handleAddressChange(addressType, 'rw', value as string)}
                         onBlur={() => setTouchedFields(prev => ({ ...prev, [`${addressType}.rw`]: true }))}
-                        // required={required}
+                        required={required}
                         type="number"
-                        error={errors[`${addressType}.rw`]}
+                        error={errors?.[`${addressType}.rw`]}
                         touched={touchedFields[`${addressType}.rw`]}
-                        validation={{
-                            max: 999,
-                            minLength: 3,
-                            maxLength: 3
-                        }}
+                        max={3}
                     />
 
-                    <InputField
+                    <InputGroup
+                        name={`${addressType}.kodpos`}
                         id={`${prefix}-kodpos`}
                         label="Kode Pos"
                         placeholder="12345"
                         value={data[addressType].kodpos}
-                        onChange={(value) => handleAddressChange(addressType, 'kodpos', value)}
+                        onChange={(value) => handleAddressChange(addressType, 'kodpos', value as string)}
                         onBlur={() => setTouchedFields(prev => ({ ...prev, [`${addressType}.kodpos`]: true }))}
-                        // required={required}
+                        required={required}
                         type="number"
-                        error={errors[`${addressType}.kodpos`]}
+                        error={errors?.[`${addressType}.kodpos`]}
                         touched={touchedFields[`${addressType}.kodpos`]}
-                        validation={{
-                            minLength: 5,
-                            maxLength: 5
-                        }}
+                        max={3}
                     />
                 </div>
             </div>
@@ -414,32 +316,26 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, setData, errors = {} })
         <Section title='Alamat'>
             <div className='space-y-4'>
                 {step === 'WNI' && (
-                    <div className='space-y-1'>
-                        <label
-                            htmlFor="tempat-tinggal"
-                            className='block text-sm font-medium text-gray-700'
-                        >
-                            Dimana Anda Tinggal? *
-                        </label>
-                        <select
-                            id="tempat-tinggal"
-                            className={`w-full px-3 py-2 border ${errors['temtin'] ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-primary`}
-                            value={data.temtin}
-                            onChange={(e) => {
-                                setTouchedFields(prev => ({ ...prev, temtin: true }));
-                                setData('temtin', e.target.value);
-                            }}
-                            // required
-                            onBlur={() => setTouchedFields(prev => ({ ...prev, temtin: true }))}
-                        >
-                            <option value=''>--Pilih--</option>
-                            <option value='0'>Sesuai KTP</option>
-                            <option value='1'>Alamat Lain</option>
-                        </select>
-                        {errors['temtin'] && (
-                            <p className="text-xs text-red-500 mt-1">{errors['temtin']}</p>
-                        )}
-                    </div>
+                    <SelectInput
+                        name='temtin'
+                        id="tempat-tinggal"
+                        allowEmpty
+                        label="Dimana Anda Tinggal?"
+                        value={data.temtin}
+                        onChange={(value) => {
+                            setTouchedFields(prev => ({ ...prev, temtin: true }));
+                            onChange('temtin', value);
+                        }}
+                        placeholder='-- Pilih --'
+                        options={[
+                            { value: '0', label: 'Sesuai KTP' },
+                            { value: '1', label: 'Alamat Lain' }
+                        ]}
+                        required
+                        errors={errors}
+                        triggerClassName={errors?.['temtin'] ? 'border-destructive' : ''}
+                    // onBlur={() => setTouchedFields(prev => ({ ...prev, temtin: true }))}
+                    />
                 )}
                 {
                     step === 'WNA' ?

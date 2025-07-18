@@ -1,5 +1,7 @@
 import React from 'react'
 import Section from './section'
+import { cn } from '@/lib/utils'
+import { AlertCircle } from 'lucide-react'
 
 
 interface KontakProps {
@@ -8,12 +10,12 @@ interface KontakProps {
         tel: string
         email: string
     }
-    setData: (key: string, value: string) => void    
+    onChange: (key: string, value: string) => void
     errors?: Record<string, string>;
 }
 const KontakForm: React.FC<KontakProps> = ({
     data,
-    setData,
+    onChange,
     errors
 }) => {
     return (
@@ -22,58 +24,81 @@ const KontakForm: React.FC<KontakProps> = ({
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                     <div className='space-y-1'>
                         <label
-                            htmlFor="hubungan"
-                            className='block text-sm font-medium text-gray-700'
+                            htmlFor="hub"
+                            className={cn(`block text-sm font-medium text-gray-700`, errors?.hub && 'text-red-500')}
                         >
                             Hubungan dengan Peserta Didik *
                         </label>
                         <select
-                            id="hubungan"
-                            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary'
+                            id="hub"
+                            className={cn('w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary',
+                                errors?.hub && 'border-red-500'
+                            )}
                             value={data.hub}
-                            onChange={e => setData('hub', e.target.value)}
-                            // required
+                            onChange={e => onChange('hub', e.target.value)}
+                        // required
                         >
                             <option value=''>Pilih</option>
-                            <option value='Ayah'>Ayah</option>
-                            <option value='Ibu'>Ibu</option>
-                            <option value='Wali'>Wali</option>
+                            <option value='0'>Ayah</option>
+                            <option value='1'>Ibu</option>
+                            <option value='2'>Wali</option>
                         </select>
+                        {errors?.hub && (
+                            <p className="flex items-center gap-2 text-xs text-red-500 mt-1">
+                                <AlertCircle className="text-red-500 w-4 h-4" />
+                                {errors?.hub}
+                            </p>
+                        )}
                     </div>
 
                     <div className='space-y-1'>
                         <label
-                            htmlFor="whatsapp"
-                            className='block text-sm font-medium text-gray-700'
+                            htmlFor="tel"
+                            className={cn(`block text-sm font-medium text-gray-700`, errors?.hub && 'text-red-500')}
                         >
                             Nomor WhatsApp *
                         </label>
                         <input
-                            id="whatsapp"
+                            id="tel"
                             type='tel'
-                            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary'
-                            value={data.tel}
-                            onChange={e => setData('tel', e.target.value)}
-                            // required
+                            className={cn('w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary',
+                                errors?.tel && 'border-red-500'
+                            )} value={data.tel}
+                            onChange={e => onChange('tel', e.target.value)}
+                        // required
                         />
+                        {errors?.tel && (
+                            <p className="flex items-center gap-2 text-xs text-red-500 mt-1">
+                                <AlertCircle className="text-red-500 w-4 h-4" />
+                                {errors?.tel}
+                            </p>
+                        )}
                     </div>
                 </div>
 
                 <div className='space-y-1'>
                     <label
                         htmlFor="email"
-                        className='block text-sm font-medium text-gray-700'
+                        className={cn(`block text-sm font-medium text-gray-700`, errors?.hub && 'text-red-500')}
                     >
                         Email *
                     </label>
                     <input
                         id="email"
                         type='email'
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary'
+                        className={cn('w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary',
+                            errors?.email && 'border-red-500'
+                        )}
                         value={data.email}
-                        onChange={e => setData('email', e.target.value)}
-                        // required
+                        onChange={e => onChange('email', e.target.value)}
+                    // required
                     />
+                    {errors?.email && (
+                        <p className="flex items-center gap-2 text-xs text-red-500 mt-1">
+                            <AlertCircle className="text-red-500 w-4 h-4" />
+                            {errors?.email}
+                        </p>
+                    )}
                 </div>
             </div>
         </Section>

@@ -51,6 +51,9 @@ class HandleInertiaRequests extends Middleware
                 $request->session()->forget(['success', 'message', 'expires_at']);
                 return $flash;
             },
+            'data' => function () use ($request) {
+                return $request->session()->get('data');
+            },
             'auth' => [
                 'user' => $request->user(),
             ],
@@ -59,7 +62,7 @@ class HandleInertiaRequests extends Middleware
                 'location' => $request->url(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            
+
         ];
     }
 }

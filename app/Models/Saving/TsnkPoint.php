@@ -3,11 +3,13 @@
 namespace App\Models\Saving;
 
 use App\Models\BaseModel;
+use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class TsnkPoint extends BaseModel
 {
+    use LogsChanges;
     use HasFactory;
 
     protected $connection = 'mai4';

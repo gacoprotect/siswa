@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
-import { X } from "lucide-react";
-import React, { ReactNode, useEffect } from "react";
+import { AlertCircle, X } from "lucide-react";
+import React, { forwardRef, ReactNode, useEffect, useRef, useState } from "react";
+import InputGroup from "../InputGroup";
 
 interface ModalProps {
   title?: string;
@@ -12,7 +13,17 @@ interface ModalProps {
   closeOnEsc?: boolean;
   overlayClassName?: string;
   className?: string;
-  header?:boolean
+  header?: boolean;
+  footer?: ReactNode;
+  onConfirm?: React.MouseEventHandler<HTMLButtonElement> | undefined;
+  cancelText?: string;
+  confirmText?: string;
+  confirmDisabled?: boolean;
+  confirmClassName?: string;
+  error?: string
+  agreement?: string | React.ReactNode
+  onScrollToBottom?: () => void;
+
 }
 
 const sizeMap = {
@@ -24,7 +35,7 @@ const sizeMap = {
 };
 
 export const Modal: React.FC<ModalProps> = ({
-  title='',
+  title = '',
   size = "md",
   isOpen,
   onClose,
@@ -33,14 +44,45 @@ export const Modal: React.FC<ModalProps> = ({
   closeOnEsc = true,
   overlayClassName = "",
   className = "",
-  header = true
+  header = true,
+  footer,
+  onConfirm,
+  cancelText = "Batal",
+  confirmText = "Setuju",
+  confirmDisabled = false,
+  confirmClassName = "bg-primary text-primary-foreground hover:bg-primary/90",
+  error,
+  onScrollToBottom,
+  agreement,
+
 }) => {
+  const [agreed, setAgreed] = useState(false);
+  const [scrolledToBottom, setScrolledToBottom] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Detect scroll to bottom
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !isOpen) return;
+
+    const handleScroll = () => {
+      const isBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 10;
+      setScrolledToBottom(isBottom);
+      if (isBottom && onScrollToBottom) {
+        onScrollToBottom();
+      }
+    };
+
+    el.addEventListener("scroll", handleScroll);
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, [isOpen, onScrollToBottom]);
   // Close with ESC key
   useEffect(() => {
     if (!isOpen || !closeOnEsc) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
+        setAgreed(false)
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -51,6 +93,7 @@ export const Modal: React.FC<ModalProps> = ({
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (closeOnOverlayClick && e.target === e.currentTarget) {
       onClose();
+      setAgreed(false)
     }
   };
 
@@ -63,13 +106,62 @@ export const Modal: React.FC<ModalProps> = ({
     >
       <div
         className={cn(
-          `bg-secondary text-secondary-foreground rounded-lg shadow-lg overflow-auto w-full ${sizeMap[size]}`,
-       `${className}` )} 
-      >
-        {header &&(
-        <ModalHeader onClose={onClose}>{title}</ModalHeader>
+          `bg-secondary text-secondary-foreground rounded-lg shadow-lg flex flex-col max-h-[90vh] ${sizeMap[size]}`,
+          className
         )}
-        <ModalBody>{children}</ModalBody>
+      >
+        {header && (
+          <ModalHeader onClose={() => { onClose; setAgreed(false) }}>{title}</ModalHeader>
+        )}
+        <ModalBody className="flex-1 overflow-auto" ref={scrollRef}>
+          {children}
+        </ModalBody>
+        {agreement && (
+          <div className='flex gap-2 px-4 text-sm'>
+            <InputGroup
+              name="agreement"
+              type="checkbox"
+              checked={agreed}
+              onChange={(val) => setAgreed(Boolean(val))}
+              classNameInput={cn(
+                'h-5 w-5 form-checkbox rounded accent-blue-500',
+                !agreed && 'animate-pulse bg-accent-primary',
+                error && 'accent-red-500')} />
+            {agreement}
+
+          </div>
+        )}
+        {(footer || onConfirm) && (
+          <ModalFooter className={cn(error && 'justify-between')}>
+            {error && (
+              <p className="flex items-center gap-2 text-xs text-red-500 mt-1">
+                <AlertCircle className="text-red-500 w-4 h-4" />
+                {error}
+              </p>
+            )}
+
+            {footer || (
+              <div className="flex gap-2 items-center">
+                <button
+                  onClick={() => { onClose(); setAgreed(false); }}
+                  className="px-4 py-2 text-white text-sm font-medium rounded-md bg-red-500 hover:bg-red-400"
+                >
+                  {cancelText}
+                </button>
+                <button
+                  onClick={onConfirm}
+                  disabled={(confirmDisabled || !!error || (!scrolledToBottom || !agreed))}
+                  className={cn(
+                    "px-4 py-2 text-sm font-medium rounded-md disabled:opacity-50 disabled:cursor-not-allowed",
+                    confirmClassName
+                  )}
+                >
+                  {confirmText}
+                </button>
+              </div>
+            )}
+          </ModalFooter>
+        )}
       </div>
     </div>
   );
@@ -109,15 +201,18 @@ interface ModalBodyProps {
   children: ReactNode;
   className?: string;
 }
-export const ModalBody: React.FC<ModalBodyProps> = ({ children, className = "" }) => (
-  <div className={`p-4 ${className}`}>{children}</div>
+export const ModalBody = forwardRef<HTMLDivElement, ModalBodyProps>(
+  ({ children, className = "" }, ref) => (
+    <div ref={ref} className={`p-2 overflow-auto ${className}`}>
+      {children}
+    </div>
+  )
 );
-
 // Footer
 interface ModalFooterProps {
   children: ReactNode;
   className?: string;
 }
 export const ModalFooter: React.FC<ModalFooterProps> = ({ children, className = "" }) => (
-  <div className={`p-4 border-t flex justify-end space-x-2 ${className}`}>{children}</div>
+  <div className={cn(`px-6 py-2 border-t flex justify-end space-x-2 `, className)}>{children}</div>
 );

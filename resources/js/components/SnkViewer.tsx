@@ -63,7 +63,7 @@ export default function SnkViewer({ points, ortu, siswa }: Props) {
                                 className="text-sm"
                                 dangerouslySetInnerHTML={{
                                     __html: DOMPurify.sanitize(
-                                        replacePlaceholders(item.description || '', ortu ?? 'WAHYU WIJAYA', siswa ?? 'JOKO')
+                                        replacePlaceholders(item.description || '', ortu ?? '', siswa ?? '')
                                     ),
                                 }}
                             />

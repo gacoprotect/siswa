@@ -3,12 +3,14 @@
 namespace App\Models\Saving;
 
 use App\Models\BaseModel;
+use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Carbon;
 
 class Tsnk extends BaseModel
 {
+    use LogsChanges;
     use HasFactory;
 
     protected $connection = 'mai4';

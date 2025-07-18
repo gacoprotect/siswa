@@ -4,7 +4,19 @@ import type { Config } from 'ziggy-js';
 export interface Auth {
     user: Siswa;
 }
+export type DataValue = string | NestedData;
 
+export interface NestedData {
+    [key: string]: DataValue;
+}
+
+export interface PageProps {
+    flash?: FlashMessage;
+    errors?: Record<string, string>;
+    name?: string;
+    data?: NestedData
+    [key: string]: unknown
+}
 export interface BreadcrumbItem {
     title: string;
     href: string;
