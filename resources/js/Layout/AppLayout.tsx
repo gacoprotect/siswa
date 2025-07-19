@@ -10,8 +10,8 @@ type AppLayoutProps = {
 };
 const AppLayout = ({ children, title, className = '' }: AppLayoutProps) => {
 const { log, warn, error } = useDebugLogger();
-const isDev = Boolean(import.meta.env.VITE_APP_DEBUG && import.meta.env.VITE_APP_ENV === "local")
-const isDebug = Boolean(import.meta.env.VITE_APP_DEBUG)
+const isDev = Boolean(import.meta.env.VITE_APP_DEBUG === 'true' && import.meta.env.VITE_APP_ENV === "local")
+const isDebug = Boolean(import.meta.env.VITE_APP_DEBUG === 'true')
 const isLocal = Boolean(import.meta.env.VITE_APP_ENV === "local")
 if (import.meta.env.VITE_APP_DEBUG) {
     log({ "DEV_MODE": isDev, "APP_DEBUG": import.meta.env.VITE_APP_DEBUG, "APP_ENV": import.meta.env.VITE_APP_ENV });

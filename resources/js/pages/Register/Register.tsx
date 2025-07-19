@@ -92,7 +92,7 @@ const Register = ({ nouid, snk }: { nouid: string; snk: SnkProps }) => {
     const [processing, setProcessing] = React.useState(false)
     const [validationErrors, setValidationErrors] = React.useState<Record<string, string>>(errors)
     const formRef = useRef<HTMLFormElement>(null)
-    const isDev = Boolean(import.meta.env.VITE_APP_DEBUG && import.meta.env.VITE_APP_ENV)
+    const isDev = Boolean(import.meta.env.VITE_APP_DEBUG === 'true' && import.meta.env.VITE_APP_ENV === 'local')
     const { log, error } = useDebugLogger();
 
 

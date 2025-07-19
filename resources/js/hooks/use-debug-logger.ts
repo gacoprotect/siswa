@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 
 type Logger = {
     log: (...args: unknown[]) => void;
@@ -9,14 +9,15 @@ type Logger = {
     dirxml: (obj: unknown) => void;
 };
 
-const isDebugMode = import.meta.env.VITE_APP_DEBUG === 'true';
+const isDebugMode = Boolean(import.meta.env.VITE_APP_DEBUG === 'true');
+console.log("CEK :", isDebugMode);
 
 const useDebugLogger = (): Logger => {
     useEffect(() => {
-            if (isDebugMode) {
-                console.log('%c[DEBUG]', 'color: #4CAF50; font-weight: bold', 'Debug mode is ACTIVE');
-                console.log('%c[ENV]', 'color: #2196F3; font-weight: bold', import.meta.env);
-            }
+        if (isDebugMode) {
+            console.log('%c[DEBUG]', 'color: #4CAF50; font-weight: bold', 'Debug mode is ACTIVE');
+            console.log('%c[ENV]', 'color: #2196F3; font-weight: bold', import.meta.env);
+        }
     }, [])
 
     const logger: Logger = {
