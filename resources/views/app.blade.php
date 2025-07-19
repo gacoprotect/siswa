@@ -62,7 +62,14 @@
 </head>
 
 <body class="font-sans antialiased">
+    <div id="__config"
+        data-debug="{{ config('app.debug') ? 'true' : 'false' }}"
+        data-env="{{ app()->environment() }}"
+        data-name="{{ config('app.name') }}" >
+    </div>
+
     @inertia
 </body>
+
 
 </html>

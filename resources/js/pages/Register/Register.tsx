@@ -14,6 +14,7 @@ import { PageProps } from '@/types'
 import { FaSpinner } from 'react-icons/fa'
 import { cn } from '@/lib/utils'
 import useDebugLogger from '@/hooks/use-debug-logger'
+import { useAppConfig } from '@/hooks/use-app-config'
 
 type Address = {
     addr: string
@@ -92,7 +93,8 @@ const Register = ({ nouid, snk }: { nouid: string; snk: SnkProps }) => {
     const [processing, setProcessing] = React.useState(false)
     const [validationErrors, setValidationErrors] = React.useState<Record<string, string>>(errors)
     const formRef = useRef<HTMLFormElement>(null)
-    const isDev = Boolean(import.meta.env.VITE_APP_DEBUG === 'true' && import.meta.env.VITE_APP_ENV === 'local')
+    const config = useAppConfig();
+    const isDev = config.APP_ENV === 'local'    
     const { log, error } = useDebugLogger();
 
 

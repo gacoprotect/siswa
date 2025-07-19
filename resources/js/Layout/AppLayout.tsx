@@ -1,3 +1,4 @@
+import { useAppConfig } from '@/hooks/use-app-config';
 import useDebugLogger from '@/hooks/use-debug-logger';
 import { Head } from '@inertiajs/react';
 import React from 'react';
@@ -9,27 +10,24 @@ type AppLayoutProps = {
     className?: string;
 };
 const AppLayout = ({ children, title, className = '' }: AppLayoutProps) => {
-const { log, warn, error } = useDebugLogger();
-const isDev = Boolean(import.meta.env.VITE_APP_DEBUG === 'true' && import.meta.env.VITE_APP_ENV === "local")
-const isDebug = Boolean(import.meta.env.VITE_APP_DEBUG === 'true')
-const isLocal = Boolean(import.meta.env.VITE_APP_ENV === "local")
-if (import.meta.env.VITE_APP_DEBUG) {
-    log({ "DEV_MODE": isDev, "APP_DEBUG": import.meta.env.VITE_APP_DEBUG, "APP_ENV": import.meta.env.VITE_APP_ENV });
-    warn("SEGERA MATIKAN DEBUG MODE SETELAH SELESAI");
-}
+    const { log, warn } = useDebugLogger();
+    const config = useAppConfig();
+    const isDebug = config.APP_DEBUG;
+    const isDev = config.APP_ENV === 'local'
+    if (isDebug) {
+        log({ "DEV_MODE": isDev, "APP_DEBUG": isDebug });
+        warn("SEGERA MATIKAN DEBUG MODE SETELAH SELESAI");
+    }
+
     return (
         <div className="min-h-screen relative bg-primary overflow-hidden">
             <Head title={title} />
 
             {/* DEBUG BANNER - Positioned absolutely at the top */}
-            {(isDev || isDebug || isLocal) && (
-                <div className="fixed w-60 h-50 flex flex-col justify-end -rotate-45 origin-top-left top-2 -left-42 z-50 bg-yellow-500/50 text-center py-1 px-8 text-black animate-pulse text-sm">
-                    <span className='font-bold'>MODE</span>
-                    <span className='font-bold'>{
-                        isDev ? "DEVELOPMENT" :
-                            isDebug ? 'DEBUG' :
-                                isLocal && "LOCAL"
-                    }
+            {(isDev || isDebug) && (
+                <div className="fixed w-60 h-50 flex flex-col justify-end -rotate-45 origin-top-left top-0 -left-42 z-50 bg-yellow-300/50 text-center py-1 px-8 text-black animate-pulse text-sm">
+                    <span className='font-bold text-yellow-900'>MODE</span>
+                    <span className='font-bold text-yellow-900'>{isDebug ? 'DEBUG ACTIVED' : import.meta.env.MODE}
                     </span>
                 </div>
             )}
