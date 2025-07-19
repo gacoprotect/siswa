@@ -3,7 +3,6 @@ import Section from './section';
 import axios from 'axios';
 import InputGroup from '../InputGroup';
 import { SelectInput } from '../SelectInput';
-import { FaSpinner } from 'react-icons/fa';
 
 interface Address {
     addr: string;
@@ -52,13 +51,6 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
         fetchRegions('provinsi');
     }, []);
 
-    useEffect(() => {
-        if (step === 'WNA') {
-            onChange('temtin', '0');
-            setTouchedFields(prev => ({ ...prev, temtin: true }));
-        }
-    }, [step, onChange]);
-
     const fetchRegions = async (level: 'provinsi' | 'kabupaten' | 'kecamatan' | 'kelurahan', parentId?: string) => {
         const key = level === 'provinsi' ? 'prov' :
             level === 'kabupaten' ? 'kab' :
@@ -96,42 +88,34 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
         setCurrentAddressType(addressType);
         setTouchedFields(prev => ({ ...prev, [`${addressType}.${level}`]: true }));
 
-        const updatedAddress = {
+        // Mulai dengan update dasar
+        let updatedAddress: Address = {
             ...data[addressType],
             [level]: value,
-            ...(name && { [`${level}Name`]: name })
+            ...(name ? { [`${level}Name`]: name } : {})
         };
 
-        onChange(addressType, updatedAddress);
-
+        // Reset child levels
         if (level === 'prov') {
-            onChange(addressType, {
-                ...updatedAddress,
-                kab: '',
-                kec: '',
-                desa: '',
-            });
+            updatedAddress = { ...updatedAddress, kab: '', kec: '', desa: '' };
             setRegions(prev => ({ ...prev, kabupaten: [], kecamatan: [], kelurahan: [] }));
             if (value) await fetchRegions('kabupaten', value);
         }
         else if (level === 'kab') {
-            onChange(addressType, {
-                ...updatedAddress,
-                kec: '',
-                desa: '',
-            });
+            updatedAddress = { ...updatedAddress, kec: '', desa: '' };
             setRegions(prev => ({ ...prev, kecamatan: [], kelurahan: [] }));
             if (value) await fetchRegions('kecamatan', value);
         }
         else if (level === 'kec') {
-            onChange(addressType, {
-                ...updatedAddress,
-                desa: '',
-            });
+            updatedAddress = { ...updatedAddress, desa: '' };
             setRegions(prev => ({ ...prev, kelurahan: [] }));
             if (value) await fetchRegions('kelurahan', value);
         }
+
+        // Hanya panggil onChange sekali
+        onChange(addressType, updatedAddress);
     }, [data, onChange]);
+
 
     const handleAddressChange = useCallback((
         addressType: 'alamat1' | 'alamat2',
@@ -161,7 +145,7 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
 
         const fieldKey = `${addressType}.${level}`;
         const showError = touchedFields[fieldKey] || errors?.[fieldKey];
-        
+
         const selectOptions = options.map(option => ({
             value: option.id,
             label: option.nama,
@@ -183,14 +167,13 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
                         val,
                         selectedOption?.nama
                     );
-                    onChange(fieldKey, val)
                 }}
                 options={isLoading ? [] : selectOptions}
                 placeholder={isLoading ? 'Loading...' : `-- Pilih --`}
                 disabled={disabled}
                 required={required}
                 errors={errors}
-                // triggerClassName={showError ? 'border-destructive' : ''}
+            // triggerClassName={showError ? 'border-destructive' : ''}
             // onBlur={() => setTouchedFields(prev => ({ ...prev, [fieldKey]: true }))}
             />
         );

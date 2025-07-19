@@ -81,7 +81,7 @@ class RegisteredUserController extends Controller
                 // Common validation rules
                 $baseRules = [
                     "nama" => "required|string|max:100",
-                    "warneg" => "required|string|in:ID,WNI,WNA",
+                    "warneg" => "required|string",
                     "warnegName" => "required|string|max:100",
                     "nik" => "nullable|numeric|digits:16",
                     "kk" => "nullable|numeric|digits:16",

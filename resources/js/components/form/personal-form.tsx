@@ -89,7 +89,9 @@ const PersonalForm: React.FC<PersonalFormProps> = ({
         if (country.code === 'ID') {
             setStep('WNI')
         } else {
-            setStep('WNA')
+            setStep('WNA') 
+            onChange?.('temtin', '0');
+      
         }
     }
 
