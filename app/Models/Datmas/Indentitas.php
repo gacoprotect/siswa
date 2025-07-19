@@ -4,6 +4,8 @@ namespace App\Models\Datmas;
 
 use App\Models\BaseModel;
 use App\Models\Saving\PaidBill;
+use App\Models\Saving\Tregistrasi;
+use App\Models\Saving\Tsignsnk;
 use App\Models\Saving\Ttrx;
 use App\Models\Spp\Tsalpenrut;
 use App\Traits\LogsChanges;
@@ -63,6 +65,14 @@ class Indentitas extends BaseModel
     {
         return $this->belongsTo(Siswa::class, 'idok', 'id');
     }
+    public function signature()
+    {
+        return $this->belongsTo(Tsignsnk::class, 'nouid', 'nouid');
+    }
+    public function reg()
+    {
+        return $this->belongsTo(Tregistrasi::class, 'nouid', 'nouid');
+    }
     public function trx()
     {
         return $this->hasMany(Ttrx::class, 'nouid', 'nouid');
@@ -84,5 +94,22 @@ class Indentitas extends BaseModel
     public function paidBill()
     {
         return $this->hasMany(PaidBill::class, 'nouid', 'nouid');
+    }
+
+    public function summary(array $except = []): array
+    {
+        $summary = [
+            'active' => (bool) $this->active,
+            'pin' => !is_null($this->siswa->pin ?? null),
+            'reg' => $this->reg->sta ?? null,
+            'sign' => $this->signature->sign ?? null,
+            'version' => $this->signature->snk_version ?? null,
+        ];
+
+        if (!empty($except)) {
+            $summary = array_diff_key($summary, array_flip($except));
+        }
+
+        return $summary;
     }
 }

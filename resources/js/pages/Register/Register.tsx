@@ -88,7 +88,7 @@ const Register = ({ nouid, snk }: { nouid: string; snk: SnkProps }) => {
     const { data: propsData, errors } = usePage<PageProps>().props
     const [step, setStep] = React.useState<'WNA' | 'WNI' | null>(null)
     const [isDialogOpen, setIsDialogOpen] = React.useState(false)
-    const [open, setOpen] = React.useState(true)
+    const [open, setOpen] = React.useState(false)
     const [processing, setProcessing] = React.useState(false)
     const [validationErrors, setValidationErrors] = React.useState<Record<string, string>>(errors)
     const formRef = useRef<HTMLFormElement>(null)
@@ -126,7 +126,7 @@ const Register = ({ nouid, snk }: { nouid: string; snk: SnkProps }) => {
             rw: isDev ? '001' : '',
             kodpos: isDev ? '12345' : '',
         },
-        hub: isDev ? 'Ayah' : '',
+        hub: isDev ? '0' : '',
         tel: isDev ? '081808856626' : '',
         email: isDev ? 'gacoprotect@gmail.com' : '',
         ktpFile: null,
@@ -338,7 +338,7 @@ const Register = ({ nouid, snk }: { nouid: string; snk: SnkProps }) => {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         try {
             // Prepare main form data
@@ -375,15 +375,15 @@ const Register = ({ nouid, snk }: { nouid: string; snk: SnkProps }) => {
                 formData.append('sign', signatureData.sign);
                 formData.append('payload', signatureData.payload);
             }
-            
-                const debugFormData: Record<string, string> = {};
-                formData.forEach((value, key) => {
-                    debugFormData[key] = String(value);
-                });
-                log("DEBUG FORMDATA:", { "Debug FormData": debugFormData });
-           
 
-            await router.post(route('register', nouid), formData, {
+            const debugFormData: Record<string, string> = {};
+            formData.forEach((value, key) => {
+                debugFormData[key] = String(value);
+            });
+            log("DEBUG FORMDATA:", { "Debug FormData": debugFormData });
+
+
+            router.post(route('register', nouid), formData, {
                 onSuccess: () => {
                     reset();
                     setOpen(false);
@@ -393,7 +393,10 @@ const Register = ({ nouid, snk }: { nouid: string; snk: SnkProps }) => {
                     toast.error('Terjadi kesalahan saat pendaftaran');
                     setValidationErrors(errors);
                     error("Error Submit :", errors)
-                }
+                },
+                onFinish: () => {
+                    setProcessing(false);
+                },
             });
         } catch (err) {
             error("Error Submit :", err)

@@ -68,6 +68,13 @@ export interface DataSiswa {
     active: boolean;
     nouid: string;
     balance: number;
+    summary?: {
+        active?: boolean;
+        pin?: boolean;
+        reg?: number | null;
+        sign?: string | null;
+        version?: string;
+    };
     siswa: Siswa;
 }
 export interface Siswa {
@@ -97,7 +104,7 @@ export interface Siswa {
     pin?: string;
     wali?: Wali | null;
     safe?: SiswaSafe;
-    [key: string]: any;
+    [key: string]: NestedData;
 }
 export interface SiswaSafe {
     ids: number,

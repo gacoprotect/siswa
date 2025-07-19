@@ -170,7 +170,7 @@ class Siswa extends Authenticatable
             return [];
         }
         return [
-            'has_pin' => $this->has_pin,
+            // 'has_pin' => $this->has_pin,
             'namlen' => MaskingHelper::maskString($this->namlen),
             'nis'    => MaskingHelper::maskNumber($this->nis),
             'kel'    => MaskingHelper::maskClass($this->kel),

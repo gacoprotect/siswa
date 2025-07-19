@@ -2,7 +2,7 @@ import { Blokir } from '@/components/blokir';
 import { ConfirmDialog } from '@/components/ConfirmDialog ';
 import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/Layout/AppLayout';
-import { formatIDR } from '@/lib/utils';
+import { cn, formatIDR } from '@/lib/utils';
 import { Auth, DataSiswa, SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -18,7 +18,6 @@ import {
     FaIdCard,
     FaKey,
     FaPlusCircle,
-    FaTimes,
     FaUser,
     FaUserGraduate,
     FaWallet,
@@ -32,6 +31,7 @@ import Excul from './Excul';
 import PinPage from './Pin';
 import SetupPinPage from './SetupPin';
 import TagihanContent from '../Tagihan/TagihanContent';
+import { CheckCircle, ShieldOff, XCircle } from 'lucide-react';
 
 // Type definitions
 type PageState = 'index' | 'topup' | 'riwayat' | 'tagihan';
@@ -50,10 +50,10 @@ export default function SiswaDashboard() {
     const [siswaData, setSiswaData] = useState(data);
     const [activeItem, setActiveItem] = useState<number | null>(null);
     const [page, setPage] = useState<PageState>('index');
-    const [isBlocked, setIsBlocked] = useState<Boolean>(false);
+    // const [isBlocked, setIsBlocked] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState(false);
     const [isHistory, setIsHistory] = useState(false);
-    const [hasPined, setHasPined] = useState(data.siswa.has_pin);
+    const [hasPined, setHasPined] = useState(Boolean(data.summary?.pin));
     const [openModal, setOpenModal] = useState<ModalState>(null);
     const [tagihanParam, setTagihanParam] = useState<TagihanParam>({
         spr: [],
@@ -86,7 +86,7 @@ export default function SiswaDashboard() {
                             setTagihanParam(v);
                             navigateToPage('tagihan');
                         }}
-                        onClose={()=>setActiveItem(null)}
+                        onClose={() => setActiveItem(null)}
                     />
                 ),
             },
@@ -236,7 +236,6 @@ export default function SiswaDashboard() {
                     confirmText="Ya, Blokir"
                     onConfirm={() => {
                         setOpenModal('blokir');
-                        setIsBlocked(true);
                     }}
                 />
             </div>
@@ -244,46 +243,56 @@ export default function SiswaDashboard() {
     };
 
     // Action buttons component
-    const ActionButtons = () => (
-        <div className="grid w-full grid-cols-2 items-center gap-4 border-b-2 p-2 px-6">
-            {auth.user ? (
-                <>
-                    <button
-                        onClick={() => setLogoutDialogOpen(true)}
-                        className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-red-800 px-4 py-3 text-white shadow-sm transition-colors hover:bg-red-700"
-                    >
-                        <FiLogOut className="text-lg" />
-                        <span>Keluar</span>
-                    </button>
+    const ActionButtons = () => {
+        const register = () => {
+            router.get(route('register', data.nouid))
+        }
+        return (
+            <div className="grid w-full grid-cols-2 items-center gap-4 border-b-2 p-2 px-6">
+                {auth.user ? (
+                    <>
+                        <button
+                            onClick={() => setLogoutDialogOpen(true)}
+                            className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-red-800 px-4 py-3 text-white shadow-sm transition-colors hover:bg-red-700"
+                        >
+                            <FiLogOut className="text-lg" />
+                            <span>Keluar</span>
+                        </button>
 
-                    <ConfirmDialog
-                        open={logoutDialogOpen}
-                        onOpenChange={setLogoutDialogOpen}
-                        title="Konfirmasi Logout"
-                        description="Anda yakin ingin keluar?"
-                        confirmText="Ya, Keluar"
-                        onConfirm={handleLogout}
-                    />
-                </>
-            ) : (
+                        <ConfirmDialog
+                            open={logoutDialogOpen}
+                            onOpenChange={setLogoutDialogOpen}
+                            title="Konfirmasi Logout"
+                            description="Anda yakin ingin keluar?"
+                            confirmText="Ya, Keluar"
+                            onConfirm={handleLogout}
+                        />
+                    </>
+                ) : (
+                    <button
+                        onClick={openPinModal}
+                        className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-white px-4 py-3 text-indigo-600 shadow-sm transition-colors hover:bg-indigo-50"
+                    >
+                        <FaKey className="text-lg" />
+                        <span>Masukan PIN</span>
+                    </button>
+                )}
+
                 <button
-                    onClick={openPinModal}
+                    onClick={() => {
+                        if (hasPined) {
+                            openSetupPinModal()
+                        } else { register() }
+                    }
+                    }
                     className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-white px-4 py-3 text-indigo-600 shadow-sm transition-colors hover:bg-indigo-50"
                 >
-                    <FaKey className="text-lg" />
-                    <span>Masukan PIN</span>
+                    <FaExchangeAlt className="text-lg" />
+                    <span>{hasPined ? 'Ubah PIN' : 'Daftar'}</span>
                 </button>
-            )}
-
-            <button
-                onClick={openSetupPinModal}
-                className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-white px-4 py-3 text-indigo-600 shadow-sm transition-colors hover:bg-indigo-50"
-            >
-                <FaExchangeAlt className="text-lg" />
-                <span>{hasPined ? 'Ubah PIN' : 'Buat Pin'}</span>
-            </button>
-        </div>
-    );
+            </div>
+        )
+    };
 
     // Balance section component
     const BalanceSection = () => (
@@ -370,41 +379,101 @@ export default function SiswaDashboard() {
                 </AppLayout>
             ) : (
                 <>
+                    {activeItem !== null ? (renderActiveContent) :
 
-                    {activeItem !== null ? (renderActiveContent) : page === 'index' ? (
-                        <AppLayout title={siswaData?.siswa.namlen || 'Login'}>
-                            <StudentInfo />
-                            <ActionButtons />
+                        page === 'index' ? (
+                            <AppLayout title={siswaData?.siswa.namlen || 'Login'}>
+                                <StudentInfo />
+                                <ActionButtons />
 
-                            {auth.user && (
-                                <>
-                                    <BalanceSection />
-                                    <MenuItems />
+                                {auth.user && (
+                                    <>
+                                        <BalanceSection />
+                                        <MenuItems />
 
-                                </>
-                            )}
-                        </AppLayout>
-                    ) : page === 'topup' ? (
-                        <Topup
-                            siswa={siswaData.siswa}
-                            nouid={siswaData.nouid}
-                            onClose={() => {
-                                setPage('index');
-                                closeModal();
-                                refreshData();
-                            }}
-                        />
-                    ) : page === 'tagihan' ? (
-                        <PaymentPage
-                            siswa={siswaData.siswa}
-                            tagihanParam={{ ...tagihanParam, nouid: siswaData.nouid }}
-                            onClose={() => {
-                                setPage('index');
-                                closeModal();
-                                refreshData();
-                            }}
-                        />
-                    ) : null}
+                                    </>
+                                )}
+                              
+                                {(data.summary?.reg === 0 || data.summary?.reg === -1) && (
+                                    <div className="m-4 flex items-center justify-center">
+                                        <div className={cn(
+                                            "relative w-full max-w-xl rounded-2xl border shadow-md transition-all duration-300",
+                                            data.summary?.reg === 0
+                                                ? "border-blue-200 bg-blue-50 hover:shadow-blue-200"
+                                                : "border-red-300 bg-red-50 hover:shadow-red-200"
+                                        )}>
+                                            <div className="flex flex-col items-center p-6 text-center">
+                                                <div className="mb-4">
+                                                    {data.summary?.reg === 0 ? (
+                                                        <CheckCircle className="h-10 w-10 text-green-500" />
+                                                    ) : (
+                                                        <XCircle className="h-10 w-10 text-red-500" />
+                                                    )}
+                                                </div>
+
+                                                <h3 className={cn(
+                                                    "mb-2 text-xl font-bold",
+                                                    data.summary?.reg === 0 ? "text-blue-600" : "text-red-600"
+                                                )}>
+                                                    {data.summary?.reg === 0
+                                                        ? "Pendaftaran Anda berhasil"
+                                                        : "Pendaftaran Anda ditolak"}
+                                                </h3>
+
+                                                {data.summary?.reg === 0 ? (
+                                                    <div className="space-y-1 text-sm text-blue-700">
+                                                        <p>Terima kasih! Kami sedang memverifikasi data Anda.</p>
+                                                        <p>PIN akan dikirim ke nomor WhatsApp Anda setelah disetujui.</p>
+                                                        <p>Pastikan nomor WhatsApp yang Anda daftarkan aktif untuk menerima informasi lebih lanjut.</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-1 text-sm text-red-700">
+                                                        <p>Mohon maaf, pendaftaran Anda belum dapat disetujui pada saat ini.</p>
+                                                        <p>Silakan mendaftar kembali dengan memastikan seluruh data telah lengkap dan sesuai ketentuan.</p>
+                                                        <p>Jika membutuhkan bantuan, silakan hubungi tim kami melalui kontak resmi yang tersedia.</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {data.summary?.reg === -2 && (
+                                    <div className="m-4 flex items-center justify-center">
+                                        <div className="relative w-full max-w-xl rounded-2xl border border-red-400 bg-red-50 p-6 text-center shadow-md">
+                                            <div className="mb-4 flex justify-center">
+                                                <ShieldOff className="h-10 w-10 text-red-500" />
+                                            </div>
+                                            <h3 className="mb-2 text-xl font-bold text-red-600">Kartu Diblokir</h3>
+                                            <p className="text-sm text-red-700">
+                                                Kartu ini telah diblokir dan tidak dapat digunakan. Silakan hubungi pihak terkait untuk informasi lebih lanjut.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                            </AppLayout>
+                        ) : page === 'topup' ? (
+                            <Topup
+                                siswa={siswaData.siswa}
+                                nouid={siswaData.nouid}
+                                onClose={() => {
+                                    setPage('index');
+                                    closeModal();
+                                    refreshData();
+                                }}
+                            />
+                        ) : page === 'tagihan' ? (
+                            <PaymentPage
+                                siswa={siswaData.siswa}
+                                tagihanParam={{ ...tagihanParam, nouid: siswaData.nouid }}
+                                onClose={() => {
+                                    setPage('index');
+                                    closeModal();
+                                    refreshData();
+                                }}
+                            />
+                        ) : null}
                 </>
             )}
             <Blokir open={openModal === 'blokir'} onClose={() => closeModal()} setLoading={(v) => setIsLoading(v)} />

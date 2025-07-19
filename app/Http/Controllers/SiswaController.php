@@ -30,9 +30,7 @@ class SiswaController extends Controller
         if (session()->has('current_nouid') && session('current_nouid') !== $nouid) {
             Auth::guard('siswa')->logout();
             session()->forget('current_nouid');
-            return Inertia::render('Siswa/Index', [
-                'data' => $ident
-            ]);
+            return Inertia::location(route('siswa.index', ['nouid' => $nouid]));
         }
 
         // Jika sudah login
@@ -43,7 +41,8 @@ class SiswaController extends Controller
             }
 
             return Inertia::render('Siswa/Index', [
-                'data' => $ident
+                'data' => $ident,
+                'summary' => $ident->summary(),
             ]);
         }
         session(['current_nouid' => $nouid]);
@@ -51,7 +50,8 @@ class SiswaController extends Controller
         return Inertia::render('Siswa/Index', [
             'data' => [
                 ...$ident->toArray(),
-                'siswa' => $ident->siswa->masked(), // timpa siswa asli dengan versi masked
+                'summary' => $ident->summary(['sign', 'version']),
+                'siswa' => $ident->siswa->masked(),
             ]
         ]);
     }
@@ -124,9 +124,9 @@ class SiswaController extends Controller
 
             ]);
 
-         
-        
-        
+
+
+
             $reqUpdate = Tsisreqdata::create([
                 'idsis' => $ori->id,
                 'old_data' => self::extractDiff($diff, 'from'),

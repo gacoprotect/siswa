@@ -37,13 +37,9 @@ trait LogsChanges
         }
 
         try {
-            // Get original values before any changes
             $oldData = $this->getOriginal();
-            
-            // Only include fields that are in $newData
             $oldData = array_intersect_key($oldData, $newData);
             
-            // For create action, oldData should be empty
             if ($action === 'create') {
                 $oldData = [];
             }
@@ -52,9 +48,6 @@ trait LogsChanges
             if ($action === 'delete') {
                 $oldData = $this->getOriginal();
             }
-
-            // $oldData = $this->convertArraysToJson($oldData);
-            // $newData = $this->convertArraysToJson($newData);
 
             // logger()->debug('Compare Data', [
             //     'OldData' => $oldData,
