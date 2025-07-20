@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useAppConfig } from './use-app-config';
 
-type Logger = {
+export type Logger = {
     log: (...args: unknown[]) => void;
     warn: (...args: unknown[]) => void;
     error: (...args: unknown[]) => void;
@@ -13,14 +13,18 @@ type Logger = {
 const useDebugLogger = (): Logger => {
     const config = useAppConfig();
     const isDebugMode = config.APP_DEBUG;
-    useEffect(() => {
-        if (isDebugMode) {
-            console.log('%c[DEBUG]', 'color: #4CAF50; font-weight: bold', 'Debug mode is ACTIVE');
-            console.log('%c[ENV]', 'color: #2196F3; font-weight: bold', { 'VITE_ENV': import.meta.env, 'CONFIG': config });
-        }
-    }, [isDebugMode, config])
+    const didRunRef = useRef(false); // 👈 untuk pastikan log hanya sekali
 
-    const logger: Logger = {
+    useEffect(() => {
+        if (isDebugMode && !didRunRef.current) {
+            console.warn("SEGERA MATIKAN DEBUG MODE SETELAH SELESAI");
+            console.log('%c[DEBUG]', 'color: #4CAF50; font-weight: bold', 'Debug mode is ACTIVE');
+            console.log('%c[ENV]', 'color: #2196F3; font-weight: bold', { VITE_ENV: import.meta.env, CONFIG: config });
+            didRunRef.current = true;
+        }
+    }, [isDebugMode, config]);
+
+    const logger = useMemo<Logger>(() => ({
         log: (...args: unknown[]) => {
             if (isDebugMode) {
                 console.log('%c[DEBUG]', 'color: #4CAF50; font-weight: bold', ...args);
@@ -51,7 +55,7 @@ const useDebugLogger = (): Logger => {
                 console.dirxml(obj);
             }
         }
-    };
+    }), [isDebugMode]);
 
     return logger;
 };

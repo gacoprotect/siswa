@@ -1,5 +1,4 @@
 import { useAppConfig } from '@/hooks/use-app-config';
-import useDebugLogger from '@/hooks/use-debug-logger';
 import { Head } from '@inertiajs/react';
 import React from 'react';
 import { ToastContainer } from 'react-toastify';
@@ -10,14 +9,10 @@ type AppLayoutProps = {
     className?: string;
 };
 const AppLayout = ({ children, title, className = '' }: AppLayoutProps) => {
-    const { log, warn } = useDebugLogger();
     const config = useAppConfig();
     const isDebug = config.APP_DEBUG;
     const isDev = config.APP_ENV === 'local'
-    if (isDebug) {
-        log({ "DEV_MODE": isDev, "APP_DEBUG": isDebug });
-        warn("SEGERA MATIKAN DEBUG MODE SETELAH SELESAI");
-    }
+  
 
     return (
         <div className="min-h-screen relative bg-primary overflow-hidden">

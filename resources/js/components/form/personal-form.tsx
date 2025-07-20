@@ -14,7 +14,7 @@ interface PersonalFormProps {
         paspor: string
     }
     step: 'WNI' | 'WNA' | null
-    setStep: (step: 'WNI' | 'WNA' | null) => void
+    // setStep: (step: 'WNI' | 'WNA' | null) => void
     errors?: Record<string, string>;
     onChange?: (field: string, value: string) => void
 }
@@ -28,7 +28,7 @@ type CountryOption = {
 const PersonalForm: React.FC<PersonalFormProps> = ({
     data,
     step,
-    setStep,
+    // setStep,
     errors,
     onChange
 }) => {
@@ -85,13 +85,8 @@ const PersonalForm: React.FC<PersonalFormProps> = ({
         setIsCountryOpen(false)
         setSearchTerm('')
 
-        // Auto-set step based on selected country
-        if (country.code === 'ID') {
-            setStep('WNI')
-        } else {
-            setStep('WNA') 
+        if (country.code !== 'ID') {
             onChange?.('temtin', '0');
-      
         }
     }
 
@@ -108,7 +103,7 @@ const PersonalForm: React.FC<PersonalFormProps> = ({
             if (!selectedCountry || !value.includes(selectedCountry.name)) {
                 onChange?.('warneg', '')
                 onChange?.('warnegName', '')
-                setStep(null)
+                // setStep(null)
             }
         }
     }
@@ -123,7 +118,7 @@ const PersonalForm: React.FC<PersonalFormProps> = ({
                 setInputValue('')
                 onChange?.('warneg', '')
                 onChange?.('warnegName', '')
-                setStep(null)
+                // setStep(null)
             }
         }
     }

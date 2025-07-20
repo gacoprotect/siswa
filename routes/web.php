@@ -30,7 +30,8 @@ Route::middleware(['guest'])->group(function () {
 Route::middleware(['web'])->group(function () {
     Route::prefix('/{nouid}')->group(function () {
         Route::get('register', [RegisteredUserController::class, 'create'])->name('register');
-        Route::post('register', [RegisteredUserController::class, 'store']);
+        Route::post('register', [RegisteredUserController::class, 'create'])->name('register');
+        Route::post('/auth/register', [RegisteredUserController::class, 'store'])->name('auth.register');
         Route::post('/snk', [SnkController::class, 'show'])->name('snk.show');
         Route::get('/snk/sign', [SignatureController::class, 'verify'])->name('snk.sign');
 
@@ -75,4 +76,5 @@ Route::middleware(['web'])->group(function () {
 });
 
 
+require __DIR__ . '/test.php';
 // require __DIR__ . '/auth.php';

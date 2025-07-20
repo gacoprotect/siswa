@@ -1,9 +1,8 @@
 import SnkViewer from '@/components/SnkViewer'
-import useDebugLogger from '@/hooks/use-debug-logger';
-import { Flash, NestedData } from '@/types';
+import { useLogger } from '@/contexts/logger-context';
 import { Head, usePage } from '@inertiajs/react'
 import DOMPurify from 'dompurify';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 
 
@@ -24,64 +23,50 @@ interface SnkPoint {
     title: string;
     content: SnkContent;
 }
-
-interface PropsData {
+interface SnkProps {
     version: string
     effective: string
     title: string
     summary: string
     points: SnkPoint[]
-    qr_code_svg?: string
-    sign?: string
-    ortu?: string
-    siswa?: string
-    kota?: string
-    nouid?: string;
-    warneg?: string;
-    nama?: string;
-    nik?: string;
-    paspor?: string;
-    kabName?: string;
 }
-interface childData extends PropsData {
-    nouid: string;
-    [key: string]: NestedData | unknown
-}
-interface PageProps {
-    data: PropsData
-    errors: Record<string, string>
-    flash: Flash
-    [key: string]: NestedData | unknown
+
+interface Agreement {
+    payload: string;
+    sign: string;
+    qr_code_svg: string;
+    ortu: string;
+    siswa: string;
+    kota: string;
+    snk: SnkProps
 }
 interface Props {
     isChild?: boolean
-    childData?: childData
-
+    childData?: Agreement;
 }
 
 export default function Show({ isChild = false, childData }: Props) {
-    const { data: propsData } = usePage<PageProps>().props
-    const { log } = useDebugLogger();
-    log("SNK DATA :", childData);
-
-    // Initialize state without spreading props to avoid unnecessary updates
-    const [data] = useState<PropsData>(() => ({
-        ...propsData, ...(isChild ? { ...childData } : {})
+    const { log } = useLogger();
+    const { agreement } = usePage<{ agreement: Agreement }>().props
+    const [data] = useState<Agreement>(() => ({
+        ...agreement, ...(isChild ? { ...childData } : {})
     }));
-
+    useEffect(() => {
+        log("AGREEMENT DATA :", data);
+    }, [log, data])
     return (
         <>
             <Head title={`S&K`} />
             <div className="p-6 max-w-4xl mx-auto bg-white">
                 <div className="flex flex-col text-blue-500 items-center">
-                    <h1 className="text-2xl font-bold mb-1">{data.title}</h1>
-                    <p className="text-gray-600 text-center text-sm italic mb-4">{data.summary}</p>
+                    <h1 className="text-2xl font-bold mb-1">{data.snk.title}</h1>
+                    <p className="text-gray-600 text-center text-sm italic mb-4">{data.snk.summary}</p>
                 </div>
                 <div className="flex items-center justify-between mb-6">
-                    <span className='italic text-sm '>Versi {data.version}</span>
-                    <span className='italic text-sm '>Efektif : {data.effective}</span>
+                    <span className='italic text-sm '>Versi {data.snk.version}</span>
+                    <span className='italic text-sm '>Efektif : {data.snk.effective}</span>
                 </div>
-                <SnkViewer points={data.points} ortu={data.nama ?? data.ortu} siswa={data.siswa} />
+                <SnkViewer points={data.snk.points} ortu={data.ortu} siswa={data.siswa} />
 
                 {(data.ortu || data.siswa) && (
                     <div className="mt-10 space-y-2 text-sm">

@@ -11,10 +11,9 @@ import Show from '../Snk/Show'
 import { toast } from 'react-toastify'
 import { FaSpinner } from 'react-icons/fa'
 import { cn } from '@/lib/utils'
+import useDebugLogger from '@/hooks/use-debug-logger'
 import { useAppConfig } from '@/hooks/use-app-config'
 import { ConfirmDialog } from '@/components/ConfirmDialog '
-import { useLogger } from '@/contexts/logger-context'
-
 
 // Type definitions remain the same
 type Address = {
@@ -93,14 +92,17 @@ interface Props {
 const Register = ({ nouid, agreement }: Props) => {
     const config = useAppConfig();
     const isDev = config.APP_ENV === 'local';
-    // const isDev = false;
-    const { log, error: logError } = useLogger();
+    const { log, error: logError } = useDebugLogger();
+
+    // State management
     const [modalState, setModalState] = useState({
         isDialogOpen: false,
-        isAgreement: false,
+        isSignatureModalOpen: false,
     });
     const [processing, setProcessing] = useState(false);
-    const { data, setData, reset, clearErrors, setError, errors: formErrors } = useForm<FormData>({
+
+    // Form state
+    const { data, setData, reset, errors: formErrors } = useForm<FormData>({
         nama: isDev ? 'TEST MODE' : '',
         warneg: isDev ? 'ID' : '',
         warnegName: isDev ? 'Indonesia' : '',
@@ -139,10 +141,14 @@ const Register = ({ nouid, agreement }: Props) => {
         pasporPreview: null,
     });
 
-    const formRef = useRef<HTMLFormElement>(null)
+    const formRef = useRef<HTMLFormElement>(null);
+
+    // Derived state
     const step = useMemo(() => {
         return data.warneg === 'ID' ? 'WNI' : data.warneg ? 'WNA' : null;
     }, [data.warneg]);
+
+    // Cleanup effect
     useEffect(() => {
         return () => {
             if (data.ktpPreview) URL.revokeObjectURL(data.ktpPreview);
@@ -150,6 +156,7 @@ const Register = ({ nouid, agreement }: Props) => {
         };
     }, [data.ktpPreview, data.pasporPreview]);
 
+    // Handlers
     const handleFileUpload = useCallback((field: string, file: File | null) => {
         // Clean up previous preview if exists
         if (field === 'ktpFile' && data.ktpPreview) {
@@ -169,8 +176,55 @@ const Register = ({ nouid, agreement }: Props) => {
         }));
     }, [data.ktpPreview, data.pasporPreview, setData]);
 
+    const validateForm = useCallback(() => {
+        const newErrors: Record<string, string> = {};
 
-    const getSignature = useCallback(async () => {
+        if (!data.warneg) newErrors.warneg = 'Pilih Negara Anda';
+        if (!data.nama) newErrors.nama = 'Nama lengkap wajib diisi';
+
+        if (step === 'WNI') {
+            if (data.nik.length > 0 && data.nik.length < 16) newErrors.nik = 'NIK harus 16 digit';
+            if (!data.nik) newErrors.nik = 'NIK wajib diisi';
+            if (data.kk.length > 0 && data.kk.length < 16) newErrors.kk = 'No. KK harus 16 digit';
+            if (!data.kk) newErrors.kk = 'No. KK wajib diisi';
+            if (!data.ktpFile) newErrors.ktpFile = 'Foto KTP wajib diunggah';
+        } else if (step === 'WNA') {
+            if (!data.paspor) newErrors.paspor = 'Nomor paspor wajib diisi';
+            if (!data.pasporFile) newErrors.pasporFile = 'Foto paspor wajib diunggah';
+        }
+
+        if (!data.temtin) newErrors.temtin = 'wajib dipilih';
+
+        // Address validation
+        const validateAddress = (prefix: string, address: Address, isDomisili = false) => {
+            if (!address.prov) newErrors[`${prefix}.prov`] = `${isDomisili ? 'Provinsi domisili' : 'Provinsi'} wajib diisi`;
+            if (!address.kab) newErrors[`${prefix}.kab`] = `${isDomisili ? 'Kabupaten/Kota domisili' : 'Kabupaten/Kota'} wajib diisi`;
+            if (!address.kec) newErrors[`${prefix}.kec`] = `${isDomisili ? 'Kecamatan domisili' : 'Kecamatan'} wajib diisi`;
+            if (!address.desa) newErrors[`${prefix}.desa`] = `${isDomisili ? 'Desa/Kelurahan domisili' : 'Desa/Kelurahan'} wajib diisi`;
+            if (!address.addr) newErrors[`${prefix}.addr`] = `${isDomisili ? 'Alamat domisili' : 'Alamat'} wajib diisi`;
+            if (!address.rt) newErrors[`${prefix}.rt`] = 'wajib diisi';
+            if (!address.rw) newErrors[`${prefix}.rw`] = 'wajib diisi';
+            if (!address.kodpos) newErrors[`${prefix}.kodpos`] = 'wajib diisi';
+        };
+
+        validateAddress('alamat1', data.alamat1);
+        if (parseInt(data.temtin) > 0) {
+            validateAddress('alamat2', data.alamat2, true);
+        }
+
+        // Contact validation
+        if (data.tel.length > 0 && (data.tel.length < 9 || data.tel.length > 13)) {
+            newErrors.tel = 'nomor telepon tidak valid';
+        }
+        if (!data.tel) newErrors.tel = 'Nomor telepon wajib diisi';
+        if (!data.email) newErrors.email = 'Email wajib diisi';
+        if (!data.hub) newErrors.hub = 'Hubungan dengan siswa wajib diisi';
+
+        return newErrors;
+    }, [data, step]);
+
+    const getSignature = useCallback(async (next = false) => {
+
         try {
             const signatureFormData = {
                 nouid: nouid,
@@ -184,107 +238,44 @@ const Register = ({ nouid, agreement }: Props) => {
                     .replace(/\b\w/g, (c) => c.toUpperCase()) || '',
                 ...(data.warneg === 'ID' ? { nik: data.nik } : { paspor: data.paspor })
             };
-            await Promise.all([
-                router.visit(route('register', { nouid: nouid, q: 'agreement' }), {
-                    method: 'post',
-                    data: signatureFormData,
-                    only: ['agreement'], // hanya ambil props sesuai tab
-                    preserveState: true,
-                    preserveScroll: true,
-                    onStart: () => {
-                        setProcessing(true);
-                        log('Memanggil getSignature...');
-                    },
-                    onSuccess: (res) => {
-                        log('CEK RESPONSE : ', res);
-                        setModalState(prev => ({ ...prev, isAgreement: true }));
-                    },
-                    onError: () => {
-                        toast.error('Terjadi Kesalahan')
-                        throw new Error('Terjadi Kesalahan');
-                    },
-                    onFinish: () => {
-                        log('Selesai visit, modalState.isAgreement:', modalState.isAgreement);
-                        setProcessing(false)
-                    },
-                })
-            ]);
+            await router.visit(route('test.register', { nouid: nouid, q: 'agreement' }), {
+                method: 'post',
+                data: signatureFormData,
+                only: ['agreement'], // hanya ambil props sesuai tab
+                preserveState: true,
+                preserveScroll: true,
+                onStart: () => setProcessing(true),
+                onSuccess: (res) => {
+                    log('RESPONSE : ', res);
+                    if (next) {
+                        setModalState(prev => ({ ...prev, isSignatureModalOpen: true }));
+                    }
+                },
+                onError: () => {
+                    throw new Error('Terjadi Kesalahan');
+                },
+                onFinish: () => setProcessing(false),
+            });
 
 
         } catch (err) {
             logError('Signature request failed:', err);
-            toast.error('Terjadi Kesalahan');
+            toast.error('Gagal mendapatkan tanda tangan digital');
+        } finally {
+            setProcessing(false);
         }
-    }, [data, nouid, log, logError, modalState.isAgreement]);
-
-    const validateForm = useCallback((field: string | null = null) => {
-        const newErrors: Record<string, string> = {};
-        const validateSingleField = field !== null;
-
-        // Helper function untuk menambahkan error jika kondisi terpenuhi
-        const addErrorIfInvalid = (isInvalid: boolean, errorKey: string, errorMessage: string) => {
-            if ((!validateSingleField || errorKey === field) && isInvalid) {
-                newErrors[errorKey] = errorMessage;
-            }
-        };
-
-        // Validasi umum
-        addErrorIfInvalid(!data.warneg, 'warneg', 'Pilih Negara Anda');
-        addErrorIfInvalid(!data.nama, 'nama', 'Nama lengkap wajib diisi');
-
-        // Validasi step WNI
-        if (step === 'WNI') {
-            addErrorIfInvalid(data.nik.length > 0 && data.nik.length < 16, 'nik', 'NIK harus 16 digit');
-            addErrorIfInvalid(!data.nik, 'nik', 'NIK wajib diisi');
-            addErrorIfInvalid(data.kk.length > 0 && data.kk.length < 16, 'kk', 'No. KK harus 16 digit');
-            addErrorIfInvalid(!data.kk, 'kk', 'No. KK wajib diisi');
-            addErrorIfInvalid(!data.ktpFile, 'ktpFile', 'Foto KTP wajib diunggah');
-        }
-        // Validasi step WNA
-        else if (step === 'WNA') {
-            addErrorIfInvalid(!data.paspor, 'paspor', 'Nomor paspor wajib diisi');
-            addErrorIfInvalid(!data.pasporFile, 'pasporFile', 'Foto paspor wajib diunggah');
-        }
-
-        // Validasi lainnya
-        addErrorIfInvalid(!data.temtin, 'temtin', 'wajib dipilih');
-        addErrorIfInvalid(data.tel.length > 0 && (data.tel.length < 9 || data.tel.length > 13), 'tel', 'nomor telepon tidak valid');
-        addErrorIfInvalid(!data.tel, 'tel', 'Nomor telepon wajib diisi');
-        addErrorIfInvalid(!data.email, 'email', 'Email wajib diisi');
-        addErrorIfInvalid(!data.hub, 'hub', 'Hubungan dengan siswa wajib diisi');
-
-        // Validasi alamat
-        const validateAddress = (prefix: string, address: Address, isDomisili = false) => {
-            const label = isDomisili ? 'domisili' : '';
-            addErrorIfInvalid(!address.prov, `${prefix}.prov`, `Provinsi ${label} wajib diisi`);
-            addErrorIfInvalid(!address.kab, `${prefix}.kab`, `Kabupaten/Kota ${label} wajib diisi`);
-            addErrorIfInvalid(!address.kec, `${prefix}.kec`, `Kecamatan ${label} wajib diisi`);
-            addErrorIfInvalid(!address.desa, `${prefix}.desa`, `Desa/Kelurahan ${label} wajib diisi`);
-            addErrorIfInvalid(!address.addr, `${prefix}.addr`, `Alamat ${label} wajib diisi`);
-            addErrorIfInvalid(!address.rt, `${prefix}.rt`, 'RT wajib diisi');
-            addErrorIfInvalid(!address.rw, `${prefix}.rw`, 'RW wajib diisi');
-            addErrorIfInvalid(!address.kodpos, `${prefix}.kodpos`, 'Kode pos wajib diisi');
-        };
-
-        // Jalankan validasi alamat utama
-        if (!validateSingleField || field?.startsWith('alamat1')) {
-            validateAddress('alamat1', data.alamat1);
-        }
-
-        // Jalankan validasi alamat domisili jika diperlukan
-        if (parseInt(data.temtin) > 0 && (!validateSingleField || field?.startsWith('alamat2'))) {
-            validateAddress('alamat2', data.alamat2, true);
-        }
-
-        return newErrors;
-    }, [data, step]);
+    }, [data, nouid, log, logError]);
 
     const handleNext = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
+
         const errors = validateForm();
-        setError(errors)
         if (Object.keys(errors).length > 0) {
-            logError("Validation Error : ", errors)
+            Object.entries(errors).forEach(([key, value]) => {
+                setData(key as keyof FormData, value as string);
+            });
+
+            // Scroll to first error
             const firstErrorKey = Object.keys(errors)[0];
             if (firstErrorKey) {
                 const element = document.getElementById(firstErrorKey) ||
@@ -293,14 +284,18 @@ const Register = ({ nouid, agreement }: Props) => {
             }
             return;
         }
-        await getSignature();
 
-    }, [validateForm, getSignature, logError, setError]);
+        await getSignature(true);
+    }, [validateForm, getSignature, setData]);
 
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
+        setProcessing(true);
+
         try {
             const formData = new FormData();
+
+            // Add simple fields
             const simpleFields: Array<keyof FormData> = [
                 'nama', 'warneg', 'warnegName', 'nik', 'kk',
                 'paspor', 'temtin', 'hub', 'tel', 'email'
@@ -337,58 +332,24 @@ const Register = ({ nouid, agreement }: Props) => {
                 formData.append('payload', agreement.payload);
             }
 
-            await Promise.all([
-                router.post(route('auth.register', nouid), formData, {
-                    onBefore: () => {
-                        setProcessing(true);
-                    },
-                    onSuccess: () => {
-                        reset();
-                        toast.success('Pendaftaran berhasil!');
-                    },
-                    onError: (errors) => {
-                        toast.error('Terjadi kesalahan');
-                        logError("Error Submit:", errors);
-                    },
-                    onFinish: () => {
-                        setModalState(prev => ({ ...prev, isAgreement: false }));
-                        setProcessing(false)
-                    },
-                })
-            ])
+            await router.post(route('register', nouid), formData, {
+                onSuccess: () => {
+                    reset();
+                    setModalState(prev => ({ ...prev, isSignatureModalOpen: false }));
+                    toast.success('Pendaftaran berhasil!');
+                },
+                onError: (errors) => {
+                    toast.error('Terjadi kesalahan saat pendaftaran');
+                    logError("Error Submit:", errors);
+                },
+            });
         } catch (err) {
             logError("Error Submit:", err);
             toast.error('Proses pendaftaran gagal');
+        } finally {
+            setProcessing(false);
         }
     }, [data, agreement, nouid, reset, logError]);
-
-    const handleChange = useMemo(() =>
-        <K extends keyof FormData>(field: K, value: FormData[K]) => {
-            setData(field, value);
-            if (!value || shouldValidateWhenNotEmpty(field, value)) {
-                const err = validateForm(field);
-                setError(err);
-            } else {
-                clearErrors(field);
-            }
-        },
-        [validateForm, clearErrors, setData, setError]
-    );
-
-    const shouldValidateWhenNotEmpty = <K extends keyof FormData>(field: K, value: FormData[K]): boolean => {
-        const validationRules: {
-            [Key in keyof FormData]?: (v: FormData[Key]) => boolean;
-        } = {
-            tel: (v) => v.length > 0 && (v.length < 9 || v.length > 13),
-            email: (v) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
-            nik: (v) => v.length > 0 && v.length < 16,
-            kk: (v) => v.length > 0 && v.length < 16,
-        };
-
-        const validator = validationRules[field];
-        return validator ? validator(value) : false;
-    };
-
 
     // Debug logging
     useEffect(() => {
@@ -396,9 +357,6 @@ const Register = ({ nouid, agreement }: Props) => {
             console.count("REGISTER RENDER");
         }
     }, [isDev]);
-    useEffect(() => {
-        log('Processing changed:', processing);
-    }, [processing, log]);
 
     return (
         <AppLayout title='Pendaftaran'>
@@ -439,8 +397,9 @@ const Register = ({ nouid, agreement }: Props) => {
                             paspor: data.paspor
                         }}
                         step={step}
+                        setStep={(newStep) => setData('warneg', newStep === 'WNI' ? 'ID' : 'OTHER')}
                         errors={formErrors}
-                        onChange={(fieldName, value) => handleChange(fieldName as keyof FormData, value)}
+                        onChange={(fieldName, value) => setData(fieldName as keyof FormData, value)}
                     />
 
                     {step !== null && (
@@ -462,7 +421,7 @@ const Register = ({ nouid, agreement }: Props) => {
                                     alamat1: data.alamat1,
                                     alamat2: data.alamat2
                                 }}
-                                onChange={(fieldName, value) => handleChange(fieldName as keyof FormData, value as string)}
+                                onChange={(fieldName, value) => setData(fieldName as keyof FormData, value as string)}
                                 step={step}
                                 errors={formErrors}
                             />
@@ -473,7 +432,7 @@ const Register = ({ nouid, agreement }: Props) => {
                                     tel: data.tel,
                                     email: data.email
                                 }}
-                                onChange={(fieldName, value) => handleChange(fieldName as keyof FormData, value)}
+                                onChange={(fieldName, value) => setData(fieldName as keyof FormData, value)}
                                 errors={formErrors}
                             />
 
@@ -492,8 +451,8 @@ const Register = ({ nouid, agreement }: Props) => {
                             </div>
 
                             <Modal
-                                isOpen={modalState.isAgreement}
-                                onClose={() => setModalState(prev => ({ ...prev, isAgreement: false }))}
+                                isOpen={modalState.isSignatureModalOpen}
+                                onClose={() => setModalState(prev => ({ ...prev, isSignatureModalOpen: false }))}
                                 onConfirm={handleSubmit}
                                 confirmText={processing ? "mendaftar" : "Setuju"}
                                 confirmDisabled={processing}
