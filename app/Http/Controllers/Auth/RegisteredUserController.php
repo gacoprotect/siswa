@@ -307,11 +307,11 @@ class RegisteredUserController extends Controller
                 ];
                 try {
                     if ($isReg) {
-                        logger('Update Tsignsnk');
-                        Tsignsnk::where('nouid', $nouid)->update($signData);
+                        $ts = Tsignsnk::where('nouid', $nouid)->first()->update($signData);
+                        logger('Update Tsignsnk',['data'=> $ts]);
                     } else {
-                        logger('Create Tsignsnk');
-                        Tsignsnk::create($signData);
+                        $ts = Tsignsnk::create($signData);
+                        logger('Create Tsignsnk',['data'=> $ts]);
                     }
                 } catch (\Exception $e) {
                     throw ValidationException::withMessages(['message' => 'Terjadi kesalahan' . $e->getMessage()]);
@@ -412,7 +412,7 @@ class RegisteredUserController extends Controller
                     'pin' => $validated['pin'],
                     'tel' => $this->formatPhoneNumber($validated['phone']) // Simpan ke kolom tel
                 ]);
-                Indentitas::where('nouid', $nouid)->update(['sta' => 0]);
+                Indentitas::where('nouid', $nouid)->first()->update(['sta' => 0]);
                 event(new Registered($indentitas->siswa));
 
                 Auth::login($indentitas->siswa);

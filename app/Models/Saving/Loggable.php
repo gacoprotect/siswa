@@ -47,6 +47,11 @@ class Loggable extends Model
         return $this->morphTo();
     }
 
+    public function getRelations()
+    {
+        return [];
+    }
+
     public function identitas()
     {
         return $this->belongsTo(Indentitas::class);

@@ -66,7 +66,7 @@ class SiswaController extends Controller
     public function blocked(Request $request, $nouid): RedirectResponse
     {
         try {
-            $identitas = Indentitas::where('nouid', $nouid)->update(['sta' => -1]);
+            $identitas = Indentitas::where('nouid', $nouid)->first()->update(['sta' => -1]);
 
             return redirect()->intended(route('siswa.index', ['nouid' => $nouid]));
         } catch (\Throwable $th) {

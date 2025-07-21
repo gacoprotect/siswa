@@ -31,7 +31,7 @@ import Excul from './Excul';
 import PinPage from './Pin';
 import SetupPinPage from './SetupPin';
 import TagihanContent from '../Tagihan/TagihanContent';
-import { CheckCircle, ShieldOff, XCircle } from 'lucide-react';
+import { StatusCard } from '@/components/status-card';
 
 // Type definitions
 type PageState = 'index' | 'topup' | 'riwayat' | 'tagihan';
@@ -44,7 +44,7 @@ export interface TagihanParam {
 }
 export default function SiswaDashboard() {
     const { auth, data } = usePage<{ auth: Auth; data: DataSiswa }>().props;
-    console.log(data);
+    console.count("Component Render : ");
 
     // State management
     const [siswaData, setSiswaData] = useState(data);
@@ -393,64 +393,42 @@ export default function SiswaDashboard() {
 
                                     </>
                                 )}
-                              
-                                {(data.summary?.reg === 0 || data.summary?.reg === -1) && (
-                                    <div className="m-4 flex items-center justify-center">
-                                        <div className={cn(
-                                            "relative w-full max-w-xl rounded-2xl border shadow-md transition-all duration-300",
-                                            data.summary?.reg === 0
-                                                ? "border-blue-200 bg-blue-50 hover:shadow-blue-200"
-                                                : "border-red-300 bg-red-50 hover:shadow-red-200"
-                                        )}>
-                                            <div className="flex flex-col items-center p-6 text-center">
-                                                <div className="mb-4">
-                                                    {data.summary?.reg === 0 ? (
-                                                        <CheckCircle className="h-10 w-10 text-green-500" />
-                                                    ) : (
-                                                        <XCircle className="h-10 w-10 text-red-500" />
-                                                    )}
-                                                </div>
 
-                                                <h3 className={cn(
-                                                    "mb-2 text-xl font-bold",
-                                                    data.summary?.reg === 0 ? "text-blue-600" : "text-red-600"
-                                                )}>
-                                                    {data.summary?.reg === 0
-                                                        ? "Pendaftaran Anda berhasil"
-                                                        : "Pendaftaran Anda ditolak"}
-                                                </h3>
+                                {(data.summary?.reg === 0) ? (
+                                    // For reg === 0 (success)
+                                    <StatusCard
+                                        variant="success"
+                                        title="Pendaftaran Anda berhasil"
+                                        description={
+                                            <>
+                                                <p>Terima kasih! Kami sedang memverifikasi data Anda.</p>
+                                                <p>PIN akan dikirim ke nomor WhatsApp Anda setelah disetujui.</p>
+                                                <p>Pastikan nomor WhatsApp yang Anda daftarkan aktif untuk menerima informasi lebih lanjut.</p>
+                                            </>
+                                        }
+                                    />) : (data.summary?.reg === -1) ? (
 
-                                                {data.summary?.reg === 0 ? (
-                                                    <div className="space-y-1 text-sm text-blue-700">
-                                                        <p>Terima kasih! Kami sedang memverifikasi data Anda.</p>
-                                                        <p>PIN akan dikirim ke nomor WhatsApp Anda setelah disetujui.</p>
-                                                        <p>Pastikan nomor WhatsApp yang Anda daftarkan aktif untuk menerima informasi lebih lanjut.</p>
-                                                    </div>
-                                                ) : (
-                                                    <div className="space-y-1 text-sm text-red-700">
-                                                        <p>Mohon maaf, pendaftaran Anda belum dapat disetujui pada saat ini.</p>
-                                                        <p>Silakan mendaftar kembali dengan memastikan seluruh data telah lengkap dan sesuai ketentuan.</p>
-                                                        <p>Jika membutuhkan bantuan, silakan hubungi tim kami melalui kontak resmi yang tersedia.</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+                                        // For reg === -1 (error)
+                                        <StatusCard
+                                            variant="error"
+                                            title="Pendaftaran Anda ditolak"
+                                            description={
+                                                <>
+                                                    <p>Mohon maaf, pendaftaran Anda belum dapat disetujui pada saat ini.</p>
+                                                    <p>Silakan mendaftar kembali dengan memastikan seluruh data telah lengkap dan sesuai ketentuan.</p>
+                                                    <p>Jika membutuhkan bantuan, silakan hubungi tim kami melalui kontak resmi yang tersedia.</p>
+                                                </>
+                                            }
+                                        />) : data.summary?.reg === -2 && (
 
-                                {data.summary?.reg === -2 && (
-                                    <div className="m-4 flex items-center justify-center">
-                                        <div className="relative w-full max-w-xl rounded-2xl border border-red-400 bg-red-50 p-6 text-center shadow-md">
-                                            <div className="mb-4 flex justify-center">
-                                                <ShieldOff className="h-10 w-10 text-red-500" />
-                                            </div>
-                                            <h3 className="mb-2 text-xl font-bold text-red-600">Kartu Diblokir</h3>
-                                            <p className="text-sm text-red-700">
-                                                Kartu ini telah diblokir dan tidak dapat digunakan. Silakan hubungi pihak terkait untuk informasi lebih lanjut.
-                                            </p>
-                                        </div>
-                                    </div>
-                                )}
+                                            // For reg === -2 (blocked)
+                                            <StatusCard
+                                                variant="blocked"
+                                                title="Kartu Diblokir"
+                                                description="Kartu ini telah diblokir dan tidak dapat digunakan. Silakan hubungi pihak terkait untuk informasi lebih lanjut."
+                                            />
+                                        )}
+
 
                             </AppLayout>
                         ) : page === 'topup' ? (

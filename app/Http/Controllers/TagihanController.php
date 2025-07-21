@@ -240,7 +240,7 @@ class TagihanController extends Controller
 
                 // Update status tagihan
                 if (!empty($validatedTtrx['spr_id'])) {
-                    $updatedRows = Tsalpenrut::whereIn('id', $validatedTtrx['spr_id'])
+                    $updatedRows = Tsalpenrut::whereIn('id', $validatedTtrx['spr_id'])->first()
                         ->update(['sta' => 2]);
 
                     if ($updatedRows === 0) {

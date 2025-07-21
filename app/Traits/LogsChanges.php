@@ -13,12 +13,6 @@ trait LogsChanges
 {
     /**
      * Log changes to the model with transaction support and robust error handling
-     *
-     * @param array $newData
-     * @param string $action
-     * @param int $sta
-     * @param bool $useTransaction
-     * @return bool Returns true if logging succeeded, false otherwise
      */
     public function logChange(
         array $newData,
@@ -27,115 +21,110 @@ trait LogsChanges
         bool $useTransaction = true
     ): bool {
 
-        // Validate action type
-        if (!in_array($action, ['create', 'update', 'delete', 'restore', 'forceDelete'])) {
+        if (empty(array_filter($newData, function ($value) {
+            return $value !== null;
+        }))) {
+            return false;
+        }
+        $validActions = ['create', 'update', 'delete', 'restore', 'forceDelete', 'mass_update', 'mass_delete'];
+        if (!in_array($action, $validActions)) {
             Log::error("Invalid log action type: {$action}", [
-                'model' => get_class($this),
-                'id' => $this->id ?? null,
+                'model' => static::class,
+                'id' => $this->getKey(),
             ]);
             return false;
         }
 
         try {
-            $oldData = $this->getOriginal();
-            $oldData = array_intersect_key($oldData, $newData);
-            
-            if ($action === 'create') {
-                $oldData = [];
-            }
-            
-            // For delete action, oldData should be all original attributes
-            if ($action === 'delete') {
-                $oldData = $this->getOriginal();
-            }
-
-            // logger()->debug('Compare Data', [
-            //     'OldData' => $oldData,
-            //     'NewData' => $newData,
-            //     'action' => $action,
-            // ]);
-
-            $logData = [
-                'loggable_type' => get_class($this),
-                'loggable_id' => $this->id,
-                'user_id' => Auth::id() ?? 0,
-                'action' => $action,
-                'old_data' => $oldData,
-                'new_data' => $newData,
-                'sta' => $sta,
-                'ip' => request()?->ip(),
-                'ua' => request()?->userAgent(),
-                'url' => request()?->fullUrl(),
-                'method' => request()?->method(),
-                'meta' => $this->getAdditionalMetaData(),
-                'log_date' => now()->toDateString(),
-            ];
+            $oldData = $this->prepareOldData($action, $newData);
+            $logData = $this->prepareLogData($action, $oldData, $newData, $sta);
 
             if ($useTransaction) {
-                return DB::transaction(function () use ($logData) {
-                    Loggable::create($logData);
-                    return true;
-                });
+                return DB::transaction(fn() => $this->createLogEntry($logData));
             }
 
-            Loggable::create($logData);
-            return true;
+            return $this->createLogEntry($logData);
         } catch (Throwable $e) {
-            Log::error("Failed to log changes for model", [
-                'exception' => $e->getMessage(),
-                'model' => get_class($this),
-                'id' => $this->id ?? null,
-                'action' => $action,
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            if ($useTransaction && DB::transactionLevel() > 0) {
-                DB::rollBack();
-            }
-
+            $this->handleLogError($e, $action, $useTransaction);
             return false;
         }
     }
 
-    /**
-     * Log model creation
-     */
+    protected function prepareOldData(string $action, array $newData): array
+    {
+        return match ($action) {
+            'create' => [],
+            'delete' => $this->getOriginal(),
+            default => array_intersect_key($this->getOriginal(), $newData)
+        };
+    }
+
+    protected function prepareLogData(
+        string $action,
+        array $oldData,
+        array $newData,
+        int $sta
+    ): array {
+        return [
+            'loggable_type' => static::class,
+            'loggable_id' => $this->getKey(),
+            'user_id' => Auth::id() ?? 0,
+            'action' => $action,
+            'old_data' => $this->convertArraysToJson($oldData),
+            'new_data' => $this->convertArraysToJson($newData),
+            'sta' => $sta,
+            'ip' => request()?->ip(),
+            'ua' => request()?->userAgent(),
+            'url' => request()?->fullUrl(),
+            'method' => request()?->method(),
+            'meta' => $this->getAdditionalMetaData(),
+            'log_date' => now()->toDateString(),
+        ];
+    }
+
+    protected function createLogEntry(array $logData): bool
+    {
+        Loggable::create($logData);
+        return true;
+    }
+
+    protected function handleLogError(Throwable $e, string $action, bool $useTransaction): void
+    {
+        Log::error("Failed to log changes for " . static::class, [
+            'id' => $this->getKey(),
+            'action' => $action,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+
+        if ($useTransaction && DB::transactionLevel() > 0) {
+            DB::rollBack();
+        }
+    }
+
     public function logCreation(bool $useTransaction = true): bool
     {
-        logger()->debug('logCreation dipanggil', ['model' => get_class($this), 'id' => $this->id]);
-
+        Log::debug('logCreation called', ['model' => static::class, 'id' => $this->getKey()]);
         return $this->logChange($this->getAttributes(), 'create', 0, $useTransaction);
     }
 
-    /**
-     * Log model deletion
-     */
     public function logDeletion(bool $useTransaction = true): bool
     {
-        logger()->debug('logDeletion dipanggil', ['model' => get_class($this), 'id' => $this->id]);
-
+        Log::debug('logDeletion called', ['model' => static::class, 'id' => $this->getKey()]);
         return $this->logChange([], 'delete', 0, $useTransaction);
     }
 
-    /**
-     * Log model restoration
-     */
     public function logRestoration(bool $useTransaction = true): bool
     {
-        logger()->debug('logRestoration dipanggil', ['model' => get_class($this), 'id' => $this->id]);
-
+        Log::debug('logRestoration called', ['model' => static::class, 'id' => $this->getKey()]);
         return $this->logChange($this->getAttributes(), 'restore', 0, $useTransaction);
     }
 
     protected function convertArraysToJson(array $data): array
     {
         return array_map(function ($value) {
-            if (is_array($value)) {
+            if (is_array($value) || (is_string($value) && json_decode($value) !== null)) {
                 return json_encode($value);
-            }
-            // Handle cases where value is already JSON encoded
-            if (is_string($value) && json_decode($value) !== null) {
-                return $value;
             }
             return $value;
         }, $data);
@@ -146,10 +135,9 @@ trait LogsChanges
         return [
             'locale' => app()->getLocale(),
             'agent' => $this->parseUserAgent(),
-            'extra' => [] // Placeholder for custom data
+            'extra' => []
         ];
     }
-
     protected function parseUserAgent(): array
     {
         $agent = new Agent();
@@ -174,9 +162,11 @@ trait LogsChanges
 
     protected function getDeviceType(Agent $agent): string
     {
-        if ($agent->isMobile()) return 'mobile';
-        if ($agent->isTablet()) return 'tablet';
-        if ($agent->isDesktop()) return 'desktop';
-        return 'unknown';
+        return match (true) {
+            $agent->isMobile() => 'mobile',
+            $agent->isTablet() => 'tablet',
+            $agent->isDesktop() => 'desktop',
+            default => 'unknown'
+        };
     }
 }

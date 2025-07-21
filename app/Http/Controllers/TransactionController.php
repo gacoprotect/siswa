@@ -27,7 +27,7 @@ class TransactionController extends Controller
 
         Ttrx::where('nouid', $nouid)
             ->where('status', 'pending')
-            ->where('expiry_time', '<', Carbon::now())
+            ->where('expiry_time', '<', Carbon::now())->first()
             ->update([
                 'status'          => 'failed',
                 'failure_message' => 'Pembayaran melebihi batas waktu.',
@@ -249,7 +249,7 @@ class TransactionController extends Controller
                         }
                     });
 
-                    Tsalpenrut::whereIn('id', $transaction->spr_id)->update(['sta' => 2]);
+                    Tsalpenrut::whereIn('id', $transaction->spr_id)->first()->update(['sta' => 2]);
                 }
             } else {
                 $log = $this->createTrxLog($dataLog);
