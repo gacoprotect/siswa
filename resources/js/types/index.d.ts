@@ -2,7 +2,7 @@ import { LucideIcon } from 'lucide-react';
 import type { Config } from 'ziggy-js';
 
 export interface Auth {
-    user: Siswa;
+    user: Siswa | null;
 }
 export type DataValue = string | NestedData;
 
@@ -63,18 +63,19 @@ export interface User {
     updated_at: string;
     [key: string]: unknown; // This allows for additional properties...
 }
+export interface SiswaSummary {
+    active?: boolean;
+    pin?: boolean;
+    reg?: number | null;
+    sign?: string | null;
+    version?: string;
+}
 export interface DataSiswa {
     idok: number;
     active: boolean;
     nouid: string;
     balance: number;
-    summary?: {
-        active?: boolean;
-        pin?: boolean;
-        reg?: number | null;
-        sign?: string | null;
-        version?: string;
-    };
+    summary?: SiswaSummary;
     siswa: Siswa;
 }
 export interface Siswa {
@@ -103,7 +104,7 @@ export interface Siswa {
     ala?: string;
     pin?: string;
     wali?: Wali | null;
-    safe?: SiswaSafe;
+    alamat?: SiswaSafe;
     [key: string]: NestedData;
 }
 export interface SiswaSafe {

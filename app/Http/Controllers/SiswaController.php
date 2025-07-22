@@ -16,44 +16,60 @@ use Illuminate\Validation\ValidationException;
 
 class SiswaController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $req, $nouid)
     {
-        $nouid = $request->route('nouid');
+        try {
 
-        $ident = Indentitas::with(['siswa.safe' => function ($qu) {
-            $qu->select('ids', 'ala', 'rt', 'rw', 'cam', 'lur', 'kodpos', 'dusun', 'temtin', 'sakit');
-        }])->where('nouid', $nouid)->firstOrFail();
-        if (!$ident) {
-            abort(404, 'Data siswa tidak ditemukan');
-        }
+            $ident = Indentitas::with(['siswa.safe' => function ($qu) {
+                $qu->select('ids', 'ala', 'rt', 'rw', 'cam', 'lur', 'kodpos', 'dusun', 'temtin', 'sakit');
+            }])->where('nouid', $nouid)->firstOrFail();
 
-        if (session()->has('current_nouid') && session('current_nouid') !== $nouid) {
-            Auth::guard('siswa')->logout();
-            session()->forget('current_nouid');
-            return Inertia::location(route('siswa.index', ['nouid' => $nouid]));
-        }
-
-        // Jika sudah login
-        if (Auth::guard('siswa')->check()) {
-            // Set session current_nouid jika belum ada
-            if (!session()->has('current_nouid')) {
-                session(['current_nouid' => $nouid]);
+            if (!$ident) {
+                abort(404, 'Data siswa tidak ditemukan');
+            }
+            if (session()->has('current_nouid') && session('current_nouid') !== $nouid) {
+                Auth::guard('siswa')->logout();
             }
 
-            return Inertia::render('Siswa/Index', [
-                'data' => $ident,
-                'summary' => $ident->summary(),
-            ]);
+            $isLogin = Auth::guard('siswa')->check();
+            $tab = $req->query('tab');
+            $siswa = $ident->siswa;
+            $safe = $siswa->safe;
+            // Jika sudah login
+            if ($isLogin) {
+                $data = [
+                    'data' => [
+                        ...$ident->toArray(),
+                        'balance' => $siswa->balance,
+                        'summary' => $ident->summary(),
+                        'siswa' => [
+                            ...$siswa->toArray(),
+                            'alamat' => $safe
+                        ]
+                        // ...($tab ? ['tab' => $tab] : []),
+                        // ...($tab === 'siswa' ? [
+                        //     'siswa' => [
+                        //         ...$siswa->toArray(),
+                        //         'alamat' => $safe
+                        //     ]
+                        // ] : []),
+                    ],
+                ];
+            } else {
+                $data = [
+                    'data' => [
+                        ...$ident->toArray(),
+                        'siswa' => $siswa->masked(),
+                        'summary' => $ident->summary(['sign', 'version']),
+                    ],
+                ];
+            }
+
+            session(['current_nouid' => $nouid]);
+            return Inertia::render('Siswa/Index', $data);
+        } catch (\Throwable $th) {
+            dd($th); //throw $th;
         }
-        session(['current_nouid' => $nouid]);
-        // Jika belum login, tampilkan form PIN
-        return Inertia::render('Siswa/Index', [
-            'data' => [
-                ...$ident->toArray(),
-                'summary' => $ident->summary(['sign', 'version']),
-                'siswa' => $ident->siswa->masked(),
-            ]
-        ]);
     }
 
 

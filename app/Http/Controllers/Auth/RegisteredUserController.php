@@ -42,7 +42,7 @@ class RegisteredUserController extends Controller
             if ($req->query('q') === 'agreement') {
                 try {
                     if (empty($data)) {
-                        return back()->withErrors(['data' => 'Data belum lengkap untuk memproses perjanjian.']);
+                        return back()->withErrors(['data' => 'Terjadi kesalahan data tidak valid']);
                     }
                     $props = array_merge($props, self::agreement($data));
                 } catch (\Exception $e) {

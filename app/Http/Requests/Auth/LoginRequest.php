@@ -15,6 +15,16 @@ use Illuminate\Support\Facades\Log;
 class LoginRequest extends FormRequest
 {
     /**
+     * Maximum number of login attempts allowed.
+     */
+    protected const MAX_ATTEMPTS = 3;
+
+    /**
+     * The number of minutes to throttle after max attempts reached.
+     */
+    protected const THROTTLE_DECAY_MINUTES = 1;
+
+    /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
@@ -24,8 +34,6 @@ class LoginRequest extends FormRequest
 
     /**
      * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -37,8 +45,6 @@ class LoginRequest extends FormRequest
 
     /**
      * Custom validation messages.
-     *
-     * @return array
      */
     public function messages(): array
     {
@@ -64,26 +70,56 @@ class LoginRequest extends FormRequest
                 ->firstOrFail();
 
             if (!$this->verifyPin($indentitas->siswa, $this->input('pin'))) {
-                RateLimiter::hit($this->throttleKey());
-                Log::warning('Failed login attempt', ['nouid' => $nouid, 'ip' => $this->ip()]);
-                throw ValidationException::withMessages([
-                    'pin' => "PIN yang Anda Masukkan Salah",
+                $attempts = RateLimiter::attempts($this->throttleKey());
+                $remainingAttempts = self::MAX_ATTEMPTS - $attempts - 1;
+                RateLimiter::hit(
+                    $this->throttleKey(),
+                    self::THROTTLE_DECAY_MINUTES * 60
+                );
+                if ($remainingAttempts <= 0) {
+                    $this->ensureIsNotRateLimited(); // Akan memicu throttle
+                }
+
+                $errorData = [
+                    'errors' => [
+                        'pin' => ['PIN yang Anda Masukkan Salah'],
+                        'attempt' => [
+                            'attempt_count' => $attempts + 1,
+                            'remaining' => max(0, $remainingAttempts),
+                            'max_attempts' => self::MAX_ATTEMPTS
+                        ]
+                    ],
+                    'message' => $remainingAttempts > 0
+                        ? "PIN yang Anda Masukkan Salah. Sisa percobaan: {$remainingAttempts}"
+                        : "Terlalu banyak percobaan login"
+                ];
+
+                Log::warning('Failed login attempt', [
+                    'nouid' => $nouid,
+                    'ip' => $this->ip(),
+                    'attempt' => $attempts + 1, // Menunjukkan attempt saat ini
+                    'remaining' => self::MAX_ATTEMPTS - ($attempts + 1)
                 ]);
+                throw ValidationException::withMessages($errorData);
             }
 
             Auth::guard('siswa')->login($indentitas->siswa);
             session(['current_nouid' => $nouid]);
             RateLimiter::clear($this->throttleKey());
-            
-            Log::info('User logged in successfully', ['nouid' => $nouid]);
 
+            Log::info('User logged in successfully', ['nouid' => $nouid]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            Log::error('User not found during login', ['nouid' => $nouid, 'error' => $e->getMessage()]);
             throw ValidationException::withMessages([
                 'nouid' => 'Data siswa tidak ditemukan.',
             ]);
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
-            Log::error('Login process failed', ['nouid' => $nouid, 'error' => $e->getMessage()]);
+            Log::error('Login error', [
+                'error' => $e->getMessage(),
+                'nouid' => $this->input('nouid'),
+                'trace' => $e->getTraceAsString()
+            ]);
             throw ValidationException::withMessages([
                 'nouid' => 'Terjadi kesalahan saat proses login.',
             ]);
@@ -95,7 +131,10 @@ class LoginRequest extends FormRequest
         try {
             return Hash::check($pin, $siswa->pin);
         } catch (\Exception $e) {
-            Log::error('PIN verification failed', ['error' => $e->getMessage()]);
+            Log::error('PIN verification failed', [
+                'error' => $e->getMessage(),
+                'nouid' => $this->input('nouid')
+            ]);
             return false;
         }
     }
@@ -107,23 +146,37 @@ class LoginRequest extends FormRequest
      */
     public function ensureIsNotRateLimited(): void
     {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+        if (!RateLimiter::tooManyAttempts($this->throttleKey(), self::MAX_ATTEMPTS)) {
             return;
         }
 
         event(new Lockout($this));
 
         $seconds = RateLimiter::availableIn($this->throttleKey());
-        $throttleKey = $this->throttleKey();
+        $attempts = RateLimiter::attempts($this->throttleKey());
 
-        Log::warning('Login rate limited', ['key' => $throttleKey, 'attempts' => 5]);
-
-        throw ValidationException::withMessages([
-            'pin' => __('auth.throttle', [
-                'seconds' => $seconds,
-                'minutes' => ceil($seconds / 60),
-            ]),
+        $errorData = [
+            'errors' => [
+                'pin' => ['Terlalu banyak percobaan login'],
+                'attempt' => [
+                    'attempt_count' => self::MAX_ATTEMPTS,
+                    'remaining' => 0,
+                    'max_attempts' => self::MAX_ATTEMPTS,
+                    'retry_after' => $seconds
+                ]
+            ],
+            'message' => "Terlalu banyak percobaan login. Silakan coba lagi dalam {$seconds} detik."
+        ];
+        Log::warning('Login rate limited', [
+            'key' => $this->throttleKey(),
+            'total_attempts' => $attempts,
+            'ip' => $this->ip(),
+            'nouid' => $this->input('nouid'),
+            'retry_after_seconds' => $seconds,
+            'max_attempts' => self::MAX_ATTEMPTS
         ]);
+
+        throw ValidationException::withMessages($errorData);
     }
 
     /**

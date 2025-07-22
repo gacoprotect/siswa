@@ -2,13 +2,12 @@ import { Blokir } from '@/components/blokir';
 import { ConfirmDialog } from '@/components/ConfirmDialog ';
 import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/Layout/AppLayout';
-import { cn, formatIDR } from '@/lib/utils';
+import { formatIDR } from '@/lib/utils';
 import { Auth, DataSiswa, SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     FaArrowAltCircleLeft,
-    FaAtom,
     FaCog,
     FaExchangeAlt,
     FaFileInvoiceDollar,
@@ -32,6 +31,9 @@ import PinPage from './Pin';
 import SetupPinPage from './SetupPin';
 import TagihanContent from '../Tagihan/TagihanContent';
 import { StatusCard } from '@/components/status-card';
+import { AlertCircle } from 'lucide-react';
+import { useLogger } from '@/contexts/logger-context';
+import { Loading } from '@/components/loading-screen';
 
 // Type definitions
 type PageState = 'index' | 'topup' | 'riwayat' | 'tagihan';
@@ -44,8 +46,10 @@ export interface TagihanParam {
 }
 export default function SiswaDashboard() {
     const { auth, data } = usePage<{ auth: Auth; data: DataSiswa }>().props;
+    const { props } = usePage();
+    const { log } = useLogger()
     console.count("Component Render : ");
-
+    log(props)
     // State management
     const [siswaData, setSiswaData] = useState(data);
     const [activeItem, setActiveItem] = useState<number | null>(null);
@@ -160,7 +164,7 @@ export default function SiswaDashboard() {
     }, [siswaData.nouid]);
 
     // Formatted values
-    const formattedSaldo = useMemo(() => formatIDR(siswaData?.siswa.balance || 0), [siswaData?.siswa.balance]);
+    const formattedSaldo = useMemo(() => formatIDR(siswaData?.balance || 0), [siswaData?.balance]);
 
     // Dynamic content renderer
     const renderActiveContent = useMemo(() => {
@@ -193,15 +197,15 @@ export default function SiswaDashboard() {
             <div className="relative flex w-full flex-col items-start rounded-t-lg bg-white p-4 px-6">
                 <div className="flex items-center space-x-3">
                     <FaUser className="flex-shrink-0 text-xl text-primary" />
-                    <h2 className="truncate text-3xl font-semibold text-primary">{siswaData?.siswa.namlen || '******'}</h2>
+                    <h2 className="truncate text-3xl font-semibold text-primary">{auth.user?.namlen ?? siswaData.siswa.namlen ?? '******'}</h2>
                 </div>
                 <div className="flex items-center space-x-3">
                     <FaIdCard className="flex-shrink-0 text-lg text-primary" />
-                    <p className="text-primary md:text-lg">NIS: {siswaData?.siswa.nis || '*****'}</p>
+                    <p className="text-primary md:text-lg">NIS: {auth.user?.nis ?? siswaData.siswa.nis ?? '*****'}</p>
                 </div>
                 <div className="flex items-center space-x-3">
                     <FaGraduationCap className="flex-shrink-0 text-lg text-primary" />
-                    <p className="text-primary md:text-lg">Kelas: {siswaData?.siswa.kel || '******'}</p>
+                    <p className="text-primary md:text-lg">Kelas: {auth.user?.kel ?? siswaData.siswa.kel ?? '***'}</p>
                 </div>
 
                 {/* Menu Gear */}
@@ -247,50 +251,64 @@ export default function SiswaDashboard() {
         const register = () => {
             router.get(route('register', data.nouid))
         }
+        const disabled = data.summary?.reg === 0;
         return (
-            <div className="grid w-full grid-cols-2 items-center gap-4 border-b-2 p-2 px-6">
-                {auth.user ? (
-                    <>
+            disabled ? (
+                <div className={'flex bg-white justify-center items-center gap-4 border-blue-500 border-b-2 border-t-2 p-2 px-6'}>
+                    <AlertCircle className='font-medium text-amber-600' />
+                    <span className='font-medium text-amber-600'>Status Akun sedang dalam verifikasi</span>
+                </div>
+            ) : (
+                <div className="grid w-full grid-cols-2 items-center gap-4 border-b-2 p-2 px-6">
+
+
+                    {auth.user ? (
+                        <>
+                            <button
+                                onClick={() => setLogoutDialogOpen(true)}
+                                className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-red-800 px-4 py-3 text-white shadow-sm transition-colors hover:bg-red-700"
+
+                            >
+                                <FiLogOut className="text-lg" />
+                                <span>Keluar</span>
+                            </button>
+
+                            <ConfirmDialog
+                                open={logoutDialogOpen}
+                                onOpenChange={setLogoutDialogOpen}
+                                title="Konfirmasi Logout"
+                                description="Anda yakin ingin keluar?"
+                                confirmText="Ya, Keluar"
+                                onConfirm={handleLogout}
+                            />
+                        </>
+                    ) : (
                         <button
-                            onClick={() => setLogoutDialogOpen(true)}
-                            className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-red-800 px-4 py-3 text-white shadow-sm transition-colors hover:bg-red-700"
+                            onClick={openPinModal}
+                            className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-white px-4 py-3 text-indigo-600 shadow-sm transition-colors hover:bg-indigo-50"
+                            disabled={disabled}
                         >
-                            <FiLogOut className="text-lg" />
-                            <span>Keluar</span>
+                            <FaKey className="text-lg" />
+                            <span>Masukan PIN</span>
                         </button>
+                    )}
 
-                        <ConfirmDialog
-                            open={logoutDialogOpen}
-                            onOpenChange={setLogoutDialogOpen}
-                            title="Konfirmasi Logout"
-                            description="Anda yakin ingin keluar?"
-                            confirmText="Ya, Keluar"
-                            onConfirm={handleLogout}
-                        />
-                    </>
-                ) : (
                     <button
-                        onClick={openPinModal}
+                        onClick={() => {
+                            if (hasPined) {
+                                openSetupPinModal()
+                            } else { register() }
+                        }
+                        }
                         className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-white px-4 py-3 text-indigo-600 shadow-sm transition-colors hover:bg-indigo-50"
+                        disabled={disabled}
                     >
-                        <FaKey className="text-lg" />
-                        <span>Masukan PIN</span>
+                        <FaExchangeAlt className="text-lg" />
+                        <span>{hasPined ? 'Ubah PIN' : 'Daftar'}</span>
                     </button>
-                )}
 
-                <button
-                    onClick={() => {
-                        if (hasPined) {
-                            openSetupPinModal()
-                        } else { register() }
-                    }
-                    }
-                    className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-white px-4 py-3 text-indigo-600 shadow-sm transition-colors hover:bg-indigo-50"
-                >
-                    <FaExchangeAlt className="text-lg" />
-                    <span>{hasPined ? 'Ubah PIN' : 'Daftar'}</span>
-                </button>
-            </div>
+                </div>
+            )
         )
     };
 
@@ -342,24 +360,11 @@ export default function SiswaDashboard() {
         </div>
     );
 
-    if (isLoading) {
-        return (
-            <AppLayout title="Loading...">
-                <div className="flex min-h-screen flex-col items-center justify-center space-y-6 bg-blue-100">
-                    <FaAtom className="animate-spin-slow text-5xl text-blue-400" />
-                    <div className="relative">
-                        <div className="bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-2xl font-bold tracking-wider text-transparent">
-                            Memuat Data
-                        </div>
-                        <div className="animate-loading-line absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-600"></div>
-                    </div>
-                </div>
-            </AppLayout>
-        );
-    }
-
     return (
         <>
+            {isLoading && (
+                <Loading text='Memuat Data' variant='overlay' />
+            )}
             {!data.active ? (
                 <AppLayout title="Kartu Siswa">
                     <div className="flex min-h-screen items-center bg-white">
@@ -382,10 +387,9 @@ export default function SiswaDashboard() {
                     {activeItem !== null ? (renderActiveContent) :
 
                         page === 'index' ? (
-                            <AppLayout title={siswaData?.siswa.namlen || 'Login'}>
+                            <AppLayout title={auth.user?.namlen ?? 'Login'}>
                                 <StudentInfo />
                                 <ActionButtons />
-
                                 {auth.user && (
                                     <>
                                         <BalanceSection />
@@ -395,7 +399,6 @@ export default function SiswaDashboard() {
                                 )}
 
                                 {(data.summary?.reg === 0) ? (
-                                    // For reg === 0 (success)
                                     <StatusCard
                                         variant="success"
                                         title="Pendaftaran Anda berhasil"
@@ -419,15 +422,16 @@ export default function SiswaDashboard() {
                                                     <p>Jika membutuhkan bantuan, silakan hubungi tim kami melalui kontak resmi yang tersedia.</p>
                                                 </>
                                             }
-                                        />) : data.summary?.reg === -2 && (
+                                        />
+                                    ) : data.summary?.reg === -2 && (
 
-                                            // For reg === -2 (blocked)
-                                            <StatusCard
-                                                variant="blocked"
-                                                title="Kartu Diblokir"
-                                                description="Kartu ini telah diblokir dan tidak dapat digunakan. Silakan hubungi pihak terkait untuk informasi lebih lanjut."
-                                            />
-                                        )}
+                                        // For reg === -2 (blocked)
+                                        <StatusCard
+                                            variant="blocked"
+                                            title="Kartu Diblokir"
+                                            description="Kartu ini telah diblokir dan tidak dapat digunakan. Silakan hubungi pihak terkait untuk informasi lebih lanjut."
+                                        />
+                                    )}
 
 
                             </AppLayout>
@@ -458,9 +462,7 @@ export default function SiswaDashboard() {
             <PinPage
                 open={openModal === 'pin'}
                 hasPin={hasPined}
-                handle={!auth.user ? 'index' : isHistory ? 'riwayat' : 'auth'}
                 setPage={setPage}
-                setOpenSetupPin={openSetupPinModal}
                 onClose={(success) => {
                     closeModal(success);
                     if (!success) setIsHistory(false);

@@ -1,5 +1,5 @@
 // components/PinStep.tsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { DigitInput } from './DigitInput';
 
 interface PinStepProps {
@@ -12,7 +12,7 @@ interface PinStepProps {
     onPaste: (e: React.ClipboardEvent<HTMLInputElement>) => void;
     onToggleInputType: () => void;
     onSubmit: (e: React.FormEvent) => void;
-    setInputRef: (el: HTMLInputElement | null, index: number) => void;
+    setInputRef?: (el: HTMLInputElement | null, index: number) => void;
     inputRefs: React.MutableRefObject<(HTMLInputElement | null)[]>;
 }
 
@@ -26,10 +26,12 @@ export const PinStep: React.FC<PinStepProps> = ({
     onPaste,
     onToggleInputType,
     onSubmit,
-    setInputRef,
+    // setInputRef,
     inputRefs,
 }) => {
+    const [isError, setIsError] = useState(Boolean(Object.keys(errors).length > 0))
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+        setIsError(false)
         const value = e.target.value.replace(/\D/g, '');
         onPinChange(e, index);
 
@@ -38,7 +40,11 @@ export const PinStep: React.FC<PinStepProps> = ({
             inputRefs.current[index + 1]?.focus();
         }
     };
-
+    useEffect(() => {
+        if (errors) {
+            setIsError(Boolean(Object.keys(errors).length > 0))
+        }
+    }, [errors])
     return (
         <div className="flex items-center justify-center">
             <div className="w-full max-w-md space-y-8">
@@ -46,7 +52,6 @@ export const PinStep: React.FC<PinStepProps> = ({
                     <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Masukkan PIN</h2>
                 </div>
 
-                {errors.pin && <div className="mb-4 text-center text-sm text-red-500">{errors.pin}</div>}
 
                 <form className="mt-8 space-y-6" onSubmit={onSubmit}>
                     <div className="flex justify-center space-x-2">
@@ -62,10 +67,17 @@ export const PinStep: React.FC<PinStepProps> = ({
                                 onKeyDown={(e) => onKeyDown(e, index)}
                                 onPaste={onPaste}
                                 autoFocus={index === 0}
+                                error={isError}
                             />
                         ))}
                     </div>
-
+                    {isError && (
+                        (errors.pin || errors.message) && (
+                            <div className="mb-4 flex flex-col text-center text-sm text-red-500">
+                                <span>{errors.pin ?? errors.message}</span>
+                                {parseInt(errors.attempt) < 3 && <span>{errors.attempt ? `sisa percobaan ${3 - parseInt(errors.attempt)}` : ''}</span>}
+                            </div>)
+                    )}
                     <div className="flex justify-center">
                         <button type="button" className="text-sm text-gray-600 hover:text-gray-800" onClick={onToggleInputType}>
                             {inputType === 'password' ? 'Tampilkan PIN' : 'Sembunyikan PIN'}
@@ -76,11 +88,10 @@ export const PinStep: React.FC<PinStepProps> = ({
                         <button
                             type="submit"
                             disabled={processing || pin.length !== 6}
-                            className={`group relative flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white ${
-                                pin.length === 6
-                                    ? 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none'
-                                    : 'cursor-not-allowed bg-gray-400'
-                            }`}
+                            className={`group relative flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white ${pin.length === 6
+                                ? 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none'
+                                : 'cursor-not-allowed bg-gray-400'
+                                }`}
                         >
                             {processing ? 'Memverifikasi...' : 'Masuk'}
                         </button>

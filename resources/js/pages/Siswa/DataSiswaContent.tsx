@@ -1,8 +1,7 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog ';
 import InputGroup from '@/components/InputGroup';
-import { NoteDialog } from '@/components/NoteDialog';
 import { cn } from '@/lib/utils';
-import { Siswa, Wali } from '@/types';
+import { Siswa } from '@/types';
 import { useForm } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FaBirthdayCake, FaEdit, FaEnvelope, FaGraduationCap, FaHandshake, FaHome, FaHotel, FaIdCard, FaMobileAlt, FaNotesMedical, FaPhone, FaPlus, FaTimes, FaUser, FaUserFriends, FaUserTie } from 'react-icons/fa';
@@ -25,16 +24,16 @@ interface DataWilayah {
     level: string;
 }
 
-interface DetailDataWilayah {
-    detail: DataWilayah;
-    hierarchy: DataWilayah[];
-}
+// interface DetailDataWilayah {
+//     detail: DataWilayah;
+//     hierarchy: DataWilayah[];
+// }
 
-interface ResponseWilayah {
-    success: boolean;
-    level: string;
-    data: DataWilayah[] | DetailDataWilayah;
-}
+// interface ResponseWilayah {
+//     success: boolean;
+//     level: string;
+//     data: DataWilayah[] | DetailDataWilayah;
+// }
 interface LivingOption {
     id: number;
     nama: string;
@@ -49,17 +48,23 @@ const livingOptions: LivingOption[] = [
     { id: 5, nama: 'Lainnya', icon: <FaHome /> }
 ];
 const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [state, setState] = useState({
+        isLoading: true,
+        isEditing: false,
+        isDialogOpen: false,
+
+    })
+    // const [state.isEditing, setIsEditing] = useState(false);
+    // const [state.isDialogOpen, setIsDialogOpen] = useState(false);
     const [provs, setProvs] = useState<DataWilayah[]>([]);
     const [kabs, setKabs] = useState<DataWilayah[]>([]);
     const [kecs, setKecs] = useState<DataWilayah[]>([]);
     const [kels, setKels] = useState<DataWilayah[]>([]);
     const [selectedWilayah, setSelectedWilayah] = useState<Wilayah>({
-        prov: siswa.safe?.wilayah?.prov || '',
-        kab: siswa.safe?.wilayah?.kab || '',
-        kec: siswa.safe?.wilayah?.kec || '',
-        kel: siswa.safe?.wilayah?.kel || '',
+        prov: siswa.alamat?.wilayah?.prov || '',
+        kab: siswa.alamat?.wilayah?.kab || '',
+        kec: siswa.alamat?.wilayah?.kec || '',
+        kel: siswa.alamat?.wilayah?.kel || '',
     });
 
     const { data, setData, post, processing, errors } = useForm({
@@ -69,30 +74,30 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
         tel: siswa.tel ?? '',
         ttl: siswa.ttl ?? '',
         email: siswa.email ?? '',
-        safe: {
-            ala: siswa.safe?.ala ?? '',
-            rt: siswa.safe?.rt ?? '',
-            rw: siswa.safe?.rw ?? '',
-            kec: siswa.safe?.kec ?? '',//16.71.04
-            lur: siswa.safe?.lur ?? '', //16.71.04.1002
-            kodpos: siswa.safe?.kodpos ?? '',
-            dusun: siswa.safe?.dusun ?? '',
-            temtin: siswa.safe?.temtin ?? '',
-            sakit: siswa.safe?.sakit ?? [],
+        alamat: {
+            ala: siswa.alamat?.ala ?? '',
+            rt: siswa.alamat?.rt ?? '',
+            rw: siswa.alamat?.rw ?? '',
+            kec: siswa.alamat?.kec ?? '',//16.71.04
+            lur: siswa.alamat?.lur ?? '', //16.71.04.1002
+            kodpos: siswa.alamat?.kodpos ?? '',
+            dusun: siswa.alamat?.dusun ?? '',
+            temtin: siswa.alamat?.temtin ?? '',
+            sakit: siswa.alamat?.sakit ?? [],
             wilayah: {
-                prov: siswa.safe?.wilayah?.prov || '',
-                kab: siswa.safe?.wilayah?.kab || '',
-                kec: siswa.safe?.wilayah?.kec || '',
-                kel: siswa.safe?.wilayah?.kel || '',
+                prov: siswa.alamat?.wilayah?.prov || '',
+                kab: siswa.alamat?.wilayah?.kab || '',
+                kec: siswa.alamat?.wilayah?.kec || '',
+                kel: siswa.alamat?.wilayah?.kel || '',
             },
         },
     });
-    const [healthNotes, setHealthNotes] = useState<string[]>(data.safe.sakit || ['']);
+    const [healthNotes, setHealthNotes] = useState<string[]>(data.alamat.sakit || ['']);
 
     const addHealthNote = () => {
         setHealthNotes([...healthNotes, '']);
-        setData('safe', {
-            ...data.safe,
+        setData('alamat', {
+            ...data.alamat,
             sakit: [...healthNotes, '']
         });
     };
@@ -100,8 +105,8 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
     const removeHealthNote = (index: number) => {
         const updatedNotes = healthNotes.filter((_, i) => i !== index);
         setHealthNotes(updatedNotes);
-        setData('safe', {
-            ...data.safe,
+        setData('alamat', {
+            ...data.alamat,
             sakit: updatedNotes
         });
     };
@@ -110,8 +115,8 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
         const updatedNotes = [...healthNotes];
         updatedNotes[index] = value;
         setHealthNotes(updatedNotes);
-        setData('safe', {
-            ...data.safe,
+        setData('alamat', {
+            ...data.alamat,
             sakit: updatedNotes
         });
     };
@@ -162,7 +167,7 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
     }, [fetchWilayah]);
 
     useEffect(() => {
-        if (isEditing && initialLoad.current) {
+        if (state.isEditing && initialLoad.current) {
             initialLoad.current = false;
             getProvs();
 
@@ -179,7 +184,7 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                 });
             }
         }
-    }, [isEditing, selectedWilayah.prov, selectedWilayah.kab, selectedWilayah.kec, getProvs, getKabs, getKecs, getKels]);
+    }, [state.isEditing, selectedWilayah.prov, selectedWilayah.kab, selectedWilayah.kec, getProvs, getKabs, getKecs, getKels]);
 
 
     const handleProvinceChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -192,8 +197,8 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
         };
 
         setSelectedWilayah(newWilayah);
-        setData('safe', {
-            ...data.safe,
+        setData('alamat', {
+            ...data.alamat,
             wilayah: newWilayah
         });
         // Reset dropdown dependen
@@ -217,8 +222,8 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
         };
 
         setSelectedWilayah(newWilayah);
-        setData('safe', {
-            ...data.safe,
+        setData('alamat', {
+            ...data.alamat,
             wilayah: newWilayah
         });
 
@@ -241,8 +246,8 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
         };
 
         setSelectedWilayah(newWilayah);
-        setData('safe', {
-            ...data.safe,
+        setData('alamat', {
+            ...data.alamat,
             wilayah: newWilayah
         });
 
@@ -263,8 +268,8 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
         };
 
         setSelectedWilayah(newWilayah);
-        setData('safe', {
-            ...data.safe,
+        setData('alamat', {
+            ...data.alamat,
             wilayah: newWilayah
         });
     };
@@ -273,10 +278,11 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
         e.preventDefault();
         post(route('siswa.update', { nouid: nouid }), {
             onSuccess: () => {
-                setIsEditing(false);
+                setState(prev => ({ ...prev, isEditing: false }));
             },
             onFinish: () => {
-                setIsDialogOpen(true)
+                setState(prev => ({ ...prev, isDialogOpen: false }));
+
             }
         });
     };
@@ -313,9 +319,9 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
         <div className="w-full space-y-6 p-4">
             <div className="flex flex-col justify-between space-y-3 md:flex-row md:items-center md:space-y-0">
                 <h3 className="text-2xl font-bold text-gray-800">Data Siswa Lengkap</h3>
-                {!isEditing ? (
+                {!state.isEditing ? (
                     <button
-                        onClick={() => setIsEditing(true)}
+                        onClick={() => setState(prev => ({ ...prev, isEditing: true }))}
                         className="flex w-32 items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-white transition-colors hover:bg-blue-600"
                     >
                         <FaEdit className="text-lg" />
@@ -324,7 +330,7 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                 ) : (
                     <div className="flex gap-2">
                         <button
-                            onClick={() => setIsEditing(false)}
+                            onClick={() => setState(prev => ({ ...prev, isEditing: false }))}
                             className="flex items-center gap-2 rounded-lg bg-gray-500 px-4 py-2 text-white transition-colors hover:bg-gray-600"
                         >
                             Batal
@@ -337,281 +343,284 @@ const DataSiswaContent: React.FC<DataSiswaContentProps> = ({ nouid, siswa }) => 
                             Simpan Perubahan
                         </button>
                     </div>
-                )}
-            </div>
+                )
+                }
+            </div >
 
-            {isEditing ? (
-                <form onSubmit={handleSubmit} className="w-full">
-                    <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2">
-                        {/* Kolom 1 */}
-                        <div className="space-y-4">
-                            <div className="rounded-lg bg-white p-4 shadow-sm">
-                                <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-blue-600">
-                                    <FaUser /> Identitas Diri
-                                </h4>
-                                <div className="space-y-3">
-                                    <EditDataRow
-                                        icon={<FaIdCard />}
-                                        label="NIS"
-                                        value={data.nis}
-                                        onChange={(e) => setData('nis', e.target.value)}
-                                        error={errors.nis}
-                                        disabled={true}
-                                    />
-                                    <EditDataRow
-                                        icon={<FaUser />}
-                                        label="Nama"
-                                        value={data.namlen}
-                                        onChange={(e) => setData('namlen', e.target.value)}
-                                        error={errors.namlen}
-                                        disabled={true}
-                                    />
-                                    <EditDataRow
-                                        icon={<FaGraduationCap />}
-                                        label="Kelas"
-                                        value={data.kel}
-                                        onChange={(e) => setData('kel', e.target.value)}
-                                        error={errors.kel}
-                                        disabled={true}
-                                    />
-                                    <EditDataRow
-                                        icon={<FaBirthdayCake />}
-                                        label="TTL"
-                                        value={data.ttl}
-                                        onChange={(e) => setData('ttl', e.target.value)}
-                                        error={errors.ttl}
-                                        disabled={true}
-                                    />
-                                    <EditDataRow
-                                        icon={<FaPhone />}
-                                        label="Telepon"
-                                        value={data.tel}
-                                        onChange={(e) => setData('tel', e.target.value)}
-                                        error={errors.tel}
-                                    />
-                                    <EditDataRow
-                                        icon={<FaEnvelope />}
-                                        label="Email"
-                                        value={data.email}
-                                        onChange={(e) => setData('email', e.target.value)}
-                                        error={errors.email}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="rounded-lg bg-white p-4 shadow-sm">
-                                <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-green-600">
-                                    <FaNotesMedical /> Catatan Kesehatan
-                                </h4>
-
-                                <div className="space-y-3">
-                                    {healthNotes.map((note, index) => (
-                                        <div key={index} className="flex items-center gap-2">
-                                            <input
-                                                type="text"
-                                                value={note}
-                                                onChange={(e) => handleHealthNoteChange(index, e.target.value)}
-                                                className="flex-1 rounded border border-gray-300 p-2 text-sm"
-                                                placeholder={`Catatan kesehatan #${index + 1}`}
-                                            />
-                                            {healthNotes.length > 0 && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeHealthNote(index)}
-                                                    className="rounded-full p-2 text-red-500 hover:bg-red-50"
-                                                >
-                                                    <FaTimes className="text-sm" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-
-                                    <button
-                                        type="button"
-                                        onClick={addHealthNote}
-                                        className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-600 hover:bg-green-100"
-                                    >
-                                        <FaPlus /> Tambah Catatan
-                                    </button>
+            {
+                state.isEditing ? (
+                    <form onSubmit={handleSubmit} className="w-full">
+                        <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2">
+                            {/* Kolom 1 */}
+                            <div className="space-y-4">
+                                <div className="rounded-lg bg-white p-4 shadow-sm">
+                                    <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-blue-600">
+                                        <FaUser /> Identitas Diri
+                                    </h4>
+                                    <div className="space-y-3">
+                                        <EditDataRow
+                                            icon={<FaIdCard />}
+                                            label="NIS"
+                                            value={data.nis}
+                                            onChange={(e) => setData('nis', e.target.value)}
+                                            error={errors.nis}
+                                            disabled={true}
+                                        />
+                                        <EditDataRow
+                                            icon={<FaUser />}
+                                            label="Nama"
+                                            value={data.namlen}
+                                            onChange={(e) => setData('namlen', e.target.value)}
+                                            error={errors.namlen}
+                                            disabled={true}
+                                        />
+                                        <EditDataRow
+                                            icon={<FaGraduationCap />}
+                                            label="Kelas"
+                                            value={data.kel}
+                                            onChange={(e) => setData('kel', e.target.value)}
+                                            error={errors.kel}
+                                            disabled={true}
+                                        />
+                                        <EditDataRow
+                                            icon={<FaBirthdayCake />}
+                                            label="TTL"
+                                            value={data.ttl}
+                                            onChange={(e) => setData('ttl', e.target.value)}
+                                            error={errors.ttl}
+                                            disabled={true}
+                                        />
+                                        <EditDataRow
+                                            icon={<FaPhone />}
+                                            label="Telepon"
+                                            value={data.tel}
+                                            onChange={(e) => setData('tel', e.target.value)}
+                                            error={errors.tel}
+                                        />
+                                        <EditDataRow
+                                            icon={<FaEnvelope />}
+                                            label="Email"
+                                            value={data.email}
+                                            onChange={(e) => setData('email', e.target.value)}
+                                            error={errors.email}
+                                        />
+                                    </div>
                                 </div>
 
-                                {/* {errors.safe?.sakit && (
-                                    <p className="mt-2 text-sm text-red-500">{errors.safe?.sakit}</p>
-                                )} */}
-                            </div>
+                                <div className="rounded-lg bg-white p-4 shadow-sm">
+                                    <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-green-600">
+                                        <FaNotesMedical /> Catatan Kesehatan
+                                    </h4>
 
-                            <div className="rounded-lg bg-white p-4 shadow-sm">
-                                <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-green-600">
-                                    <FaHome /> Alamat
-                                </h4>
-                                <label className="mb-1 block text-sm font-medium text-gray-700">Alamat lengkap</label>
-                                <textarea
-                                    className="w-full rounded border border-gray-300 p-2"
-                                    value={data.safe?.ala}
-                                    onChange={(e) => setData('safe', {
-                                        ...data.safe,
-                                        ala: e.target.value
-                                    })}
-                                    rows={2}
-                                    placeholder='Masukan Alamat Lengkap'
-                                />
-                                {/* {errors.safe?.ala && <p className="mt-1 text-sm text-red-500">{errors.safe?.ala}</p>} */}
+                                    <div className="space-y-3">
+                                        {healthNotes.map((note, index) => (
+                                            <div key={index} className="flex items-center gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={note}
+                                                    onChange={(e) => handleHealthNoteChange(index, e.target.value)}
+                                                    className="flex-1 rounded border border-gray-300 p-2 text-sm"
+                                                    placeholder={`Catatan kesehatan #${index + 1}`}
+                                                />
+                                                {healthNotes.length > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeHealthNote(index)}
+                                                        className="rounded-full p-2 text-red-500 hover:bg-red-50"
+                                                    >
+                                                        <FaTimes className="text-sm" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
 
-                                <div className='grid grid-cols-2 gap-4'>
-                                    <InputGroup
-
-                                        name='rt'
-                                        prefix="RT"
-                                        value={data.safe?.rt}
-                                        onChange={(v) => setData('safe', {
-                                            ...data.safe,
-                                            rt: v as string
-                                        })}
-                                        error={errors.safe}
-                                    />
-                                    <InputGroup
-
-                                        name='rw'
-                                        prefix="RW"
-                                        value={data.safe?.rw}
-                                        onChange={(v) => setData('safe', {
-                                            ...data.safe,
-                                            rw: v as string
-                                        })}
-                                        error={errors.safe}
-                                    />
-
-
-                                </div>
-                                <div className="mt-4 space-y-3">
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium text-gray-700">Provinsi</label>
-                                        <WilayahSelect
-                                            options={provs}
-                                            value={selectedWilayah.prov}
-                                            onChange={handleProvinceChange}
-                                            placeholder="Pilih Provinsi"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium text-gray-700">Kabupaten/Kota</label>
-                                        <WilayahSelect
-                                            options={kabs}
-                                            value={selectedWilayah.kab}
-                                            onChange={handleRegencyChange}
-                                            placeholder="Pilih Kabupaten/Kota"
-                                            disabled={!selectedWilayah.prov}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium text-gray-700">Kecamatan</label>
-                                        <WilayahSelect
-                                            options={kecs}
-                                            value={selectedWilayah.kec}
-                                            onChange={handleDistrictChange}
-                                            placeholder="Pilih Kecamatan"
-                                            disabled={!selectedWilayah.kab}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="mb-1 block text-sm font-medium text-gray-700">Kelurahan/Desa</label>
-                                        <WilayahSelect
-                                            options={kels}
-                                            value={selectedWilayah.kel}
-                                            onChange={handleVillageChange}
-                                            placeholder="Pilih Kelurahan/Desa"
-                                            disabled={!selectedWilayah.kec}
-                                        />
-                                    </div>
-
-                                    <div className="mb-4">
-                                        <label className="mb-1 flex items-center gap-2 text-sm font-medium text-gray-700">
-                                            <FaHome className="text-gray-500" />
-                                            Tinggal Dengan
-                                        </label>
-                                        <select
-                                            value={data.safe?.temtin}
-                                            onChange={(e) => setData('safe', {
-                                                ...data.safe,
-                                                temtin: e.target.value
-                                            })}
-                                            className="w-full rounded border border-gray-300 p-2 text-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        <button
+                                            type="button"
+                                            onClick={addHealthNote}
+                                            className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-600 hover:bg-green-100"
                                         >
-                                            <option value="">Pilih Status Tinggal</option>
-                                            {livingOptions.map((option) => (
-                                                <option key={option.id} value={option.id}>
-                                                    {option.nama}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {/* {errors.tinggal && (
+                                            <FaPlus /> Tambah Catatan
+                                        </button>
+                                    </div>
+
+                                    {/* {errors.alamat?.sakit && (
+                                    <p className="mt-2 text-sm text-red-500">{errors.alamat?.sakit}</p>
+                                )} */}
+                                </div>
+
+                                <div className="rounded-lg bg-white p-4 shadow-sm">
+                                    <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-green-600">
+                                        <FaHome /> Alamat
+                                    </h4>
+                                    <label className="mb-1 block text-sm font-medium text-gray-700">Alamat lengkap</label>
+                                    <textarea
+                                        className="w-full rounded border border-gray-300 p-2"
+                                        value={data.alamat?.ala}
+                                        onChange={(e) => setData('alamat', {
+                                            ...data.alamat,
+                                            ala: e.target.value
+                                        })}
+                                        rows={2}
+                                        placeholder='Masukan Alamat Lengkap'
+                                    />
+                                    {/* {errors.alamat?.ala && <p className="mt-1 text-sm text-red-500">{errors.alamat?.ala}</p>} */}
+
+                                    <div className='grid grid-cols-2 gap-4'>
+                                        <InputGroup
+
+                                            name='rt'
+                                            prefix="RT"
+                                            value={data.alamat?.rt}
+                                            onChange={(v) => setData('alamat', {
+                                                ...data.alamat,
+                                                rt: v as string
+                                            })}
+                                            error={errors.alamat}
+                                        />
+                                        <InputGroup
+
+                                            name='rw'
+                                            prefix="RW"
+                                            value={data.alamat?.rw}
+                                            onChange={(v) => setData('alamat', {
+                                                ...data.alamat,
+                                                rw: v as string
+                                            })}
+                                            error={errors.alamat}
+                                        />
+
+
+                                    </div>
+                                    <div className="mt-4 space-y-3">
+                                        <div>
+                                            <label className="mb-1 block text-sm font-medium text-gray-700">Provinsi</label>
+                                            <WilayahSelect
+                                                options={provs}
+                                                value={selectedWilayah.prov}
+                                                onChange={handleProvinceChange}
+                                                placeholder="Pilih Provinsi"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="mb-1 block text-sm font-medium text-gray-700">Kabupaten/Kota</label>
+                                            <WilayahSelect
+                                                options={kabs}
+                                                value={selectedWilayah.kab}
+                                                onChange={handleRegencyChange}
+                                                placeholder="Pilih Kabupaten/Kota"
+                                                disabled={!selectedWilayah.prov}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="mb-1 block text-sm font-medium text-gray-700">Kecamatan</label>
+                                            <WilayahSelect
+                                                options={kecs}
+                                                value={selectedWilayah.kec}
+                                                onChange={handleDistrictChange}
+                                                placeholder="Pilih Kecamatan"
+                                                disabled={!selectedWilayah.kab}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="mb-1 block text-sm font-medium text-gray-700">Kelurahan/Desa</label>
+                                            <WilayahSelect
+                                                options={kels}
+                                                value={selectedWilayah.kel}
+                                                onChange={handleVillageChange}
+                                                placeholder="Pilih Kelurahan/Desa"
+                                                disabled={!selectedWilayah.kec}
+                                            />
+                                        </div>
+
+                                        <div className="mb-4">
+                                            <label className="mb-1 flex items-center gap-2 text-sm font-medium text-gray-700">
+                                                <FaHome className="text-gray-500" />
+                                                Tinggal Dengan
+                                            </label>
+                                            <select
+                                                value={data.alamat?.temtin}
+                                                onChange={(e) => setData('alamat', {
+                                                    ...data.alamat,
+                                                    temtin: e.target.value
+                                                })}
+                                                className="w-full rounded border border-gray-300 p-2 text-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                            >
+                                                <option value="">Pilih Status Tinggal</option>
+                                                {livingOptions.map((option) => (
+                                                    <option key={option.id} value={option.id}>
+                                                        {option.nama}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {/* {errors.tinggal && (
                                             <p className="mt-1 text-xs text-red-500">{errors.tinggal}</p>
                                         )} */}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </form>
-            ) : (
-                <div className="w-full">
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                        {/* Kolom 1 */}
-                        <div className="space-y-4">
-                            <div className="rounded-lg bg-white p-4 shadow-sm">
-                                <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-blue-600">
-                                    <FaUser /> Identitas Diri
-                                </h4>
-                                <div className="space-y-3">
-                                    <DataRow icon={<FaIdCard />} label="NISN" value={siswa?.nisn ?? ''} />
-                                    <DataRow icon={<FaIdCard />} label="NIS" value={siswa?.nis ?? ''} />
-                                    <DataRow icon={<FaUser />} label="Nama" value={siswa.namlen} />
-                                    {/* <DataRow icon={<FaGraduationCap />} label="Kelas" value={siswa?.kel ?? ''} /> */}
-                                    {/* <DataRow icon={<FaPhone />} label="Telepon" value={siswa?.tel ?? ''} /> */}
-                                    <DataRow icon={<FaBirthdayCake />} label="TTL" value={siswa?.ttl ?? ''} />
-                                    {/* <DataRow icon={<FaEnvelope />} label="Email" value={siswa?.email ?? ''} /> */}
+                    </form>
+                ) : (
+                    <div className="w-full">
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            {/* Kolom 1 */}
+                            <div className="space-y-4">
+                                <div className="rounded-lg bg-white p-4 shadow-sm">
+                                    <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-blue-600">
+                                        <FaUser /> Identitas Diri
+                                    </h4>
+                                    <div className="space-y-3">
+                                        <DataRow icon={<FaIdCard />} label="NISN" value={siswa?.nisn ?? ''} />
+                                        <DataRow icon={<FaIdCard />} label="NIS" value={siswa?.nis ?? ''} />
+                                        <DataRow icon={<FaUser />} label="Nama" value={siswa.namlen} />
+                                        {/* <DataRow icon={<FaGraduationCap />} label="Kelas" value={siswa?.kel ?? ''} /> */}
+                                        {/* <DataRow icon={<FaPhone />} label="Telepon" value={siswa?.tel ?? ''} /> */}
+                                        <DataRow icon={<FaBirthdayCake />} label="TTL" value={siswa?.ttl ?? ''} />
+                                        {/* <DataRow icon={<FaEnvelope />} label="Email" value={siswa?.email ?? ''} /> */}
+                                    </div>
                                 </div>
-                            </div>
 
-                            {/* <div className="rounded-lg bg-white p-4 shadow-sm">
+                                {/* <div className="rounded-lg bg-white p-4 shadow-sm">
                                 <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-green-600">
                                     <FaHome /> Alamat
                                 </h4>
                                 <p className="text-gray-700">{siswa.ala}</p>
                             </div> */}
-                        </div>
+                            </div>
 
-                        {/* Kolom 2 */}
-                        <div className="space-y-4">
-                            <div className="rounded-lg bg-white p-4 shadow-sm">
-                                <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-amber-600">
-                                    <FaUserTie /> Orang Tua / Wali
-                                </h4>
-                                <div className="space-y-3">
-                                    <DataRow icon={<FaUserFriends />} label="Nama Wali" value={siswa?.wali?.nama ?? ''} />
-                                    <DataRow icon={<FaHandshake />} label="Hubungan" value={siswa?.wali?.hub ?? ''} />
-                                    <DataRow icon={<FaMobileAlt />} label="Kontak" value={siswa?.wali?.tel ?? ''} />
+                            {/* Kolom 2 */}
+                            <div className="space-y-4">
+                                <div className="rounded-lg bg-white p-4 shadow-sm">
+                                    <h4 className="mb-3 flex items-center gap-2 text-lg font-semibold text-amber-600">
+                                        <FaUserTie /> Orang Tua / Wali
+                                    </h4>
+                                    <div className="space-y-3">
+                                        <DataRow icon={<FaUserFriends />} label="Nama Wali" value={siswa?.wali?.nama ?? ''} />
+                                        <DataRow icon={<FaHandshake />} label="Hubungan" value={siswa?.wali?.hub ?? ''} />
+                                        <DataRow icon={<FaMobileAlt />} label="Kontak" value={siswa?.wali?.tel ?? ''} />
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-            <ConfirmDialog
-                open={isDialogOpen}
-                onOpenChange={setIsDialogOpen}
+                )
+            }
+            < ConfirmDialog
+                open={state.isDialogOpen}
+                onOpenChange={(v) => setState(prev => ({ ...prev, isDialogOpen: v }))}
                 title="Edit Data Siswa"
                 description="Data Anda telah kami terima , perubahan data memerlukan verifikasi dari pihak sekolah"
                 confirmText="Mengerti"
                 cancelText={null}
-                onConfirm={() => setIsDialogOpen(false)}
+                onConfirm={() => setState(prev => ({ ...prev, isDialogOpen: false }))}
                 variant="primary"
             />
 
-        </div>
+        </div >
     );
 };
 

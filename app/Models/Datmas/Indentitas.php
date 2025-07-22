@@ -42,7 +42,6 @@ class Indentitas extends BaseModel
         'tah_tagihan',
         'bulan_tagihan',
         'tagihan',
-        'siswa',
         'transactions',
         'active',
         'trx'

@@ -51,14 +51,11 @@ class Siswa extends Authenticatable
     protected $appends = ['has_pin', 'balance', 'ttl'];
     protected $visible = [
         'balance',
-        'has_pin',
         'nis',
         'namlen',
         'ttl',
         'tel',
         'kel',
-        'excul',
-        'safe',
     ];
     protected $fillable = [
         'nis',

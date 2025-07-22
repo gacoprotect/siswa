@@ -1,12 +1,12 @@
 import { Modal } from '@/components/ui/Modal';
 import { maskPhoneNumber } from '@/lib/utils';
-import { DataSiswa } from '@/types';
+import { Auth, DataSiswa } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () => void; hasPin: boolean; open: boolean; onClose: () => void }) => {
-    const { data: pageData, errors } = usePage<{ data: DataSiswa; errors: Record<string, string>; nouid: string }>().props;
+    const {auth, data: pageData, errors } = usePage<{auth:Auth; data: DataSiswa; errors: Record<string, string>; nouid: string }>().props;
     const [step, setStep] = useState<'phone' | 'otp' | 'pin'>('phone');
     const [countdown, setCountdown] = useState(0);
     const { data, setData, post, processing, reset } = useForm({
@@ -127,7 +127,7 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                 </h2>
                 <p className="mt-2 text-center text-sm text-gray-600">
                     Kami akan mengirimkan kode OTP ke nomor ini <br />
-                    {maskPhoneNumber(pageData.siswa.tel ?? '')}
+                    {maskPhoneNumber(auth.user?.tel ?? '')}
                 </p>
             </div>
 

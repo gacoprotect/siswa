@@ -20,7 +20,7 @@ const AppLayout = ({ children, title, className = '' }: AppLayoutProps) => {
 
             {/* DEBUG BANNER - Positioned absolutely at the top */}
             {(isDev || isDebug) && (
-                <div className="fixed w-60 h-50 flex flex-col justify-end -rotate-45 origin-top-left top-0 -left-42 z-50 bg-yellow-300/50 text-center py-1 px-8 text-black animate-pulse text-sm">
+                <div className="fixed w-60 h-50 flex flex-col justify-end rotate-45 origin-top-right top-0 -right-42 z-50 bg-yellow-300/50 text-center py-1 px-8 text-black animate-pulse text-sm">
                     <span className='font-bold text-yellow-900'>MODE</span>
                     <span className='font-bold text-yellow-900'>{isDebug ? 'DEBUG ACTIVED' : import.meta.env.MODE}
                     </span>

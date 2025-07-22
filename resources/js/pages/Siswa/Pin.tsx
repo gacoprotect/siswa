@@ -1,4 +1,7 @@
+import { OtpStep } from '@/components/OtpStep';
+import { PinStep } from '@/components/PinStep';
 import { Modal } from '@/components/ui/Modal';
+import { useLogger } from '@/contexts/logger-context';
 import { DataSiswa } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -11,163 +14,165 @@ interface PinFormData {
 }
 
 interface PinPageProps {
-    handle: string;
     setPage: (value: 'index' | 'topup' | 'riwayat') => void;
-    setOpenSetupPin: () => void;
     hasPin: boolean;
     open: boolean;
     onClose: (v: boolean) => void;
 }
 
-const PinPage: React.FC<PinPageProps> = ({ handle, setPage, setOpenSetupPin, hasPin, open, onClose }) => {
+const PinPage: React.FC<PinPageProps> = ({ setPage, hasPin, open, onClose }) => {
     const { errors, data: pageData } = usePage<{ errors: Record<string, string>; data: DataSiswa }>().props;
+    const { error, log } = useLogger()
     const { data, setData, post, processing, reset } = useForm<PinFormData>({
         pin: '',
         nouid: pageData.nouid ?? '',
+        phone: pageData.siswa.tel ?? '',
+        otp: '',
     });
     const [inputType, setInputType] = useState<'password' | 'text'>('password');
+    const [countdown, setCountdown] = useState(0);
 
-    const inputRefs = useRef<Array<HTMLInputElement | null>>(Array(6).fill(null));
-
-    // Get nouid from URL path
+    // const pinRefs = useRef<Array<HTMLInputElement | null>>(Array(6).fill(null));
+    const pinRefs = useRef<Array<HTMLInputElement | null>>(Array(6).fill(null));
+    const otpRefs = useRef<Array<HTMLInputElement | null>>(Array(6).fill(null));
     useEffect(() => {
-        const pathParts = window.location.pathname.split('/');
-        const nouidFromUrl = pathParts[1];
-        setData('nouid', nouidFromUrl);
-    }, [setData]);
+        if (countdown <= 0) return;
+
+        const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+        return () => clearTimeout(timer);
+    }, [countdown]);
 
     // Focus first input when modal opens
     useEffect(() => {
-        if (open && inputRefs.current[0]) {
-            inputRefs.current[0]?.focus();
+        if (open && pinRefs.current[0]) {
+            pinRefs.current[0]?.focus();
+        }
+
+        if (open && otpRefs.current[0]) {
+            otpRefs.current[0]?.focus();
         }
     }, [open]);
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handlePinSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!/^\d{6}$/.test(data.pin)) {
-            return;
-        }
+        if (!/^\d{6}$/.test(data.pin)) return;
 
-        post(route('siswa.verify-pin', { nouid: pageData.nouid, p: handle }), {
+        post(route('siswa.verify-pin', { nouid: pageData.nouid, p: 'auth' }), {
             preserveState: true,
             onSuccess: () => {
-                onClose(true);
+                setPage('index');
                 reset();
-                if (handle === 'riwayat') {
-                    setPage('riwayat');
-                }
             },
             onError: () => {
                 setData('pin', '');
-                setPage('index');
-                // Refocus first input on error
-                if (inputRefs.current[0]) {
-                    inputRefs.current[0]?.focus();
-                }
+                if (pinRefs.current[0]) {
+                    pinRefs.current[0]?.focus();
+                } error(errors)
             },
-            onFinish: () => reset(),
+            onFinish: () => {
+
+            },
         });
     };
 
-    const handlePinChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
-        const value = e.target.value.replace(/\D/g, '');
-
-        // Update pin value
+    const handlePinChange = (value: string, index: number) => {
         const newPin = data.pin.split('');
         newPin[index] = value.charAt(value.length - 1) || '';
         setData('pin', newPin.join(''));
-
-        // Auto focus next input if there's a value
-        if (value && index < 5 && inputRefs.current[index + 1]) {
-            inputRefs.current[index + 1]?.focus();
-        }
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
-        // Handle backspace to move to previous input
-        if (e.key === 'Backspace' && !data.pin[index] && index > 0 && inputRefs.current[index - 1]) {
-            inputRefs.current[index - 1]?.focus();
+    const register = () => {
+        router.get(route('register', data.nouid))
+    }
+
+    const handlePinKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+        if (e.key === 'Backspace' && !data.pin[index] && index > 0 && pinRefs.current[index - 1]) {
+            pinRefs.current[index - 1]?.focus();
         }
     };
-
-    const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>, field: 'pin' | 'otp') => {
         e.preventDefault();
         const pasteData = e.clipboardData.getData('text/plain').replace(/\D/g, '').slice(0, 6);
 
         if (pasteData.length > 0) {
-            setData('pin', pasteData);
-            // Focus the last input with pasted data
+            setData(field, pasteData);
             const focusIndex = Math.min(pasteData.length - 1, 5);
-            if (inputRefs.current[focusIndex]) {
-                inputRefs.current[focusIndex]?.focus();
+            const refs = field === 'pin' ? pinRefs : otpRefs;
+            if (refs?.current[focusIndex]) {
+                refs.current[focusIndex]?.focus();
             }
         }
     };
-    const register= () => {
-        router.get(route('register',data.nouid))
-    }
+    const handleOtpSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        post(route('otp.verif', pageData.nouid), {
+            onSuccess: () => {
+                log("OTP SUKSES")
+            },
+            onError: () => {
+                log("OTP GAGAL")
+            },
+        });
+    };
+
+    const resendOtp = () => {
+        post(route('otp.send', pageData.nouid), {
+            onSuccess: () => {
+                setCountdown(60);
+            },
+        });
+    };
+
+    const handleDigitChange = (value: string, field: 'pin' | 'otp', index: number) => {
+        const newValue = data[field].split('');
+        newValue[index] = value.charAt(value.length - 1) || '';
+        setData(field, newValue.join(''));
+    };
+
+    const handleOtpKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+        if (e.key === 'Backspace' && !data.otp[index] && index > 0 && otpRefs.current[index - 1]) {
+            otpRefs.current[index - 1]?.focus();
+        }
+    };
     return (
-        <Modal title={hasPin ? '' : 'Anda Belum Terverifikasi'} isOpen={open} onClose={() => onClose(false)}>
+        <Modal title={hasPin ? '' : 'Anda Belum Terverifikasi'} isOpen={open} onClose={() => onClose(false)} header={false}>
             {hasPin ? (
-                <div className="flex items-center justify-center">
+                <div className="flex items-center justify-center p-2">
                     <Head title="Masukkan PIN" />
-
                     <div className="w-full max-w-md space-y-8">
-                        <div>
-                            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Masukkan PIN</h2>
-                        </div>
 
-                        {errors.pin && <div className="mb-4 text-center text-sm text-red-500">{errors.pin}</div>}
-
-                        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-                            <div className="flex justify-center space-x-2">
-                                {Array.from({ length: 6 }).map((_, index) => (
-                                    <input
-                                        key={index}
-                                        ref={(el) => {
-                                            inputRefs.current[index] = el;
-                                        }}
-                                        type={inputType}
-                                        inputMode="numeric"
-                                        pattern="[0-9]"
-                                        maxLength={1}
-                                        required
-                                        autoComplete="off"
-                                        className="h-12 w-12 rounded-md border border-gray-300 text-center text-2xl focus:border-blue-500 focus:ring-blue-500 focus:outline-none"
-                                        value={data.pin[index] || ''}
-                                        onChange={(e) => handlePinChange(e, index)}
-                                        onKeyDown={(e) => handleKeyDown(e, index)}
-                                        onPaste={handlePaste}
-                                    />
-                                ))}
-                            </div>
-
-                            <div className="flex justify-center">
-                                <button
-                                    type="button"
-                                    className="text-sm text-gray-600 hover:text-gray-800"
-                                    onClick={() => setInputType(inputType === 'password' ? 'text' : 'password')}
-                                >
-                                    {inputType === 'password' ? 'Tampilkan PIN' : 'Sembunyikan PIN'}
-                                </button>
-                            </div>
-
-                            <div className="flex flex-col space-y-2">
-                                <button
-                                    type="submit"
-                                    disabled={processing || data.pin.length !== 6}
-                                    className={`group relative flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white ${
-                                        data.pin.length === 6
-                                            ? 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none'
-                                            : 'cursor-not-allowed bg-gray-400'
-                                    }`}
-                                >
-                                    {processing ? 'Memverifikasi...' : 'Masuk'}
-                                </button>
-                            </div>
-                        </form>
+                        {parseInt(errors.attempt) >= 3 ? (
+                            <OtpStep
+                                otp={data.otp}
+                                phone={data.phone}
+                                errors={errors}
+                                processing={processing}
+                                countdown={countdown}
+                                onOtpChange={(value, index) => handleDigitChange(value, 'otp', index)}
+                                onKeyDown={handleOtpKeyDown}
+                                onBack={() => onClose(false)}
+                                onResendOtp={resendOtp}
+                                onSubmit={handleOtpSubmit}
+                                inputRefs={otpRefs}
+                            />
+                        ) : (
+                        <PinStep
+                            pin={data.pin}
+                            errors={errors}
+                            inputType={inputType}
+                            processing={processing}
+                            onPinChange={(e, index) => handlePinChange(e.target.value, index)}
+                            onKeyDown={handlePinKeyDown}
+                            onPaste={(e) => handlePaste(e, 'pin')}
+                            onToggleInputType={() => setInputType(inputType === 'password' ? 'text' : 'password')}
+                            onSubmit={handlePinSubmit}
+                            setInputRef={(el, index) => {
+                                pinRefs.current[index] = el;
+                            }}
+                            inputRefs={pinRefs}
+                        />
+                        )}
                     </div>
                 </div>
             ) : (
