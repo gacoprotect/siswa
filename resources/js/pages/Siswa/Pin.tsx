@@ -34,7 +34,7 @@ const PinPage: React.FC<PinPageProps> = ({ setHasPined, setPage, hasPin, open, o
     });
     const [inputType, setInputType] = useState<'password' | 'text'>('password');
     const [countdown, setCountdown] = useState(0);
-    const [step, setStep] = useState<'pin' | 'setup' | 'otp'>('otp');
+    const [step, setStep] = useState<'pin' | 'setup' | 'otp'>('pin');
 
     // const pinRefs = useRef<Array<HTMLInputElement | null>>(Array(6).fill(null));
     const pinRefs = useRef<Array<HTMLInputElement | null>>(Array(6).fill(null));

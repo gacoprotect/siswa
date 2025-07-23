@@ -20,14 +20,18 @@ class SiswaController extends Controller
     {
         try {
 
-            $ident = Indentitas::with(['siswa.safe' => function ($qu) {
+            $ident = Indentitas::with('registrasi')->with(['siswa.safe' => function ($qu) {
                 $qu->select('ids', 'ala', 'rt', 'rw', 'cam', 'lur', 'kodpos', 'dusun', 'temtin', 'sakit');
             }])->where('nouid', $nouid)->firstOrFail();
 
             if (!$ident) {
-                abort(404, 'Data siswa tidak ditemukan');
+                return abort(404, 'Data siswa tidak ditemukan');
             }
-            if (session()->has('current_nouid') && session('current_nouid') !== $nouid) {
+            if (!$ident->registrasi) {
+                Auth::guard('siswa')->logout();
+                return Inertia::location(route("register", ['nouid' => $nouid]));
+            }
+            if ($ident->registrasi->sta === 0 || session()->has('current_nouid') && session('current_nouid') !== $nouid) {
                 Auth::guard('siswa')->logout();
             }
 

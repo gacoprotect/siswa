@@ -41,7 +41,7 @@ Route::middleware(['web'])->group(function () {
         Route::post('/verify-pin', [AuthenticatedSessionController::class, 'store'])->name('siswa.verify-pin');
         Route::post('/register-phone', [RegisteredUserController::class, 'verifphone'])->name('siswa.verify-nope');
         Route::get('/setup-pin', [SiswaController::class, 'showSetupPinForm'])->name('siswa.show-setup-pin');
-        Route::post('/setup-pin', [RegisteredUserController::class, 'store'])->name('siswa.process-setup-pin');
+        Route::post('/setup-pin', [RegisteredUserController::class, 'setupPin'])->name('siswa.process-setup-pin');
         Route::get('/lupa-pin', [PasswordResetLinkController::class, 'create'])->name('siswa.show-lupa-pin');
         Route::post('/lupa-pin', [OtpController::class, 'forgotRequestOtp'])->name('siswa.forgot-pin');
         Route::post('/otp/send', [OtpController::class, 'sendOtp'])->name('otp.send');

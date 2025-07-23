@@ -92,7 +92,7 @@ export const SetupPinStep: React.FC<PinStepProps> = ({
                                 {Array.from({ length: 6 }).map((_, index) => (
                                     <DigitInput
                                         key={`pin-${index}`}
-                                        ref={(el) => (pinRefs.current[index] = el)}
+                                        ref={(el) => { pinRefs.current[index] = el; }}
                                         type={inputType}
                                         value={data.pin[index] || ''}
                                         onChange={(e) => {
@@ -116,7 +116,7 @@ export const SetupPinStep: React.FC<PinStepProps> = ({
                                 {Array.from({ length: 6 }).map((_, index) => (
                                     <DigitInput
                                         key={`pin-confirm-${index}`}
-                                        ref={(el) => (pinConfirmationRefs.current[index] = el)}
+                                        ref={(el) => { pinConfirmationRefs.current[index] = el; }}
                                         type={inputType}
                                         value={data.pin_confirmation[index] || ''}
                                         onChange={(e) => {
@@ -159,8 +159,8 @@ export const SetupPinStep: React.FC<PinStepProps> = ({
                             type="submit"
                             disabled={processing || data.pin.length !== 6 || data.pin_confirmation.length !== 6}
                             className={`group relative flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white ${data.pin.length === 6 && data.pin_confirmation.length === 6
-                                    ? 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none'
-                                    : 'cursor-not-allowed bg-gray-400'
+                                ? 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none'
+                                : 'cursor-not-allowed bg-gray-400'
                                 }`}
                         >
                             {processing ? 'Memproses...' : 'Simpan PIN'}

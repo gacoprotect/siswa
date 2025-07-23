@@ -121,8 +121,8 @@ class RegisteredUserController extends Controller
     private function registered($nouid)
     {
         $reg = Tregistrasi::where('nouid', $nouid)->first();
-
-        if (!$reg || in_array($reg->sta, [-2, 0, 1])) {
+        
+        if ($reg && in_array($reg->sta, [-2, 0, 1])) {
             return Inertia::location(route('siswa.index', [
                 'nouid' => $nouid,
                 'sta' => $reg->sta ?? null,
@@ -386,31 +386,33 @@ class RegisteredUserController extends Controller
     }
 
 
-    private function stored(Request $request, $nouid): \Inertia\Response|\Illuminate\Http\RedirectResponse
+    public function setupPin(Request $request, $nouid): \Inertia\Response|\Illuminate\Http\RedirectResponse
     {
         logger('RegisteredUserController', ['request' => $request->all(), 'nouid' => $nouid]);
 
         $validated = $request->validate([
             'pin' => 'required|digits:6|numeric|confirmed',
             'pin_confirmation' => 'required|digits:6',
-            'phone' => 'required|string|regex:/^[0-9]+$/|min:10|max:15'
+            'phone' => 'sometimes|string|regex:/^[0-9]+$/|min:10|max:15'
         ]);
 
         try {
 
             return DB::transaction(function () use ($validated, $nouid) {
-                $indentitas = Indentitas::with('siswa')
+                $indentitas = Indentitas::with('siswa')->with(['registrasi' => function ($q) {
+                    $q->where('sta', 1);
+                }])
                     ->where('nouid', $nouid)
                     ->firstOrFail();
-
-                if (!$indentitas->siswa) {
+                $phone = $validated['phone'] ?? $indentitas->siswa->tel ?? $indentitas->registrasi->tel;
+                if (!$indentitas->siswa && !$phone) {
                     return back()->withErrors(['pin' => 'Data siswa tidak ditemukan']);
                 }
 
                 // Update PIN dan nomor telepon
                 $indentitas->siswa->update([
                     'pin' => $validated['pin'],
-                    'tel' => $this->formatPhoneNumber($validated['phone']) // Simpan ke kolom tel
+                    'tel' => $this->formatPhoneNumber($phone) // Simpan ke kolom tel
                 ]);
                 Indentitas::where('nouid', $nouid)->first()->update(['sta' => 0]);
                 event(new Registered($indentitas->siswa));
