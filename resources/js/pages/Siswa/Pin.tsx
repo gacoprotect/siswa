@@ -7,6 +7,7 @@ import { Head, router, useForm, usePage } from '@inertiajs/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { FaKey } from 'react-icons/fa';
 import SetupPinPage from './SetupPin';
+import { SetupPinStep } from '@/components/SetupPinStep';
 
 interface PinFormData {
     pin: string;
@@ -33,7 +34,7 @@ const PinPage: React.FC<PinPageProps> = ({ setHasPined, setPage, hasPin, open, o
     });
     const [inputType, setInputType] = useState<'password' | 'text'>('password');
     const [countdown, setCountdown] = useState(0);
-    const [step, setStep] = useState<'pin' | 'setup' | 'otp'>('pin');
+    const [step, setStep] = useState<'pin' | 'setup' | 'otp'>('otp');
 
     // const pinRefs = useRef<Array<HTMLInputElement | null>>(Array(6).fill(null));
     const pinRefs = useRef<Array<HTMLInputElement | null>>(Array(6).fill(null));
@@ -74,7 +75,7 @@ const PinPage: React.FC<PinPageProps> = ({ setHasPined, setPage, hasPin, open, o
                 }
                 error(errors);
             },
-            onFinish: () => {},
+            onFinish: () => { },
         });
     };
 
@@ -140,11 +141,11 @@ const PinPage: React.FC<PinPageProps> = ({ setHasPined, setPage, hasPin, open, o
     };
     useEffect(() => {
         log('STEP : ', step)
-      if(errors.pin && (parseInt(errors.remaining) === 0)){
-        setStep('otp')
-      }
+        if (errors.pin && (parseInt(errors.remaining) === 0)) {
+            setStep('otp')
+        }
     }, [errors.pin])
-    
+
     return (
         <Modal title={hasPin ? '' : 'Anda Belum Terverifikasi'} isOpen={open} onClose={() => onClose(false)} header={false}>
             {hasPin ? (
@@ -169,7 +170,9 @@ const PinPage: React.FC<PinPageProps> = ({ setHasPined, setPage, hasPin, open, o
                             />
                         )}
 
-                        {(parseInt(errors.remaining) === 0) && (step === 'otp') && (
+                        {
+                        // (parseInt(errors.remaining) === 0) && 
+                        (step === 'otp') && (
                             <OtpStep
                                 otp={data.otp}
                                 errors={errors}
@@ -184,11 +187,11 @@ const PinPage: React.FC<PinPageProps> = ({ setHasPined, setPage, hasPin, open, o
                             />
                         )}
                         {step === 'setup' && (
-                            <SetupPinPage
-                                open={step === 'setup'}
-                                hasPin={hasPin}
-                                setHasPined={() => setHasPined?.()}
-                                onClose={()=>onClose(false)}
+                            <SetupPinStep
+                                errors={errors}
+                                inputType={inputType}
+                                onToggleInputType={() => setInputType(inputType === 'password' ? 'text' : 'password')}
+                                onSukses={() => onClose(false)}
                             />
                         )}
                     </div>

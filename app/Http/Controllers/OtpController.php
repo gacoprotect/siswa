@@ -33,15 +33,21 @@ class OtpController extends Controller
 
     public function forgotRequestOtp(Request $request, $nouid)
     {
-        $request->validate([
-            'phone' => 'required|string|regex:/^[0-9]+$/|min:10|max:15'
+        $v = $request->validate([
+            'phone' => 'sometimes|string|regex:/^[0-9]+$/|min:10|max:15'
         ]);
+        $ident = Indentitas::with('siswa')->with(['registrasi' => function ($q) {
+            $q->where('sta', 1);
+        }])->where('nouid', $nouid)->firstOrFail();
+        $phone = ($v['phone'] ?? $ident->siswa->tel ?? $ident->registrasi->tel);
+        if (!$phone) {
+            abort(404, "Data tidak ditemukan");
+        }
+
 
         try {
-            $indentitas = Indentitas::where('nouid', $nouid)->firstOrFail();
-            $siswa = $indentitas->siswa()->firstOrFail();
-
-            $phone = formatPhoneNumber($request->phone);
+            $siswa = $ident->siswa()->firstOrFail();
+            $phone = formatPhoneNumber($phone);
 
             if ($siswa->tel !== $phone) {
                 Log::warning('Nomor telepon tidak sesuai', [
@@ -113,10 +119,16 @@ class OtpController extends Controller
         try {
 
             $v = $request->validate([
-                'phone' => 'required|string|regex:/^[0-9]+$/|min:10|max:15'
+                'phone' => 'sometimes|string|regex:/^[0-9]+$/|min:10|max:15'
             ]);
-            $ident = Indentitas::with('siswa')->where('nouid', $nouid)->firstOrFail();
-            $phone = formatPhoneNumber($v['phone']);
+            $ident = Indentitas::with('siswa')->with(['registrasi' => function ($q) {
+                $q->where('sta', 1);
+            }])->where('nouid', $nouid)->firstOrFail();
+            $phone = ($v['phone'] ?? $ident->siswa->tel ?? $ident->registrasi->tel);
+            if (!$phone) {
+                abort(404, "Data tidak ditemukan");
+            }
+            $phone = formatPhoneNumber($phone);
             $sistel = $ident->siswa->tel
                 ? formatPhoneNumber($ident->siswa->tel)
                 : null;
@@ -211,7 +223,7 @@ class OtpController extends Controller
             'otp' => 'required|string|digits:6'
         ]);
 
-        $phone =$request->phone;
+        $phone = $request->phone;
         if (!$phone) {
             $ident = Indentitas::where('nouid', $nouid)->with('siswa')->with('registrasi')->firstOrFail();
             $phone = $ident->siswa->tel ?? $ident->registrasi->tel ?? null;

@@ -1,354 +1,173 @@
-import { Modal } from '@/components/ui/Modal';
-import { maskPhoneNumber } from '@/lib/utils';
-import { Auth, DataSiswa } from '@/types';
-import { Head, useForm, usePage } from '@inertiajs/react';
-import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { DigitInput } from './DigitInput';
+import { useForm, usePage } from '@inertiajs/react';
+import { DataSiswa } from '@/types';
 
-const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () => void; hasPin: boolean; open: boolean; onClose: () => void }) => {
-    const { auth, data: pageData, errors } = usePage<{ auth: Auth; data: DataSiswa; errors: Record<string, string>; nouid: string }>().props;
-    const [step, setStep] = useState<'phone' | 'otp' | 'pin'>('phone');
-    const [countdown, setCountdown] = useState(0);
+interface PinStepProps {
+    errors: Record<string, string>;
+    inputType: 'password' | 'text';
+    onToggleInputType: () => void;
+    onSukses?: () => void;
+}
+
+export const SetupPinStep: React.FC<PinStepProps> = ({
+    errors,
+    inputType,
+    onToggleInputType,
+    onSukses,
+}) => {
+    const { data: pageData } = usePage<{ data: DataSiswa }>().props;
+    const [isError, setIsError] = useState(Boolean(Object.keys(errors).length > 0));
     const { data, setData, post, processing, reset } = useForm({
-        phone: '',
-        otp: '',
         pin: '',
         pin_confirmation: '',
     });
-    const [inputType, setInputType] = useState<'password' | 'text'>('password');
-    const otpRefs = useRef<Array<HTMLInputElement | null>>(Array(6).fill(null));
-    const pinRefs = useRef<Array<HTMLInputElement | null>>(Array(6).fill(null));
-    const confirmPinRefs = useRef<Array<HTMLInputElement | null>>(Array(6).fill(null));
+    const pinRefs = React.useRef<Array<HTMLInputElement | null>>(Array(6).fill(null));
+    const pinConfirmationRefs = React.useRef<Array<HTMLInputElement | null>>(Array(6).fill(null));
 
-    // Handle countdown timer
-    useEffect(() => {
-        if (countdown > 0) {
-            const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-            return () => clearTimeout(timer);
-        }
-    }, [countdown]);
-
-    const handlePhoneSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const url = route('otp.send', pageData.nouid);
-        post(url, {
-            onSuccess: () => {
-                setStep('otp');
-                setCountdown(60);
-                if (otpRefs.current[0]) {
-                    otpRefs.current[0].focus();
-                }
-            },
-        });
-    };
-
-    const handleOtpSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        post(route('otp.verif', pageData.nouid), {
-            onSuccess: () => {
-                setStep('pin');
-                if (pinRefs.current[0]) {
-                    pinRefs.current[0].focus();
-                }
-            },
-        });
-    };
-
-    const handlePinSubmit = (e: React.FormEvent) => {
+    const onSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('siswa.process-setup-pin', pageData.nouid), {
             onSuccess: () => {
-                onClose();
-                setHasPined();
+                onSukses?.();
                 reset();
-                setStep('phone');
             },
         });
     };
 
-    const resendOtp = () => {
-        post(route('otp.send', pageData.nouid), {
-            onSuccess: () => {
-                setCountdown(60);
-            },
-        });
-    };
-
-    const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
-        const value = e.target.value.replace(/\D/g, '');
-
-        // Update OTP value
-        const newOtp = data.otp.split('');
-        newOtp[index] = value.charAt(value.length - 1) || '';
-        setData('otp', newOtp.join(''));
+    const handlePinChange = (value: string, index: number, field: 'pin' | 'pin_confirmation') => {
+        const newValue = data[field].split('');
+        newValue[index] = value.charAt(value.length - 1) || '';
+        setData(field, newValue.join(''));
 
         // Auto focus next input if there's a value
-        if (value && index < 5 && otpRefs.current[index + 1]) {
-            otpRefs.current[index + 1]?.focus();
-        }
-    };
-
-    const handlePinChange = (
-        e: React.ChangeEvent<HTMLInputElement>,
-        index: number,
-        field: 'pin' | 'pin_confirmation',
-        refs: React.MutableRefObject<(HTMLInputElement | null)[]>,
-    ) => {
-        const value = e.target.value.replace(/\D/g, '');
-
-        // Update pin value
-        const newPin = data[field].split('');
-        newPin[index] = value.charAt(value.length - 1) || '';
-        setData(field, newPin.join(''));
-
-        // Auto focus next input if there's a value
-        if (value && index < 5 && refs.current[index + 1]) {
+        if (value && index < 5) {
+            const refs = field === 'pin' ? pinRefs : pinConfirmationRefs;
             refs.current[index + 1]?.focus();
         }
-
-        // Auto switch to confirmation field when PIN is complete
-        if (field === 'pin' && newPin.join('').length === 6 && confirmPinRefs.current[0]) {
-            confirmPinRefs.current[0]?.focus();
-        }
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number, refs: React.MutableRefObject<(HTMLInputElement | null)[]>) => {
-        // Handle backspace to move to previous input
-        if (e.key === 'Backspace' && !data.otp[index] && index > 0 && refs.current[index - 1]) {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number, field: 'pin' | 'pin_confirmation') => {
+        if (e.key === 'Backspace' && !data[field][index] && index > 0) {
+            const refs = field === 'pin' ? pinRefs : pinConfirmationRefs;
             refs.current[index - 1]?.focus();
         }
     };
 
-    const renderPhoneStep = () => (
-        <div className="space-y-6">
-            <div>
-                <h2 className="text-center text-2xl font-bold text-gray-900">
-                    {hasPin ? 'Masukkan Nomor HP Anda yang terdaftar' : 'Daftarkan Nomor HP Anda'}
-                </h2>
-                <p className="mt-2 text-center text-sm text-gray-600">
-                    Kami akan mengirimkan kode OTP ke nomor ini <br />
-                    {maskPhoneNumber(auth.user?.tel ?? '')}
-                </p>
-            </div>
+    const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>, field: 'pin' | 'pin_confirmation') => {
+        e.preventDefault();
+        const pasteData = e.clipboardData.getData('text/plain').replace(/\D/g, '').slice(0, 6);
 
-            {errors.phone && <div className="text-center text-sm text-red-500">{errors.phone}</div>}
+        if (pasteData.length > 0) {
+            setData(field, pasteData);
+            const focusIndex = Math.min(pasteData.length - 1, 5);
+            const refs = field === 'pin' ? pinRefs : pinConfirmationRefs;
+            refs.current[focusIndex]?.focus();
+        }
+    };
 
-            <form onSubmit={handlePhoneSubmit} className="space-y-6">
+    useEffect(() => {
+        setIsError(Boolean(Object.keys(errors).length > 0));
+    }, [errors]);
+
+    return (
+        <div className="flex items-center justify-center">
+            <div className="w-full max-w-md space-y-8">
                 <div>
-                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                        Nomor Handphone
-                    </label>
-                    <div className="relative mt-1 rounded-md shadow-sm">
-                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                            <span className="text-gray-500 sm:text-sm">+62</span>
+                    <h2 className="text-center text-2xl font-bold text-gray-900">Buat PIN 6 Digit Baru</h2>
+                    <p className="mt-2 text-center text-sm text-gray-600">Untuk keamanan akun Anda</p>
+                </div>
+
+                {(errors.pin || errors.pin_confirmation) && (
+                    <div className="text-center text-sm text-red-500">{errors.pin || errors.pin_confirmation}</div>
+                )}
+
+                <form className="mt-8 space-y-6" onSubmit={onSubmit}>
+                    <div className="flex flex-col gap-2 justify-center space-x-4">
+                        <div>
+                            <label htmlFor="pin" className="mb-2 block text-center text-sm font-medium text-gray-700">
+                                Masukkan PIN Baru
+                            </label>
+                            <div className="flex space-x-2">
+                                {Array.from({ length: 6 }).map((_, index) => (
+                                    <DigitInput
+                                        key={`pin-${index}`}
+                                        ref={(el) => (pinRefs.current[index] = el)}
+                                        type={inputType}
+                                        value={data.pin[index] || ''}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/\D/g, '');
+                                            handlePinChange(value, index, 'pin');
+                                        }}
+                                        onKeyDown={(e) => handleKeyDown(e, index, 'pin')}
+                                        onPaste={(e) => handlePaste(e, 'pin')}
+                                        autoFocus={index === 0 && data.pin.length === 0}
+                                        error={isError}
+                                    />
+                                ))}
+                            </div>
                         </div>
-                        <input
-                            type="tel"
-                            id="phone"
-                            name="phone"
-                            autoComplete="tel"
-                            className={`block w-full rounded-md border-2 ${errors.phone ? 'border-red-500' : 'border-gray-300'} py-2 pl-12 focus:border-blue-500 focus:ring-blue-500`}
-                            placeholder="8123456789"
-                            value={data.phone}
-                            onChange={(e) => setData('phone', e.target.value.replace(/\D/g, ''))}
-                            required
-                        />
+
+                        <div>
+                            <label htmlFor="pin_confirmation" className="mb-2 block text-center text-sm font-medium text-gray-700">
+                                Konfirmasi PIN Baru
+                            </label>
+                            <div className="flex space-x-2">
+                                {Array.from({ length: 6 }).map((_, index) => (
+                                    <DigitInput
+                                        key={`pin-confirm-${index}`}
+                                        ref={(el) => (pinConfirmationRefs.current[index] = el)}
+                                        type={inputType}
+                                        value={data.pin_confirmation[index] || ''}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/\D/g, '');
+                                            handlePinChange(value, index, 'pin_confirmation');
+                                        }}
+                                        onKeyDown={(e) => handleKeyDown(e, index, 'pin_confirmation')}
+                                        onPaste={(e) => handlePaste(e, 'pin_confirmation')}
+                                        autoFocus={index === 0 && data.pin.length === 6 && data.pin_confirmation.length === 0}
+                                        error={isError}
+                                    />
+                                ))}
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <div>
-                    <button
-                        type="submit"
-                        disabled={processing || data.phone.length < 10}
-                        className={`flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm ${data.phone.length >= 10 ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' : 'cursor-not-allowed bg-gray-400'
-                            } focus:ring-2 focus:ring-offset-2 focus:outline-none`}
-                    >
-                        {processing ? 'Mengirim OTP...' : 'Kirim Kode OTP'}
-                    </button>
-                </div>
-            </form>
-        </div>
-    );
-
-    const renderOtpStep = () => (
-        <div className="space-y-6">
-            <button onClick={() => setStep('phone')} className="flex items-center text-sm text-gray-600 hover:text-gray-800">
-                <ArrowLeftIcon className="mr-1 h-4 w-4" />
-                Kembali
-            </button>
-
-            <div>
-                <h2 className="text-center text-2xl font-bold text-gray-900">Verifikasi OTP</h2>
-                <p className="mt-2 text-center text-sm text-gray-600">Masukkan 6 digit kode OTP yang dikirim ke +62{data.phone}</p>
-            </div>
-
-            {errors.message && <div className="text-center text-sm text-red-500">{errors.message}</div>}
-
-            <form onSubmit={handleOtpSubmit} className="space-y-6">
-                <div className="flex justify-center space-x-2">
-                    {Array.from({ length: 6 }).map((_, index) => (
-                        <input
-                            key={index}
-                            ref={(el) => {
-                                otpRefs.current[index] = el;
-                            }}
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]"
-                            maxLength={1}
-                            required
-                            autoComplete="off"
-                            className={`h-12 w-12 rounded-md border text-center text-2xl focus:ring-1 focus:outline-none ${errors ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                                }`}
-                            value={data.otp[index] || ''}
-                            onChange={(e) => handleOtpChange(e, index)}
-                            onKeyDown={(e) => handleKeyDown(e, index, otpRefs)}
-                            onFocus={(e) => e.target.select()}
-                        />
-                    ))}
-                </div>
-
-                <div className="text-center">
-                    {countdown > 0 ? (
-                        <p className="text-sm text-gray-500">Kirim ulang OTP dalam {countdown} detik</p>
-                    ) : (
-                        <button type="button" onClick={resendOtp} className="text-sm text-blue-600 hover:text-blue-800">
-                            Kirim Ulang OTP
-                        </button>
+                    {isError && (
+                        (errors.pin || errors.message) && (
+                            <div className="mb-4 flex flex-col text-center text-sm text-red-500">
+                                <span>{errors.pin ?? errors.message}</span>
+                                {errors.remaining && parseInt(errors.remaining) < 3 && (
+                                    <span>{`Sisa percobaan ${errors.remaining}`}</span>
+                                )}
+                            </div>
+                        )
                     )}
-                </div>
-
-                <div>
-                    <button
-                        type="submit"
-                        disabled={processing || data.otp.length !== 6}
-                        className={`flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm ${data.otp.length === 6 ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' : 'cursor-not-allowed bg-gray-400'
-                            } focus:ring-2 focus:ring-offset-2 focus:outline-none`}
-                    >
-                        {processing ? 'Memverifikasi...' : 'Verifikasi'}
-                    </button>
-                </div>
-            </form>
-        </div>
-    );
-
-    const renderPinStep = () => (
-        <div className="space-y-6">
-            <div>
-                <h2 className="text-center text-2xl font-bold text-gray-900">Buat PIN 6 Digit Baru</h2>
-                <p className="mt-2 text-center text-sm text-gray-600">Untuk keamanan akun Anda</p>
-            </div>
-
-            {(errors.pin || errors.pin_confirmation) && (
-                <div className="text-center text-sm text-red-500">{errors.pin || errors.pin_confirmation}</div>
-            )}
-
-            <form onSubmit={handlePinSubmit} className="space-y-6">
-                <div className="space-y-4">
-                    <div>
-                        <label htmlFor="pin" className="mb-2 block text-center text-sm font-medium text-gray-700">
-                            Masukkan PIN Baru
-                        </label>
-                        <div className="flex justify-center space-x-2">
-                            {Array.from({ length: 6 }).map((_, index) => (
-                                <DigitInput
-                                    key={index}
-                                    ref={(el) => {
-                                        inputRefs.current[index] = el;
-                                    }}
-                                    type={inputType}
-                                    value={pin[index] || ''}
-                                    onChange={(e) => handleChange(e, index)}
-                                    onKeyDown={(e) => onKeyDown(e, index)}
-                                    onPaste={onPaste}
-                                    autoFocus={index === 0}
-                                    error={isError}
-                                />
-                            ))}
-                        </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="pin_confirmation" className="mb-2 block text-center text-sm font-medium text-gray-700">
-                            Konfirmasi PIN Baru
-                        </label>
-                        <div className="flex justify-center space-x-2">
-                            {Array.from({ length: 6 }).map((_, index) => (
-                                <input
-                                    key={index}
-                                    ref={(el) => {
-                                        confirmPinRefs.current[index] = el;
-                                    }}
-                                    type={inputType}
-                                    inputMode="numeric"
-                                    pattern="[0-9]"
-                                    maxLength={1}
-                                    required
-                                    autoComplete="off"
-                                    className={`h-12 w-12 rounded-md border text-center text-2xl focus:ring-1 focus:outline-none ${errors.pin_confirmation
-                                            ? 'border-red-500 focus:ring-red-500'
-                                            : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                                        }`}
-                                    value={data.pin_confirmation[index] || ''}
-                                    onChange={(e) => handlePinChange(e, index, 'pin_confirmation', confirmPinRefs)}
-                                    onKeyDown={(e) => handleKeyDown(e, index, confirmPinRefs)}
-                                    onFocus={(e) => e.target.select()}
-                                />
-                            ))}
-                        </div>
-                    </div>
 
                     <div className="flex justify-center">
                         <button
                             type="button"
-                            className="flex items-center text-sm text-gray-600 hover:text-gray-800"
-                            onClick={() => setInputType(inputType === 'password' ? 'text' : 'password')}
+                            className="text-sm text-gray-600 hover:text-gray-800"
+                            onClick={onToggleInputType}
                         >
-                            {inputType === 'password' ? (
-                                <>
-                                    <EyeIcon className="mr-1 h-4 w-4" />
-                                    Tampilkan PIN
-                                </>
-                            ) : (
-                                <>
-                                    <EyeOffIcon className="mr-1 h-4 w-4" />
-                                    Sembunyikan PIN
-                                </>
-                            )}
+                            {inputType === 'password' ? 'Tampilkan PIN' : 'Sembunyikan PIN'}
                         </button>
                     </div>
-                </div>
 
-                <div>
-                    <button
-                        type="submit"
-                        disabled={processing || data.pin.length !== 6 || data.pin !== data.pin_confirmation}
-                        className={`flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm ${data.pin.length === 6 && data.pin === data.pin_confirmation
-                                ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
-                                : 'cursor-not-allowed bg-gray-400'
-                            } focus:ring-2 focus:ring-offset-2 focus:outline-none`}
-                    >
-                        {processing ? 'Menyimpan...' : 'Simpan PIN'}
-                    </button>
-                </div>
-            </form>
+                    <div className="flex flex-col space-y-2">
+                        <button
+                            type="submit"
+                            disabled={processing || data.pin.length !== 6 || data.pin_confirmation.length !== 6}
+                            className={`group relative flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white ${data.pin.length === 6 && data.pin_confirmation.length === 6
+                                    ? 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none'
+                                    : 'cursor-not-allowed bg-gray-400'
+                                }`}
+                        >
+                            {processing ? 'Memproses...' : 'Simpan PIN'}
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     );
-
-    return (
-        <Modal isOpen={open} onClose={onClose} header={false}>
-            <div className="flex items-center justify-center">
-                <Head title={step === 'phone' ? 'Daftar Nomor HP' : step === 'otp' ? 'Verifikasi OTP' : 'Buat PIN'} />
-
-                <div className="w-full max-w-md rounded-lg">
-                    {step === 'phone' && renderPhoneStep()}
-                    {step === 'otp' && renderOtpStep()}
-                    {step === 'pin' && renderPinStep()}
-                </div>
-            </div>
-        </Modal>
-    );
 };
-
-export default SetupPinPage;
