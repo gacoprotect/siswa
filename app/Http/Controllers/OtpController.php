@@ -41,7 +41,7 @@ class OtpController extends Controller
             $indentitas = Indentitas::where('nouid', $nouid)->firstOrFail();
             $siswa = $indentitas->siswa()->firstOrFail();
 
-            $phone = $this->formatPhoneNumber($request->phone);
+            $phone = formatPhoneNumber($request->phone);
 
             if ($siswa->tel !== $phone) {
                 Log::warning('Nomor telepon tidak sesuai', [
@@ -116,9 +116,9 @@ class OtpController extends Controller
                 'phone' => 'required|string|regex:/^[0-9]+$/|min:10|max:15'
             ]);
             $ident = Indentitas::with('siswa')->where('nouid', $nouid)->firstOrFail();
-            $phone = self::formatPhoneNumber($v['phone']);
+            $phone = formatPhoneNumber($v['phone']);
             $sistel = $ident->siswa->tel
-                ? self::formatPhoneNumber($ident->siswa->tel)
+                ? formatPhoneNumber($ident->siswa->tel)
                 : null;
             if ($ident->siswa->pin !== null && $sistel !== $phone) {
                 throw ValidationException::withMessages([
@@ -207,12 +207,19 @@ class OtpController extends Controller
     public function verifyOtp(Request $request, $nouid)
     {
         $request->validate([
-            'phone' => 'required|string',
+            'phone' => 'sometimes|string',
             'otp' => 'required|string|digits:6'
         ]);
 
-        $phone = $this->formatPhoneNumber($request->phone);
-
+        $phone =$request->phone;
+        if (!$phone) {
+            $ident = Indentitas::where('nouid', $nouid)->with('siswa')->with('registrasi')->firstOrFail();
+            $phone = $ident->siswa->tel ?? $ident->registrasi->tel ?? null;
+        }
+        if (!$phone) {
+            abort(404, "Data tidak ditemukan");
+        }
+        $phone = formatPhoneNumber($phone);
         if (RateLimiter::tooManyAttempts('verify-otp:' . $phone, $this->maxAttempts)) {
             throw ValidationException::withMessages([
                 'otp' => ['Terlalu banyak percobaan. Silakan coba lagi nanti.']
@@ -255,6 +262,15 @@ class OtpController extends Controller
                 'success' => true,
                 'message' => 'OTP berhasil diverifikasi',
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Gagal verifikasi OTP', [
+                'nouid' => $nouid ?? null,
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+
+            ]);
+
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             Log::error('Gagal verifikasi OTP', ['error' => $e->getMessage()]);
             return back()->withErrors(['message' => 'Gagal verifikasi OTP'])->withInput()->with([
@@ -262,47 +278,5 @@ class OtpController extends Controller
                 'message' => 'Gagal Verifikasi OTP',
             ]);;
         }
-    }
-
-    /**
-     * Format Indonesian phone number to standard +62 format
-     * 
-     * Handles various input formats:
-     * - 08123456789 → 628123456789
-     * - +628123456789 → 628123456789
-     * - 628123456789 → 628123456789
-     * - 8123456789 → 628123456789
-     * 
-     * @param string $number Raw phone number input
-     * @return string Formatted number in 628123456789 format
-     * @throws \InvalidArgumentException If number is invalid
-     */
-    protected function formatPhoneNumber($number)
-    {
-        if (empty($number)) {
-            throw new \InvalidArgumentException('Nomor telepon tidak boleh kosong');
-        }
-        // Remove all non-digit characters
-        $number = preg_replace('/[^0-9]/', '', $number);
-
-        // Remove leading 0 if present
-        if (str_starts_with($number, '0')) {
-            $number = substr($number, 1);
-        }
-
-        // Handle +62 or 62 prefix
-        if (str_starts_with($number, '62')) {
-            $number = substr($number, 2);
-        }
-
-        // Validate the remaining digits
-        $number = '62' . $number;
-
-        // Final validation
-        if (!preg_match('/^628[1-9][0-9]{7,10}$/', $number)) {
-            throw new \InvalidArgumentException('Nomor telepon tidak valid');
-        }
-
-        return $number;
     }
 }

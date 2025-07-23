@@ -66,18 +66,12 @@ class AuthenticatedSessionController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('Login process failed', [
                 'nouid' => $nouid ?? null,
-                'error' => [
-                    'errors' => $e->errors(),
-                    'message' => $e->getMessage()
-                ],
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+
             ]);
 
-            // Untuk tampilan web, cukup kirim pesan error sederhana
-            return back()->withErrors([
-                'pin' => 'PIN yang Anda Masukkan Salah',
-                'attempt_count' => $e->errors()['attempt']['attempt_count'] ?? null,
-                'remaining_attempts' => $e->errors()['attempt']['remaining'] ?? null
-            ])->withInput();
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             Log::error('Login process Error', [
                 'nouid' => $nouid ?? null,

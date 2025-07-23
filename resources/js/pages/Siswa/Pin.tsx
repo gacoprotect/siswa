@@ -6,10 +6,12 @@ import { DataSiswa } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { FaKey } from 'react-icons/fa';
+import SetupPinPage from './SetupPin';
 
 interface PinFormData {
     pin: string;
     nouid: string;
+    otp: string;
     [key: string]: string;
 }
 
@@ -18,19 +20,20 @@ interface PinPageProps {
     hasPin: boolean;
     open: boolean;
     onClose: (v: boolean) => void;
+    setHasPined?: () => void;
 }
 
-const PinPage: React.FC<PinPageProps> = ({ setPage, hasPin, open, onClose }) => {
+const PinPage: React.FC<PinPageProps> = ({ setHasPined, setPage, hasPin, open, onClose }) => {
     const { errors, data: pageData } = usePage<{ errors: Record<string, string>; data: DataSiswa }>().props;
-    const { error, log } = useLogger()
-    const { data, setData, post, processing, reset } = useForm<PinFormData>({
+    const { error, log } = useLogger();
+    const { data, setData, post, processing, reset } = useForm({
         pin: '',
         nouid: pageData.nouid ?? '',
-        phone: pageData.siswa.tel ?? '',
         otp: '',
     });
     const [inputType, setInputType] = useState<'password' | 'text'>('password');
     const [countdown, setCountdown] = useState(0);
+    const [step, setStep] = useState<'pin' | 'setup' | 'otp'>('pin');
 
     // const pinRefs = useRef<Array<HTMLInputElement | null>>(Array(6).fill(null));
     const pinRefs = useRef<Array<HTMLInputElement | null>>(Array(6).fill(null));
@@ -68,11 +71,10 @@ const PinPage: React.FC<PinPageProps> = ({ setPage, hasPin, open, onClose }) => 
                 setData('pin', '');
                 if (pinRefs.current[0]) {
                     pinRefs.current[0]?.focus();
-                } error(errors)
+                }
+                error(errors);
             },
-            onFinish: () => {
-
-            },
+            onFinish: () => {},
         });
     };
 
@@ -83,8 +85,8 @@ const PinPage: React.FC<PinPageProps> = ({ setPage, hasPin, open, onClose }) => 
     };
 
     const register = () => {
-        router.get(route('register', data.nouid))
-    }
+        router.get(route('register', data.nouid));
+    };
 
     const handlePinKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
         if (e.key === 'Backspace' && !data.pin[index] && index > 0 && pinRefs.current[index - 1]) {
@@ -108,10 +110,11 @@ const PinPage: React.FC<PinPageProps> = ({ setPage, hasPin, open, onClose }) => 
         e.preventDefault();
         post(route('otp.verif', pageData.nouid), {
             onSuccess: () => {
-                log("OTP SUKSES")
+                log('OTP SUKSES');
+                setStep('setup');
             },
             onError: () => {
-                log("OTP GAGAL")
+                log('OTP GAGAL');
             },
         });
     };
@@ -135,17 +138,40 @@ const PinPage: React.FC<PinPageProps> = ({ setPage, hasPin, open, onClose }) => 
             otpRefs.current[index - 1]?.focus();
         }
     };
+    useEffect(() => {
+        log('STEP : ', step)
+      if(errors.pin && (parseInt(errors.remaining) === 0)){
+        setStep('otp')
+      }
+    }, [errors.pin])
+    
     return (
         <Modal title={hasPin ? '' : 'Anda Belum Terverifikasi'} isOpen={open} onClose={() => onClose(false)} header={false}>
             {hasPin ? (
                 <div className="flex items-center justify-center p-2">
                     <Head title="Masukkan PIN" />
                     <div className="w-full max-w-md space-y-8">
+                        {step === 'pin' && (
+                            <PinStep
+                                pin={data.pin}
+                                errors={errors}
+                                inputType={inputType}
+                                processing={processing}
+                                onPinChange={(e, index) => handlePinChange(e.target.value, index)}
+                                onKeyDown={handlePinKeyDown}
+                                onPaste={(e) => handlePaste(e, 'pin')}
+                                onToggleInputType={() => setInputType(inputType === 'password' ? 'text' : 'password')}
+                                onSubmit={handlePinSubmit}
+                                setInputRef={(el, index) => {
+                                    pinRefs.current[index] = el;
+                                }}
+                                inputRefs={pinRefs}
+                            />
+                        )}
 
-                        {parseInt(errors.attempt) >= 3 ? (
+                        {(parseInt(errors.remaining) === 0) && (step === 'otp') && (
                             <OtpStep
                                 otp={data.otp}
-                                phone={data.phone}
                                 errors={errors}
                                 processing={processing}
                                 countdown={countdown}
@@ -156,22 +182,14 @@ const PinPage: React.FC<PinPageProps> = ({ setPage, hasPin, open, onClose }) => 
                                 onSubmit={handleOtpSubmit}
                                 inputRefs={otpRefs}
                             />
-                        ) : (
-                        <PinStep
-                            pin={data.pin}
-                            errors={errors}
-                            inputType={inputType}
-                            processing={processing}
-                            onPinChange={(e, index) => handlePinChange(e.target.value, index)}
-                            onKeyDown={handlePinKeyDown}
-                            onPaste={(e) => handlePaste(e, 'pin')}
-                            onToggleInputType={() => setInputType(inputType === 'password' ? 'text' : 'password')}
-                            onSubmit={handlePinSubmit}
-                            setInputRef={(el, index) => {
-                                pinRefs.current[index] = el;
-                            }}
-                            inputRefs={pinRefs}
-                        />
+                        )}
+                        {step === 'setup' && (
+                            <SetupPinPage
+                                open={step === 'setup'}
+                                hasPin={hasPin}
+                                setHasPined={() => setHasPined?.()}
+                                onClose={()=>onClose(false)}
+                            />
                         )}
                     </div>
                 </div>

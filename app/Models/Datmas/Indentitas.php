@@ -68,6 +68,10 @@ class Indentitas extends BaseModel
     {
         return $this->belongsTo(Tsignsnk::class, 'nouid', 'nouid');
     }
+    public function registrasi()
+    {
+        return $this->belongsTo(Tregistrasi::class, 'nouid', 'nouid');
+    }
     public function reg()
     {
         return $this->belongsTo(Tregistrasi::class, 'nouid', 'nouid');

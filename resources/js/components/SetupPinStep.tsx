@@ -4,9 +4,10 @@ import { Auth, DataSiswa } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
+import { DigitInput } from './DigitInput';
 
 const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () => void; hasPin: boolean; open: boolean; onClose: () => void }) => {
-    const {auth, data: pageData, errors } = usePage<{auth:Auth; data: DataSiswa; errors: Record<string, string>; nouid: string }>().props;
+    const { auth, data: pageData, errors } = usePage<{ auth: Auth; data: DataSiswa; errors: Record<string, string>; nouid: string }>().props;
     const [step, setStep] = useState<'phone' | 'otp' | 'pin'>('phone');
     const [countdown, setCountdown] = useState(0);
     const { data, setData, post, processing, reset } = useForm({
@@ -160,9 +161,8 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                     <button
                         type="submit"
                         disabled={processing || data.phone.length < 10}
-                        className={`flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm ${
-                            data.phone.length >= 10 ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' : 'cursor-not-allowed bg-gray-400'
-                        } focus:ring-2 focus:ring-offset-2 focus:outline-none`}
+                        className={`flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm ${data.phone.length >= 10 ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' : 'cursor-not-allowed bg-gray-400'
+                            } focus:ring-2 focus:ring-offset-2 focus:outline-none`}
                     >
                         {processing ? 'Mengirim OTP...' : 'Kirim Kode OTP'}
                     </button>
@@ -199,9 +199,8 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                             maxLength={1}
                             required
                             autoComplete="off"
-                            className={`h-12 w-12 rounded-md border text-center text-2xl focus:ring-1 focus:outline-none ${
-                                errors ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                            }`}
+                            className={`h-12 w-12 rounded-md border text-center text-2xl focus:ring-1 focus:outline-none ${errors ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                                }`}
                             value={data.otp[index] || ''}
                             onChange={(e) => handleOtpChange(e, index)}
                             onKeyDown={(e) => handleKeyDown(e, index, otpRefs)}
@@ -224,9 +223,8 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                     <button
                         type="submit"
                         disabled={processing || data.otp.length !== 6}
-                        className={`flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm ${
-                            data.otp.length === 6 ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' : 'cursor-not-allowed bg-gray-400'
-                        } focus:ring-2 focus:ring-offset-2 focus:outline-none`}
+                        className={`flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm ${data.otp.length === 6 ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' : 'cursor-not-allowed bg-gray-400'
+                            } focus:ring-2 focus:ring-offset-2 focus:outline-none`}
                     >
                         {processing ? 'Memverifikasi...' : 'Verifikasi'}
                     </button>
@@ -254,24 +252,18 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                         </label>
                         <div className="flex justify-center space-x-2">
                             {Array.from({ length: 6 }).map((_, index) => (
-                                <input
+                                <DigitInput
                                     key={index}
                                     ref={(el) => {
-                                        pinRefs.current[index] = el;
+                                        inputRefs.current[index] = el;
                                     }}
                                     type={inputType}
-                                    inputMode="numeric"
-                                    pattern="[0-9]"
-                                    maxLength={1}
-                                    required
-                                    autoComplete="off"
-                                    className={`h-12 w-12 rounded-md border text-center text-2xl focus:ring-1 focus:outline-none ${
-                                        errors.pin ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                                    }`}
-                                    value={data.pin[index] || ''}
-                                    onChange={(e) => handlePinChange(e, index, 'pin', pinRefs)}
-                                    onKeyDown={(e) => handleKeyDown(e, index, pinRefs)}
-                                    onFocus={(e) => e.target.select()}
+                                    value={pin[index] || ''}
+                                    onChange={(e) => handleChange(e, index)}
+                                    onKeyDown={(e) => onKeyDown(e, index)}
+                                    onPaste={onPaste}
+                                    autoFocus={index === 0}
+                                    error={isError}
                                 />
                             ))}
                         </div>
@@ -294,11 +286,10 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                                     maxLength={1}
                                     required
                                     autoComplete="off"
-                                    className={`h-12 w-12 rounded-md border text-center text-2xl focus:ring-1 focus:outline-none ${
-                                        errors.pin_confirmation
+                                    className={`h-12 w-12 rounded-md border text-center text-2xl focus:ring-1 focus:outline-none ${errors.pin_confirmation
                                             ? 'border-red-500 focus:ring-red-500'
                                             : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                                    }`}
+                                        }`}
                                     value={data.pin_confirmation[index] || ''}
                                     onChange={(e) => handlePinChange(e, index, 'pin_confirmation', confirmPinRefs)}
                                     onKeyDown={(e) => handleKeyDown(e, index, confirmPinRefs)}
@@ -333,11 +324,10 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                     <button
                         type="submit"
                         disabled={processing || data.pin.length !== 6 || data.pin !== data.pin_confirmation}
-                        className={`flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm ${
-                            data.pin.length === 6 && data.pin === data.pin_confirmation
+                        className={`flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm ${data.pin.length === 6 && data.pin === data.pin_confirmation
                                 ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
                                 : 'cursor-not-allowed bg-gray-400'
-                        } focus:ring-2 focus:ring-offset-2 focus:outline-none`}
+                            } focus:ring-2 focus:ring-offset-2 focus:outline-none`}
                     >
                         {processing ? 'Menyimpan...' : 'Simpan PIN'}
                     </button>

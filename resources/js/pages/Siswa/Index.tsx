@@ -1,10 +1,14 @@
 import { Blokir } from '@/components/blokir';
 import { ConfirmDialog } from '@/components/ConfirmDialog ';
+import { Loading } from '@/components/loading-screen';
+import { StatusCard } from '@/components/status-card';
+import { useLogger } from '@/contexts/logger-context';
 import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/Layout/AppLayout';
 import { formatIDR } from '@/lib/utils';
 import { Auth, DataSiswa, SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/react';
+import { AlertCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     FaArrowAltCircleLeft,
@@ -23,17 +27,13 @@ import {
 } from 'react-icons/fa';
 import { FiLogOut } from 'react-icons/fi';
 import { route } from 'ziggy-js';
+import TagihanContent from '../Tagihan/TagihanContent';
 import Topup from '../Topup';
 import PaymentPage from '../Transaction/Tagihan';
 import DataSiswaContent from './DataSiswaContent';
 import Excul from './Excul';
 import PinPage from './Pin';
 import SetupPinPage from './SetupPin';
-import TagihanContent from '../Tagihan/TagihanContent';
-import { StatusCard } from '@/components/status-card';
-import { AlertCircle } from 'lucide-react';
-import { useLogger } from '@/contexts/logger-context';
-import { Loading } from '@/components/loading-screen';
 
 // Type definitions
 type PageState = 'index' | 'topup' | 'riwayat' | 'tagihan';
@@ -47,9 +47,9 @@ export interface TagihanParam {
 export default function SiswaDashboard() {
     const { auth, data } = usePage<{ auth: Auth; data: DataSiswa }>().props;
     const { props } = usePage();
-    const { log } = useLogger()
-    console.count("Component Render : ");
-    log(props)
+    const { log } = useLogger();
+    console.count('Component Render : ');
+    log(props);
     // State management
     const [siswaData, setSiswaData] = useState(data);
     const [activeItem, setActiveItem] = useState<number | null>(null);
@@ -174,7 +174,11 @@ export default function SiswaDashboard() {
             <AppLayout title={item?.title || 'MAI'}>
                 <div className="min-h-screen overflow-hidden rounded-lg bg-white shadow-md">
                     <div className="flex items-center justify-between bg-primary px-4 py-4 text-primary-foreground">
-                        <button onClick={() => setActiveItem(null)} className="flex items-center space-x-2 transition-opacity hover:opacity-80" aria-label="Kembali">
+                        <button
+                            onClick={() => setActiveItem(null)}
+                            className="flex items-center space-x-2 transition-opacity hover:opacity-80"
+                            aria-label="Kembali"
+                        >
                             <FaArrowAltCircleLeft className="text-primary-foreground" />
                             <span>Kembali</span>
                         </button>
@@ -249,67 +253,62 @@ export default function SiswaDashboard() {
     // Action buttons component
     const ActionButtons = () => {
         const register = () => {
-            router.get(route('register', data.nouid))
-        }
+            router.get(route('register', data.nouid));
+        };
         const disabled = data.summary?.reg === 0;
-        return (
-            disabled ? (
-                <div className={'flex bg-white justify-center items-center gap-4 border-blue-500 border-b-2 border-t-2 p-2 px-6'}>
-                    <AlertCircle className='font-medium text-amber-600' />
-                    <span className='font-medium text-amber-600'>Status Akun sedang dalam verifikasi</span>
-                </div>
-            ) : (
-                <div className="grid w-full grid-cols-2 items-center gap-4 border-b-2 p-2 px-6">
-
-
-                    {auth.user ? (
-                        <>
-                            <button
-                                onClick={() => setLogoutDialogOpen(true)}
-                                className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-red-800 px-4 py-3 text-white shadow-sm transition-colors hover:bg-red-700"
-
-                            >
-                                <FiLogOut className="text-lg" />
-                                <span>Keluar</span>
-                            </button>
-
-                            <ConfirmDialog
-                                open={logoutDialogOpen}
-                                onOpenChange={setLogoutDialogOpen}
-                                title="Konfirmasi Logout"
-                                description="Anda yakin ingin keluar?"
-                                confirmText="Ya, Keluar"
-                                onConfirm={handleLogout}
-                            />
-                        </>
-                    ) : (
+        return disabled ? (
+            <div className={'flex items-center justify-center gap-4 border-t-2 border-b-2 border-blue-500 bg-white p-2 px-6'}>
+                <AlertCircle className="font-medium text-amber-600" />
+                <span className="font-medium text-amber-600">Status Akun sedang dalam verifikasi</span>
+            </div>
+        ) : (
+            <div className="grid w-full grid-cols-2 items-center gap-4 border-b-2 p-2 px-6">
+                {auth.user ? (
+                    <>
                         <button
-                            onClick={openPinModal}
-                            className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-white px-4 py-3 text-indigo-600 shadow-sm transition-colors hover:bg-indigo-50"
-                            disabled={disabled}
+                            onClick={() => setLogoutDialogOpen(true)}
+                            className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-red-800 px-4 py-3 text-white shadow-sm transition-colors hover:bg-red-700"
                         >
-                            <FaKey className="text-lg" />
-                            <span>Masukan PIN</span>
+                            <FiLogOut className="text-lg" />
+                            <span>Keluar</span>
                         </button>
-                    )}
 
+                        <ConfirmDialog
+                            open={logoutDialogOpen}
+                            onOpenChange={setLogoutDialogOpen}
+                            title="Konfirmasi Logout"
+                            description="Anda yakin ingin keluar?"
+                            confirmText="Ya, Keluar"
+                            onConfirm={handleLogout}
+                        />
+                    </>
+                ) : (
                     <button
-                        onClick={() => {
-                            if (hasPined) {
-                                openSetupPinModal()
-                            } else { register() }
-                        }
-                        }
+                        onClick={openPinModal}
                         className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-white px-4 py-3 text-indigo-600 shadow-sm transition-colors hover:bg-indigo-50"
                         disabled={disabled}
                     >
-                        <FaExchangeAlt className="text-lg" />
-                        <span>{hasPined ? 'Ubah PIN' : 'Daftar'}</span>
+                        <FaKey className="text-lg" />
+                        <span>Masukan PIN</span>
                     </button>
+                )}
 
-                </div>
-            )
-        )
+                <button
+                    onClick={() => {
+                        if (hasPined) {
+                            openSetupPinModal();
+                        } else {
+                            register();
+                        }
+                    }}
+                    className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-white px-4 py-3 text-indigo-600 shadow-sm transition-colors hover:bg-indigo-50"
+                    disabled={disabled}
+                >
+                    <FaExchangeAlt className="text-lg" />
+                    <span>{hasPined ? 'Ubah PIN' : 'Daftar'}</span>
+                </button>
+            </div>
+        );
     };
 
     // Balance section component
@@ -362,9 +361,7 @@ export default function SiswaDashboard() {
 
     return (
         <>
-            {isLoading && (
-                <Loading text='Memuat Data' variant='overlay' />
-            )}
+            {isLoading && <Loading text="Memuat Data" variant="overlay" />}
             {!data.active ? (
                 <AppLayout title="Kartu Siswa">
                     <div className="flex min-h-screen items-center bg-white">
@@ -384,78 +381,76 @@ export default function SiswaDashboard() {
                 </AppLayout>
             ) : (
                 <>
-                    {activeItem !== null ? (renderActiveContent) :
+                    {activeItem !== null ? (
+                        renderActiveContent
+                    ) : page === 'index' ? (
+                        <AppLayout title={auth.user?.namlen ?? 'Login'}>
+                            <StudentInfo />
+                            <ActionButtons />
+                            {auth.user && (
+                                <>
+                                    <BalanceSection />
+                                    <MenuItems />
+                                </>
+                            )}
 
-                        page === 'index' ? (
-                            <AppLayout title={auth.user?.namlen ?? 'Login'}>
-                                <StudentInfo />
-                                <ActionButtons />
-                                {auth.user && (
-                                    <>
-                                        <BalanceSection />
-                                        <MenuItems />
-
-                                    </>
-                                )}
-
-                                {(data.summary?.reg === 0) ? (
+                            {data.summary?.reg === 0 ? (
+                                <StatusCard
+                                    variant="success"
+                                    title="Pendaftaran Anda berhasil"
+                                    description={
+                                        <>
+                                            <p>Terima kasih! Kami sedang memverifikasi data Anda.</p>
+                                            <p>PIN akan dikirim ke nomor WhatsApp Anda setelah disetujui.</p>
+                                            <p>Pastikan nomor WhatsApp yang Anda daftarkan aktif untuk menerima informasi lebih lanjut.</p>
+                                        </>
+                                    }
+                                />
+                            ) : data.summary?.reg === -1 ? (
+                                // For reg === -1 (error)
+                                <StatusCard
+                                    variant="error"
+                                    title="Pendaftaran Anda ditolak"
+                                    description={
+                                        <>
+                                            <p>Mohon maaf, pendaftaran Anda belum dapat disetujui pada saat ini.</p>
+                                            <p>Silakan mendaftar kembali dengan memastikan seluruh data telah lengkap dan sesuai ketentuan.</p>
+                                            <p>Jika membutuhkan bantuan, silakan hubungi tim kami melalui kontak resmi yang tersedia.</p>
+                                        </>
+                                    }
+                                />
+                            ) : (
+                                data.summary?.reg === -2 && (
+                                    // For reg === -2 (blocked)
                                     <StatusCard
-                                        variant="success"
-                                        title="Pendaftaran Anda berhasil"
-                                        description={
-                                            <>
-                                                <p>Terima kasih! Kami sedang memverifikasi data Anda.</p>
-                                                <p>PIN akan dikirim ke nomor WhatsApp Anda setelah disetujui.</p>
-                                                <p>Pastikan nomor WhatsApp yang Anda daftarkan aktif untuk menerima informasi lebih lanjut.</p>
-                                            </>
-                                        }
-                                    />) : (data.summary?.reg === -1) ? (
-
-                                        // For reg === -1 (error)
-                                        <StatusCard
-                                            variant="error"
-                                            title="Pendaftaran Anda ditolak"
-                                            description={
-                                                <>
-                                                    <p>Mohon maaf, pendaftaran Anda belum dapat disetujui pada saat ini.</p>
-                                                    <p>Silakan mendaftar kembali dengan memastikan seluruh data telah lengkap dan sesuai ketentuan.</p>
-                                                    <p>Jika membutuhkan bantuan, silakan hubungi tim kami melalui kontak resmi yang tersedia.</p>
-                                                </>
-                                            }
-                                        />
-                                    ) : data.summary?.reg === -2 && (
-
-                                        // For reg === -2 (blocked)
-                                        <StatusCard
-                                            variant="blocked"
-                                            title="Kartu Diblokir"
-                                            description="Kartu ini telah diblokir dan tidak dapat digunakan. Silakan hubungi pihak terkait untuk informasi lebih lanjut."
-                                        />
-                                    )}
-
-
-                            </AppLayout>
-                        ) : page === 'topup' ? (
-                            <Topup
-                                siswa={siswaData.siswa}
-                                nouid={siswaData.nouid}
-                                onClose={() => {
-                                    setPage('index');
-                                    closeModal();
-                                    refreshData();
-                                }}
-                            />
-                        ) : page === 'tagihan' ? (
-                            <PaymentPage
-                                siswa={siswaData.siswa}
-                                tagihanParam={{ ...tagihanParam, nouid: siswaData.nouid }}
-                                onClose={() => {
-                                    setPage('index');
-                                    closeModal();
-                                    refreshData();
-                                }}
-                            />
-                        ) : null}
+                                        variant="blocked"
+                                        title="Kartu Diblokir"
+                                        description="Kartu ini telah diblokir dan tidak dapat digunakan. Silakan hubungi pihak terkait untuk informasi lebih lanjut."
+                                    />
+                                )
+                            )}
+                        </AppLayout>
+                    ) : page === 'topup' ? (
+                        <Topup
+                            siswa={siswaData.siswa}
+                            nouid={siswaData.nouid}
+                            onClose={() => {
+                                setPage('index');
+                                closeModal();
+                                refreshData();
+                            }}
+                        />
+                    ) : page === 'tagihan' ? (
+                        <PaymentPage
+                            siswa={siswaData.siswa}
+                            tagihanParam={{ ...tagihanParam, nouid: siswaData.nouid }}
+                            onClose={() => {
+                                setPage('index');
+                                closeModal();
+                                refreshData();
+                            }}
+                        />
+                    ) : null}
                 </>
             )}
             <Blokir open={openModal === 'blokir'} onClose={() => closeModal()} setLoading={(v) => setIsLoading(v)} />
@@ -463,6 +458,7 @@ export default function SiswaDashboard() {
                 open={openModal === 'pin'}
                 hasPin={hasPined}
                 setPage={setPage}
+                setHasPined={() => setHasPined(true)}
                 onClose={(success) => {
                     closeModal(success);
                     if (!success) setIsHistory(false);

@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Http\Controllers\OtpController;
 use App\Models\Datmas\Indentitas;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
@@ -74,21 +76,24 @@ class LoginRequest extends FormRequest
                 $remainingAttempts = self::MAX_ATTEMPTS - $attempts - 1;
                 RateLimiter::hit(
                     $this->throttleKey(),
-                    self::THROTTLE_DECAY_MINUTES * 60
+                    self::THROTTLE_DECAY_MINUTES * 60 * 10
                 );
-                if ($remainingAttempts <= 0) {
-                    $this->ensureIsNotRateLimited(); // Akan memicu throttle
+                if ($remainingAttempts <= 0) {                    
+                    $phone = $indentitas->siswa->tel ?? null;
+                    logger($phone);
+                    if ($phone) {
+                        $request = new Request(['phone' => $phone]);
+                        app(OtpController::class)->sendOtp($request, $nouid);
+                    }
+                    $this->ensureIsNotRateLimited();
                 }
-
                 $errorData = [
-                    'errors' => [
-                        'pin' => ['PIN yang Anda Masukkan Salah'],
-                        'attempt' => [
-                            'attempt_count' => $attempts + 1,
-                            'remaining' => max(0, $remainingAttempts),
-                            'max_attempts' => self::MAX_ATTEMPTS
-                        ]
-                    ],
+
+                    'pin' => 'PIN yang Anda Masukkan Salah',
+                    // 'tel' => $indentitas->siswa->tel,
+                    // 'attempt_count' => $attempts + 1,
+                    'remaining' => max(0, $remainingAttempts),
+                    // 'max_attempts' => self::MAX_ATTEMPTS,
                     'message' => $remainingAttempts > 0
                         ? "PIN yang Anda Masukkan Salah. Sisa percobaan: {$remainingAttempts}"
                         : "Terlalu banyak percobaan login"
@@ -156,15 +161,12 @@ class LoginRequest extends FormRequest
         $attempts = RateLimiter::attempts($this->throttleKey());
 
         $errorData = [
-            'errors' => [
-                'pin' => ['Terlalu banyak percobaan login'],
-                'attempt' => [
-                    'attempt_count' => self::MAX_ATTEMPTS,
-                    'remaining' => 0,
-                    'max_attempts' => self::MAX_ATTEMPTS,
-                    'retry_after' => $seconds
-                ]
-            ],
+
+            'pin' => 'Terlalu banyak percobaan login',
+            // 'attempt_count' => self::MAX_ATTEMPTS,
+            'remaining' => 0,
+            // 'max_attempts' => self::MAX_ATTEMPTS,
+            // 'retry_after' => $seconds,
             'message' => "Terlalu banyak percobaan login. Silakan coba lagi dalam {$seconds} detik."
         ];
         Log::warning('Login rate limited', [

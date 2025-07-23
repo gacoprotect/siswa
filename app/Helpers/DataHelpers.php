@@ -8,6 +8,7 @@ use App\Models\Siswa;
 use App\Models\Saving\Tpt;
 use App\Models\Saving\Ttrx;
 use App\Models\Saving\Ttrxlog;
+use Illuminate\Validation\ValidationException;
 
 function getSiswa($nouid)
 {
@@ -61,10 +62,10 @@ function getidTagihan($id, $orderId)
     // - 04000589 = nis/nouid
     $cleanOrderId = str_replace('pay-PR', '', $orderId);
 
-    $tah = substr($cleanOrderId, 0, 4);   
-    $bulid = substr($cleanOrderId, 4, 2);  
+    $tah = substr($cleanOrderId, 0, 4);
+    $bulid = substr($cleanOrderId, 4, 2);
     $nis = substr($cleanOrderId, 6);
-    
+
     switch ($id) {
         case 'tah':
             return $tah;
@@ -81,15 +82,59 @@ function getidTagihan($id, $orderId)
             ];
     }
 }
-function getBulid($bul){
-     $bulan = DB::connection('mai2')->table('tbulan')
-                ->where('bul', $bul)
-                ->first();
+function getBulid($bul)
+{
+    $bulan = DB::connection('mai2')->table('tbulan')
+        ->where('bul', $bul)
+        ->first();
     return $bulan->bulid;
-
 }
-function getPtId($payment_type){
+function getPtId($payment_type)
+{
     // pt.code = va , cash, wallet
     $pt = Tpt::where('code', $payment_type)->first()->id;
     return $pt;
+}
+
+/**
+ * Format Indonesian phone number to standard +62 format
+ * 
+ * Handles various input formats:
+ * - 08123456789 → 628123456789
+ * - +628123456789 → 628123456789
+ * - 628123456789 → 628123456789
+ * - 8123456789 → 628123456789
+ * 
+ * @param string $number Raw phone number input
+ * @return string Formatted number in 628123456789 format
+ * @throws ValidationException If number is invalid
+ */
+function formatPhoneNumber($number)
+{
+    if (empty($number)) {
+        throw ValidationException::withMessages(['tel' => 'Nomor telepon tidak boleh kosong']);
+    }
+    // Remove all non-digit characters
+    $number = preg_replace('/[^0-9]/', '', $number);
+
+    // Remove leading 0 if present
+    if (str_starts_with($number, '0')) {
+        $number = substr($number, 1);
+    }
+
+    // Handle +62 or 62 prefix
+    if (str_starts_with($number, '62')) {
+        $number = substr($number, 2);
+    }
+
+    // Validate the remaining digits
+    $number = '62' . $number;
+
+    // Final validation
+    if (!preg_match('/^628[1-9][0-9]{7,10}$/', $number)) {
+        logger("formatPhoneNumber : ", ["number" => $number]);
+        throw ValidationException::withMessages(['tel' => 'Nomor telepon tidak valid']);
+    }
+
+    return $number;
 }

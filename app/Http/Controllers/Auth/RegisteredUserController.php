@@ -231,7 +231,7 @@ class RegisteredUserController extends Controller
                     'alamat2' => $req->temtin ? $req->alamat2 : null,
                     'temtin' => $req->temtin,
                     'hub' => $req->hub,
-                    'tel' => $req->tel,
+                    'tel' => formatPhoneNumber($req->tel),
                     'email' => $req->email,
                     'sta' => 0,
                     'updated_by' => Auth::guard('web')->id() ?? 0
@@ -308,10 +308,10 @@ class RegisteredUserController extends Controller
                 try {
                     if ($isReg) {
                         $ts = Tsignsnk::where('nouid', $nouid)->first()->update($signData);
-                        logger('Update Tsignsnk',['data'=> $ts]);
+                        logger('Update Tsignsnk', ['data' => $ts]);
                     } else {
                         $ts = Tsignsnk::create($signData);
-                        logger('Create Tsignsnk',['data'=> $ts]);
+                        logger('Create Tsignsnk', ['data' => $ts]);
                     }
                 } catch (\Exception $e) {
                     throw ValidationException::withMessages(['message' => 'Terjadi kesalahan' . $e->getMessage()]);

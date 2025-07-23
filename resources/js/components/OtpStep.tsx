@@ -5,7 +5,7 @@ import { DigitInput } from './DigitInput';
 
 interface OtpStepProps {
     otp: string;
-    phone: string;
+    phone?: string;
     errors: Record<string, string>;
     processing: boolean;
     countdown: number;
@@ -48,7 +48,7 @@ export const OtpStep: React.FC<OtpStepProps> = ({
 
             <div>
                 <h2 className="text-center text-2xl font-bold text-gray-900">Verifikasi OTP</h2>
-                <p className="mt-2 text-center text-sm text-gray-600">Masukkan 6 digit kode OTP yang dikirim ke +62{phone}</p>
+                <p className="mt-2 text-center text-sm text-gray-600">Masukkan 6 digit kode OTP yang dikirim ke {phone ?? "Whatsapp Anda"}</p>
             </div>
 
             {errors.otp && <div className="text-center text-sm text-red-500">{errors.otp}</div>}

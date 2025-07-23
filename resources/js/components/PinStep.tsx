@@ -75,7 +75,7 @@ export const PinStep: React.FC<PinStepProps> = ({
                         (errors.pin || errors.message) && (
                             <div className="mb-4 flex flex-col text-center text-sm text-red-500">
                                 <span>{errors.pin ?? errors.message}</span>
-                                {parseInt(errors.attempt) < 3 && <span>{errors.attempt ? `sisa percobaan ${3 - parseInt(errors.attempt)}` : ''}</span>}
+                                {parseInt(errors.remaining) < 3 && <span>{errors.remaining ? `sisa percobaan ${errors.remaining}` : ''}</span>}
                             </div>)
                     )}
                     <div className="flex justify-center">
