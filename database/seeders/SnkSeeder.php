@@ -270,8 +270,11 @@ class SnkSeeder extends Seeder
                                 "description" => "Pemakaian kartu pelajar sebagai kartu diskon, akses ke perpustakaan, Tabungan pelajar, kartu pembayaran non-tunai, dan akses ke SIP (Student Information & Payment) adalah merupakan tanggung jawab saya {{nama_ortu}} dan anak saya {{nama_siswa}} sepenuhnya."
                             ],
                             [
-                                "description" => "Saya membebaskan pihak Sekolah atas kelalaian atau penyalahgunaan kartu baik oleh saya {{nama_ortu}} atau anak saya {{nama_ortu}}."
-                            ]
+                                "description" => "Saya membebaskan pihak Sekolah atas kelalaian atau penyalahgunaan kartu baik oleh saya {{nama_ortu}} atau anak saya {{nama_siswa}}."
+                            ],
+                            [
+                                "description" => "Saya membebaskan pihak Sekolah atas kelalaian atau penyalahgunaan PIN akses ke SIP baik oleh saya {{nama_ortu}} atau anak saya {{nama_siswa}}."
+                            ],
                         ]
                     ]
                 ],
