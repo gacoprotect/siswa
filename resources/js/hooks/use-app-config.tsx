@@ -5,14 +5,26 @@ export interface AppConfig {
 }
 
 export function useAppConfig(): AppConfig {
-    const el = document.getElementById('__config');
-    if (!el) {
-        throw new Error('Config element not found');
+    const init: AppConfig = {
+        APP_DEBUG: false,
+        APP_ENV: 'local',
+        APP_NAME: 'MAI',
+    };
+
+    if (typeof document === 'undefined') {
+        return init;
     }
 
+    const meta = document.querySelector('meta[name="__conf"]') as HTMLMetaElement | null;
+    if (!meta) {
+        throw new Error('Meta config tag not found');
+    }
+
+    const { debug, env, name } = meta.dataset;
+
     return {
-        APP_DEBUG: el.dataset.debug === 'true',
-        APP_ENV: el.dataset.env || 'local',
-        APP_NAME: el.dataset.name || 'Laravel',
+        APP_DEBUG: debug === 'true',
+        APP_ENV: env ?? init.APP_ENV,
+        APP_NAME: name ?? init.APP_NAME,
     };
 }

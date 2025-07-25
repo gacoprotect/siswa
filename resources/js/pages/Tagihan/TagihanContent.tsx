@@ -3,7 +3,7 @@ import { BillTagihan } from '@/types';
 import { X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { FaFileInvoice, FaFileInvoiceDollar, FaHistory, FaSpinner, FaTrashAlt } from 'react-icons/fa';
-import { TagihanParam } from '../Siswa/Index';
+import { TagihanParam } from '../Siswa/Index1';
 import TambahTagihan from './TambahTagihan';
 import RiwayatTagihan from './RiwayatTagihan';
 

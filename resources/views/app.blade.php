@@ -4,6 +4,10 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="__conf"
+        data-name="{{ config('app.name') }}"
+        data-env="{{ app()->environment() }}"
+        data-debug="{{ config('app.debug') ? 'true' : 'false' }}" />
 
     {{-- Inline script to detect system dark mode preference and apply it immediately --}}
     <script>
@@ -31,7 +35,7 @@
         }
     </style>
 
-    <title inertia>{{ config('app.name', 'Maidatmas') }}</title>
+    <title inertia>{{ config('app.name', 'MAI') }}</title>
 
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -62,12 +66,6 @@
 </head>
 
 <body class="font-sans antialiased">
-    <div id="__config"
-        data-debug="{{ config('app.debug') ? 'true' : 'false' }}"
-        data-env="{{ app()->environment() }}"
-        data-name="{{ config('app.name') }}" >
-    </div>
-
     @inertia
 </body>
 

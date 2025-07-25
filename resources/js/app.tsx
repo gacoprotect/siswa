@@ -18,7 +18,7 @@ createInertiaApp({
             <LoggerProvider>
                 <App {...props} />
             </LoggerProvider>
-            );
+        );
     },
     progress: {
         color: '#4B5563',

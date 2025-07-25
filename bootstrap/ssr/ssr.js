@@ -1,4 +1,4 @@
-import { jsx } from "react/jsx-runtime";
+import { jsxDEV } from "react/jsx-dev-runtime";
 import { createInertiaApp } from "@inertiajs/react";
 import createServer from "@inertiajs/react/server";
 import ReactDOMServer from "react-dom/server";
@@ -339,13 +339,13 @@ function T(t4, e2, r2, n2) {
   const o2 = new N(t4, e2, r2, n2);
   return t4 ? o2.toString() : o2;
 }
-const appName = "Maidatmas";
+const appName = "MAI";
 createServer(
   (page) => createInertiaApp({
     page,
     render: ReactDOMServer.renderToString,
     title: (title) => `${title} - ${appName}`,
-    resolve: (name) => resolvePageComponent(`./pages/${name}.tsx`, /* @__PURE__ */ Object.assign({ "./pages/PaymentInstruction.tsx": () => import("./assets/PaymentInstruction-BAWOGocu.js"), "./pages/Siswa/DataSiswaContent.tsx": () => import("./assets/DataSiswaContent-C60nKkkZ.js"), "./pages/Siswa/Excul.tsx": () => import("./assets/Excul-Y7xU6cUe.js"), "./pages/Siswa/Index.tsx": () => import("./assets/Index-Cni24UAi.js"), "./pages/Siswa/Pin.tsx": () => import("./assets/Pin-_xh2jcAH.js"), "./pages/Siswa/SearchTagihan.tsx": () => import("./assets/SearchTagihan-Dpkmh53W.js"), "./pages/Siswa/SetupPin.tsx": () => import("./assets/SetupPin-BumI-Ndq.js"), "./pages/Siswa/Tagihan.tsx": () => import("./assets/Tagihan-0wspsPHl.js"), "./pages/Siswa/TagihanContent.tsx": () => import("./assets/TagihanContent-KcHHrG4C.js"), "./pages/Siswa/TambahTagihan.tsx": () => import("./assets/TambahTagihan-BeFUbly4.js"), "./pages/Siswa/lupa-pin.tsx": () => import("./assets/lupa-pin-Dq-z6BFu.js"), "./pages/Topup.tsx": () => import("./assets/Topup-Cu3pQ8fJ.js"), "./pages/Transaction/Detail.tsx": () => import("./assets/Detail-B7iBo_-6.js"), "./pages/Transaction/History.tsx": () => import("./assets/History-HDwLruso.js"), "./pages/Transaction/Tagihan.tsx": () => import("./assets/Tagihan-B6YTCssC.js"), "./pages/welcome.tsx": () => import("./assets/welcome-B_ncGPUR.js") })),
+    resolve: (name) => resolvePageComponent(`./pages/${name}.tsx`, /* @__PURE__ */ Object.assign({ "./pages/PaymentInstruction.tsx": () => import("./assets/PaymentInstruction-O_UW-0KR.js"), "./pages/Register/Register.tsx": () => import("./assets/Register-BBwYDLAg.js"), "./pages/Siswa/DataSiswaContent.tsx": () => import("./assets/DataSiswaContent-XafqE3jV.js"), "./pages/Siswa/Excul.tsx": () => import("./assets/Excul-BHct6cn3.js"), "./pages/Siswa/Index.tsx": () => import("./assets/Index-DJE_CDoM.js"), "./pages/Siswa/Pin.tsx": () => import("./assets/Pin-DWv5vTyH.js").then((n2) => n2.b), "./pages/Siswa/RiwayatTagihan.tsx": () => import("./assets/RiwayatTagihan-gE7LnK2D.js"), "./pages/Siswa/SetupPin.tsx": () => import("./assets/SetupPin-BAFWGCBG.js"), "./pages/Siswa/lupa-pin.tsx": () => import("./assets/lupa-pin-BfbZh5Qv.js"), "./pages/Snk/Show.tsx": () => import("./assets/Show-CT1KMqcm.js"), "./pages/Tagihan/RiwayatTagihan.tsx": () => import("./assets/RiwayatTagihan-D3TPxS48.js"), "./pages/Tagihan/TagihanContent.tsx": () => import("./assets/TagihanContent-Di3zsTRa.js"), "./pages/Tagihan/TambahTagihan.tsx": () => import("./assets/TambahTagihan-BJRTGkp9.js"), "./pages/Topup.tsx": () => import("./assets/Topup-Blj8Strg.js"), "./pages/Transaction/Detail.tsx": () => import("./assets/Detail-DJ6Bu24U.js"), "./pages/Transaction/History.tsx": () => import("./assets/History-9i7GYwGd.js"), "./pages/Transaction/Tagihan.tsx": () => import("./assets/Tagihan-BX6MMm1c.js"), "./pages/test/FilterRiwayat.tsx": () => import("./assets/FilterRiwayat-Di8SF_AI.js"), "./pages/test/dashboard.tsx": () => import("./assets/dashboard-CcJui76D.js"), "./pages/test/home.tsx": () => import("./assets/home-BhV-U4mN.js"), "./pages/test/register.tsx": () => import("./assets/register-Dy-QjDek.js"), "./pages/welcome.tsx": () => import("./assets/welcome-BLC24JlO.js") })),
     setup: ({ App, props }) => {
       global.route = (name, params, absolute) => T(name, params, absolute, {
         // @ts-expect-error
@@ -353,7 +353,11 @@ createServer(
         // @ts-expect-error
         location: new URL(page.props.ziggy.location)
       });
-      return /* @__PURE__ */ jsx(App, { ...props });
+      return /* @__PURE__ */ jsxDEV(App, { ...props }, void 0, false, {
+        fileName: "/home/webserver-1/siswa/resources/js/ssr.tsx",
+        lineNumber: 28,
+        columnNumber: 21
+      }, void 0);
     }
   })
 );

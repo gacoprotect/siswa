@@ -109,6 +109,7 @@ function getPtId($payment_type)
  * @return string Formatted number in 628123456789 format
  * @throws ValidationException If number is invalid
  */
+
 function formatPhoneNumber($number)
 {
     if (empty($number)) {
@@ -137,4 +138,13 @@ function formatPhoneNumber($number)
     }
 
     return $number;
+}
+
+function idta()
+{
+    try {
+       return DB::connection('mai1')->table('ttahunajaran')->where('staakt', 1)->firstOrFail();
+    } catch (\Throwable $th) {
+        throw $th;
+    }
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useAppConfig } from './use-app-config';
 
 export type Logger = {
+    count(label?: string): void;
     log: (...args: unknown[]) => void;
     warn: (...args: unknown[]) => void;
     error: (...args: unknown[]) => void;
@@ -15,16 +16,19 @@ const useDebugLogger = (): Logger => {
     const isDebugMode = config.APP_DEBUG;
     const didRunRef = useRef(false); // 👈 untuk pastikan log hanya sekali
 
-    useEffect(() => {
-        if (isDebugMode && !didRunRef.current) {
-            console.warn("SEGERA MATIKAN DEBUG MODE SETELAH SELESAI");
-            console.log('%c[DEBUG]', 'color: #4CAF50; font-weight: bold', 'Debug mode is ACTIVE');
-            console.log('%c[ENV]', 'color: #2196F3; font-weight: bold', { VITE_ENV: import.meta.env, CONFIG: config });
-            didRunRef.current = true;
-        }
-    }, [isDebugMode, config]);
+    if (isDebugMode && !didRunRef.current) {
+        console.warn("SEGERA MATIKAN DEBUG MODE SETELAH SELESAI");
+        console.log('%c[DEBUG]', 'color: #4CAF50; font-weight: bold', 'Debug mode is ACTIVE');
+        console.log('%c[ENV]', 'color: #2196F3; font-weight: bold', { VITE_ENV: import.meta.env, CONFIG: config });
+        didRunRef.current = true;
+    }
 
     const logger = useMemo<Logger>(() => ({
+        count: (label?: string) => {
+            if (isDebugMode) {
+                console.count('[COUNT] ' + label);
+            }
+        },
         log: (...args: unknown[]) => {
             if (isDebugMode) {
                 console.log('%c[DEBUG]', 'color: #4CAF50; font-weight: bold', ...args);

@@ -25,14 +25,17 @@ class TransactionController extends Controller
             return redirect()->intended(route('siswa.index', $nouid));
         }
 
-        Ttrx::where('nouid', $nouid)
+        $trx = Ttrx::where('nouid', $nouid)
             ->where('status', 'pending')
-            ->where('expiry_time', '<', Carbon::now())->first()
-            ->update([
+            ->where('expiry_time', '<', Carbon::now())->first();
+        if ($trx) {
+            $trx->update([
                 'status'          => 'failed',
                 'failure_message' => 'Pembayaran melebihi batas waktu.',
                 'updated_at'      => Carbon::now(),
             ]);
+        }
+
 
 
         $transactions = Ttrx::where('nouid', $nouid)

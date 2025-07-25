@@ -62,6 +62,11 @@ class HandleInertiaRequests extends Middleware
                 'location' => $request->url(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            // '__conf' => [
+            //     'APP_DEBUG' => config('app.debug'),
+            //     'APP_ENV' => config('app.env'),
+            //     'APP_NAME' => config('app.name'),
+            // ],
 
         ];
     }

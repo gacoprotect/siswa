@@ -2,9 +2,10 @@ import AppLayout from '@/Layout/AppLayout';
 import { TransactionDetail } from '@/types';
 import { router, usePage } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, Banknote, CheckCircle, Clock, CreditCard, ShoppingCart, Wallet, XCircle } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FaArrowAltCircleLeft } from 'react-icons/fa';
 import Detail from './Detail';
+import { useLogger } from '@/contexts/logger-context';
 
 type PageProps = {
     transactions: TransactionDetail[];
@@ -13,7 +14,10 @@ type PageProps = {
 type HistoryProps = { onClose: () => void };
 
 const History: React.FC<HistoryProps> = () => {
+    console.count('Component Render');
+    const { log } = useLogger();
     const { transactions, nouid } = usePage<PageProps>().props;
+    log("Data Transaksi : ", transactions);
     const [selectedTransaction, setSelectedTransaction] = useState<TransactionDetail | null>(null);
     const getStatusIcon = (status: 'success' | 'pending' | 'failed' | 'canceled') => {
         switch (status) {
@@ -72,7 +76,7 @@ const History: React.FC<HistoryProps> = () => {
     return (
         <AppLayout title="Riwayat Transaksi">
             <div className="overflow-hidden rounded-lg bg-white shadow-md">
-                <div className="flex items-center justify-between bg-primary px-4 py-4 text-primary-foreground">
+                {/* <div className="flex items-center justify-between bg-primary px-4 py-4 text-primary-foreground">
                     <button onClick={() => window.history.back()} className="flex items-center space-x-2">
                         <FaArrowAltCircleLeft className="text-primary-foreground" />
                         <span>Kembali</span>
@@ -83,16 +87,16 @@ const History: React.FC<HistoryProps> = () => {
                 <div className="divide-y">
                     {transactions.map((trx) => (
                         <div
-                            key={trx.id}
+                            key={trx.order_id}
                             className="flex cursor-pointer items-center p-4 transition-colors hover:bg-gray-50"
                             onClick={() => setSelectedTransaction(trx)}
                         >
-                            {/* ikon jenis transaksi */}
+
                             <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
                                 {getTypeIcon(trx.type || trx.payment_type)}
                             </div>
 
-                            {/* info singkat */}
+
                             <div className="flex-1">
                                 <h3 className="font-medium capitalize">{trx.type || trx.payment_type.replace('_', ' ')}</h3>
                                 <p className="text-sm text-gray-500">{trx.note || `Order: ${trx.order_id}`}</p>
@@ -102,7 +106,7 @@ const History: React.FC<HistoryProps> = () => {
                                 </div>
                             </div>
 
-                            {/* jumlah & tanggal */}
+
                             <div
                                 className={`text-right ${trx.status === 'failed' || trx.status === 'canceled' ? 'text-red-600' : parseFloat(trx.amount) > 0 ? 'text-green-600' : 'text-red-600'}`}
                             >
@@ -118,7 +122,7 @@ const History: React.FC<HistoryProps> = () => {
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             router.get(`/${nouid}/payment/${trx.order_id}`);
-                                        }} // cegah pemilihan modal
+                                        }}
                                     >
                                         Bayar Sekarang
                                     </button>
@@ -128,8 +132,7 @@ const History: React.FC<HistoryProps> = () => {
                     ))}
                 </div>
 
-                {/* modal detail */}
-                {selectedTransaction && <Detail transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} />}
+                {selectedTransaction && <Detail transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} />} */}
             </div>
         </AppLayout>
     );

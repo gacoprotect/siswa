@@ -1,4 +1,4 @@
-import { TagihanParam } from '@/pages/Siswa/Index';
+import { TagihanParam } from '@/pages/Siswa/Index1';
 import { Summary } from '@/pages/Tagihan/TagihanContent';
 import { FaFileInvoiceDollar } from 'react-icons/fa';
 

@@ -348,7 +348,7 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
 
     return (
         <Modal isOpen={open} onClose={onClose} header={false}>
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center p-2">
                 <Head title={step === 'phone' ? 'Daftar Nomor HP' : step === 'otp' ? 'Verifikasi OTP' : 'Buat PIN'} />
 
                 <div className="w-full max-w-md rounded-lg">

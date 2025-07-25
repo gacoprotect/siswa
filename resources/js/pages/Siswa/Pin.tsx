@@ -21,10 +21,11 @@ interface PinPageProps {
     hasPin: boolean;
     open: boolean;
     onClose: (v: boolean) => void;
-    setHasPined?: () => void;
+    handle?: string;
+
 }
 
-const PinPage: React.FC<PinPageProps> = ({ setHasPined, setPage, hasPin, open, onClose }) => {
+const PinPage: React.FC<PinPageProps> = ({ handle, setPage, hasPin, open, onClose }) => {
     const { errors, data: pageData } = usePage<{ errors: Record<string, string>; data: DataSiswa }>().props;
     const { error, log } = useLogger();
     const { data, setData, post, processing, reset } = useForm({
@@ -62,11 +63,12 @@ const PinPage: React.FC<PinPageProps> = ({ setHasPined, setPage, hasPin, open, o
 
         if (!/^\d{6}$/.test(data.pin)) return;
 
-        post(route('siswa.verify-pin', { nouid: pageData.nouid, p: 'auth' }), {
+        post(route('siswa.verify-pin', { nouid: pageData.nouid, p: handle ?? 'auth' }), {
             preserveState: true,
             onSuccess: () => {
                 setPage('index');
                 reset();
+                onClose(false)
             },
             onError: () => {
                 setData('pin', '');
@@ -75,7 +77,7 @@ const PinPage: React.FC<PinPageProps> = ({ setHasPined, setPage, hasPin, open, o
                 }
                 error(errors);
             },
-            onFinish: () => { },
+            onFinish: () => {},
         });
     };
 
@@ -171,21 +173,21 @@ const PinPage: React.FC<PinPageProps> = ({ setHasPined, setPage, hasPin, open, o
                         )}
 
                         {
-                        // (parseInt(errors.remaining) === 0) && 
-                        (step === 'otp') && (
-                            <OtpStep
-                                otp={data.otp}
-                                errors={errors}
-                                processing={processing}
-                                countdown={countdown}
-                                onOtpChange={(value, index) => handleDigitChange(value, 'otp', index)}
-                                onKeyDown={handleOtpKeyDown}
-                                onBack={() => onClose(false)}
-                                onResendOtp={resendOtp}
-                                onSubmit={handleOtpSubmit}
-                                inputRefs={otpRefs}
-                            />
-                        )}
+                            // (parseInt(errors.remaining) === 0) && 
+                            (step === 'otp') && (
+                                <OtpStep
+                                    otp={data.otp}
+                                    errors={errors}
+                                    processing={processing}
+                                    countdown={countdown}
+                                    onOtpChange={(value, index) => handleDigitChange(value, 'otp', index)}
+                                    onKeyDown={handleOtpKeyDown}
+                                    onBack={() => onClose(false)}
+                                    onResendOtp={resendOtp}
+                                    onSubmit={handleOtpSubmit}
+                                    inputRefs={otpRefs}
+                                />
+                            )}
                         {step === 'setup' && (
                             <SetupPinStep
                                 errors={errors}

@@ -56,7 +56,7 @@ class AuthenticatedSessionController extends Controller
                     ? 'transactions'
                     : 'siswa.index';
 
-                return redirect()->route($redirectRoute, ['nouid' => $nouid]);
+                return Inertia::location(route($redirectRoute, ['nouid' => $nouid]));
             }
 
             return back()->with([
