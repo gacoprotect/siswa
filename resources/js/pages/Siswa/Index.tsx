@@ -30,6 +30,7 @@ import { useAppConfig } from '@/hooks/use-app-config';
 
 // Type definitions
 export type PageState = 'index' | 'topup' | 'riwayat' | 'tagihan';
+export type TabState = 'tagihan' | 'siswa' | 'kegiatan';
 export type ModalState = 'pin' | 'setupPin' | 'blokir' | null;
 
 export interface TagihanParam {
@@ -42,9 +43,10 @@ export interface TagihanParam {
 
 
 export default function SiswaDashboard() {
-    const { auth, data: initialData } = usePage<{ auth: Auth; data: DataSiswa }>().props;
+    const { auth, data: initialData, page: initialPage, tab } = usePage<{ auth: Auth; data: DataSiswa; page: PageState, tab: TabState }>().props;
     const { log, count } = useLogger();
     const { props } = usePage();
+    const { APP_DEBUG } = useAppConfig();
 
     // Log initial render and props (only in development)
     if (useAppConfig().APP_DEBUG) {
@@ -53,7 +55,25 @@ export default function SiswaDashboard() {
             log(props);
         }, []);
     }
+    useEffect(() => {
+        switch (tab) {
+            case 'tagihan':
+                setActiveItem(0)
+                break;
 
+            case 'siswa':
+                setActiveItem(1)
+                break;
+
+            case 'kegiatan':
+                setActiveItem(2)
+                break;
+
+            default:
+                setActiveItem(null)
+                break;
+        }
+    }, [tab])
     // State management
     const [siswaData, setSiswaData] = useState({
         idok: initialData.idok,
@@ -64,7 +84,7 @@ export default function SiswaDashboard() {
         siswa: initialData.siswa,
     });
     const [activeItem, setActiveItem] = useState<number | null>(null);
-    const [page, setPage] = useState<PageState>('index');
+    const [page, setPage] = useState<PageState>(initialPage);
     const [isLoading, setIsLoading] = useState(false);
     const [isHistory, setIsHistory] = useState(false);
     const [hasPined, setHasPined] = useState(Boolean(initialData.summary?.pin));
@@ -108,7 +128,7 @@ export default function SiswaDashboard() {
             title: 'Kegiatan',
             icon: <FaFootballBall className="h-6 w-6 text-rose-600" />,
             color: 'border-rose-700 bg-rose-50 hover:bg-rose-100',
-            content: <Excul nouid={siswaData.nouid} />,
+            content: <Excul nouid={siswaData.nouid} onClose={() => setActiveItem(null)} />,
         },
     ], [siswaData]);
 
@@ -201,7 +221,42 @@ export default function SiswaDashboard() {
             />
         );
     }
+    const simulasi = () => {
+        if (!APP_DEBUG) return null;
+        if (siswaData?.summary?.reg !== 0) return null;
 
+        return (
+            <div className='border-2 bg-white border-red-500 px-4 py-2 rounded-lg space-y-2'>
+                <p className='text-xs font-medium border-b-2'>Developer menu</p>
+                <div className='flex gap-2'>
+                    <button
+                        onClick={() => {
+                            router.get(route('simulasi.reg', { sim: "acc", nouid: siswaData.nouid }))
+                        }}
+                        className="p-1 bg-blue-500 rounded-md text-white cursor-pointer"
+                    >
+                        Terima
+                    </button>
+                    <button
+                        onClick={() => {
+                            router.get(route('simulasi.reg', { sim: "reject", nouid: siswaData.nouid }))
+                        }}
+                        className="p-1 bg-red-500 rounded-md text-white cursor-pointer"
+                    >
+                        Tolak
+                    </button>
+                    <button
+                        onClick={() => {
+                            router.get(route('simulasi.reg', { sim: "blocked", nouid: siswaData.nouid }))
+                        }}
+                        className="p-1 bg-red-500 rounded-md text-white cursor-pointer"
+                    >
+                        Block
+                    </button>
+                </div>
+            </div>
+        );
+    };
     // Render different pages based on state
     switch (page) {
         case 'topup':
@@ -263,6 +318,7 @@ export default function SiswaDashboard() {
                         )}
 
                         <RegistrationStatus data={siswaData} />
+                        {simulasi()}
                     </AppLayout>
 
                     {/* Modals */}
@@ -276,6 +332,7 @@ export default function SiswaDashboard() {
                         open={openModal === 'pin'}
                         hasPin={hasPined}
                         setPage={setPage}
+                        setOpenSetupPin={() => setOpenModal('setupPin')}
                         handle={auth.user ? (isHistory ? 'riwayat' : 'auth') : 'index'}
                         onClose={(success) => {
                             closeModal(success);

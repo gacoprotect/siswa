@@ -498,6 +498,7 @@ const Register = ({ nouid, agreement }: Props) => {
                                 confirmText={processing ? "mendaftar" : "Setuju"}
                                 confirmDisabled={processing}
                                 header={false}
+                                onScrollToBottom={()=>''}
                                 agreement={
                                     <p>
                                         Saya yang bertanda tangan di bawah ini <strong>{data.nama}</strong> menyatakan telah membaca,

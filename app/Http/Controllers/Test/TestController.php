@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Test;
 
 use App\Http\Controllers\Controller;
+use App\Models\Admin\Tkelas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -78,5 +79,17 @@ class TestController extends Controller
         ])->filter(fn($item) => !$keyword || str_contains(strtolower($item['nama']), strtolower($keyword)))
             ->values()
             ->all();
+    }
+
+    public function listExcul()
+    {
+        $excul = Tkelas::with('jenis')
+            ->whereHas('jenis', function ($q) {
+                $q->where('tip', 1)->where('sta', 0);
+            })
+            ->where('idta', idta()->id)
+            ->get();
+
+        return response()->json($excul);
     }
 }

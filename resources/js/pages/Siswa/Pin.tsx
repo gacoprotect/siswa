@@ -22,10 +22,11 @@ interface PinPageProps {
     open: boolean;
     onClose: (v: boolean) => void;
     handle?: string;
+    setOpenSetupPin?: () => void
 
 }
 
-const PinPage: React.FC<PinPageProps> = ({ handle, setPage, hasPin, open, onClose }) => {
+const PinPage: React.FC<PinPageProps> = ({ setOpenSetupPin, handle, setPage, hasPin, open, onClose }) => {
     const { errors, data: pageData } = usePage<{ errors: Record<string, string>; data: DataSiswa }>().props;
     const { error, log } = useLogger();
     const { data, setData, post, processing, reset } = useForm({
@@ -77,7 +78,7 @@ const PinPage: React.FC<PinPageProps> = ({ handle, setPage, hasPin, open, onClos
                 }
                 error(errors);
             },
-            onFinish: () => {},
+            onFinish: () => { },
         });
     };
 
@@ -149,7 +150,7 @@ const PinPage: React.FC<PinPageProps> = ({ handle, setPage, hasPin, open, onClos
     }, [errors.pin])
 
     return (
-        <Modal title={hasPin ? '' : 'Anda Belum Terverifikasi'} isOpen={open} onClose={() => onClose(false)} header={false}>
+        <Modal title={hasPin ? '' : 'Anda Belum Terverifikasi'} isOpen={open} onClose={() => { onClose(false); reset() }} header={false}>
             {hasPin ? (
                 <div className="flex items-center justify-center p-2">
                     <Head title="Masukkan PIN" />
@@ -197,6 +198,17 @@ const PinPage: React.FC<PinPageProps> = ({ handle, setPage, hasPin, open, onClos
                             />
                         )}
                     </div>
+                </div>
+            ) : (pageData.summary?.reg === 1 && pageData.summary?.pin === false) ? (
+                <div className="flex flex-col items-center justify-center space-y-4 rounded-xl p-6 text-center">
+                    <p className="max-w-md text-sm">Untuk melanjutkan silahkan buat PIN Anda terlebih dahulu</p>
+                    <button
+                        onClick={setOpenSetupPin}
+                        className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-white px-4 py-3 text-indigo-600 shadow-sm transition-colors hover:bg-indigo-50"
+                    >
+                        <FaKey className="text-lg" />
+                        <span>Buat Sekarang</span>
+                    </button>
                 </div>
             ) : (
                 <div className="flex flex-col items-center justify-center space-y-4 rounded-xl p-6 text-center">

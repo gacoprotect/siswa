@@ -37,7 +37,6 @@ Route::middleware(['web'])->group(function () {
 
         Route::get('/login', [SiswaController::class, 'index'])->name('login');
         Route::get('/', [SiswaController::class, 'index'])->name('siswa.index');
-        Route::get('/test', [SiswaController::class, 'test'])->name('siswa.test');
         Route::post('/verify-pin', [AuthenticatedSessionController::class, 'store'])->name('siswa.verify-pin');
         Route::post('/register-phone', [RegisteredUserController::class, 'verifphone'])->name('siswa.verify-nope');
         Route::get('/setup-pin', [SiswaController::class, 'showSetupPinForm'])->name('siswa.show-setup-pin');

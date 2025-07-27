@@ -70,6 +70,13 @@ export interface SiswaSummary {
     sign?: string | null;
     version?: string;
 }
+export interface DataExcul {
+    sub: number[];
+    waiting: number[];
+    rejected: number[];
+    exited: number[];
+    excul: Excul[];
+}
 export interface DataSiswa {
     idok: number;
     active: boolean;
@@ -77,6 +84,7 @@ export interface DataSiswa {
     balance: number;
     summary?: SiswaSummary;
     siswa: Siswa;
+    kegiatan?: DataExcul;
 }
 export interface Siswa {
     has_pin: boolean;
@@ -235,11 +243,11 @@ export interface Pelatih {
 export interface Excul {
     id: number;
     name: string;
-    day: string;
-    time: string;
-    coach: string;
-    pel: Pelatih;
     quota: number;
     registered: number;
-    icon: string;
+    // data dibawah optional jika ada 
+    day?: string;
+    time?: string;
+    coach?: string;
+    pel?: Pelatih;
 }

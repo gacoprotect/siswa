@@ -2,6 +2,10 @@
 
 namespace App\Models\Datmas;
 
+use App\Models\Admin\Tdaftarexcul;
+use App\Models\Admin\Tkelsis;
+use App\Models\Admin\Tkelsis1;
+use App\Models\Admin\Tstopexcul;
 use App\Models\BaseModel;
 use App\Models\Saving\PaidBill;
 use App\Models\Saving\Tregistrasi;
@@ -63,6 +67,22 @@ class Indentitas extends BaseModel
     public function siswa()
     {
         return $this->belongsTo(Siswa::class, 'idok', 'id');
+    }
+    public function kelsis()
+    {
+        return $this->belongsTo(Tkelsis::class, 'idok', 'ids');
+    }
+    public function kelsis1()
+    {
+        return $this->belongsTo(Tkelsis1::class, 'idok', 'ids');
+    }
+    public function daftarexcul()
+    {
+        return $this->belongsTo(Tdaftarexcul::class, 'idok', 'idsis');
+    }
+    public function stopexcul()
+    {
+        return $this->belongsTo(Tstopexcul::class, 'idok', 'idsis');
     }
     public function signature()
     {

@@ -1,113 +1,215 @@
+import InputGroup from '@/components/InputGroup';
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/Modal';
+import { useLogger } from '@/contexts/logger-context';
+import { useAppConfig } from '@/hooks/use-app-config';
 import { cn } from '@/lib/utils';
-import { Excul as ExculType } from '@/types';
-import { router } from '@inertiajs/react';
-import { X } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
-import { FaBook, FaCalendarAlt, FaInfoCircle, FaRunning, FaSpinner } from 'react-icons/fa';
+import { DataExcul, DataSiswa, Excul as ExculType } from '@/types';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
+import { AlertCircle, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { FaBook, FaCalendarAlt, FaInfoCircle, FaRunning, FaSpinner, FaClock, FaTimes, FaSignOutAlt } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 
 interface ExculProps {
     nouid: string;
+    onClose: () => void;
 }
-interface DataExcul {
-    sub: number[];
-    excul: ExculType[];
-}
-interface Response {
-    success: boolean;
-    data: DataExcul;
-}
-const Excul = ({ nouid }: ExculProps) => {
+
+const Excul = ({ nouid, onClose }: ExculProps) => {
+    const { data, errors } = usePage<{ data: DataSiswa }>().props;
+    const { log, error } = useLogger();
+    const { APP_DEBUG } = useAppConfig();
     const [isLoading, setIsLoading] = useState(true);
     const [process, setProcess] = useState<number | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [dialogConfig, setDialogConfig] = useState<{
+        open: boolean;
+        action: 'subscribe' | 'unsubscribe' | null;
+        exculId: number | null;
+        title: string;
+    }>({
+        open: false,
+        action: null,
+        exculId: null,
+        title: '',
+    });
+
     const [initialData, setInitialData] = useState<DataExcul>({
         sub: [],
+        waiting: [],
+        rejected: [],
+        exited: [],
         excul: [],
     });
-    const [subexcul, setsubExcul] = useState<number[]>(initialData.sub);
+
+    const simulasi = (excul: number) => {
+        if (!APP_DEBUG) return null;
+
+        return (
+            <div className='border-2 border-red-500 px-4 py-2 rounded-lg space-y-2'>
+                <p className='text-xs font-medium border-b-2'>Developer menu</p>
+                <div className='flex gap-2'>
+                    <button
+                        onClick={() => {
+                            router.get(route('simulasi.excul', { simulasi: "acc", excul: excul, nouid: nouid }))
+                        }}
+                        className="p-1 bg-blue-500 rounded-md text-white cursor-pointer"
+                    >
+                        Terima
+                    </button>
+                    <button
+                        onClick={() => {
+                            router.get(route('simulasi.excul', { simulasi: "reject", excul: excul, nouid: nouid }))
+                        }}
+                        className="p-1 bg-red-500 rounded-md text-white cursor-pointer"
+                    >
+                        Tolak
+                    </button>
+                </div>
+            </div>
+        );
+    };
 
     const fetchData = useCallback(
         async (load = true) => {
             try {
-                if (load) setIsLoading(true);
-                setError(null);
-
-                const response = await fetch(route('api.excul', nouid) + '?nouid=' + nouid);
-
-                if (!response.ok) {
-                    throw new Error('Gagal memuat data');
-                }
-
-                const data: Response = await response.json();
-
-                if (!data.success) {
-                    throw new Error('Terjadi kesalahan server');
-                }
-
-                setInitialData(data.data);
+                await router.get(
+                    route('siswa.index', { nouid: nouid, page: "index", tab: "kegiatan" }),
+                    {},
+                    {
+                        only: ['data.kegiatan'],
+                        preserveState: true,
+                        onStart: () => load && setIsLoading(true),
+                        onError: onClose,
+                        onFinish: () => load && setIsLoading(false)
+                    }
+                );
             } catch (err) {
-                setError(err instanceof Error ? err.message : 'Terjadi kesalahan jaringan');
-            } finally {
-                if (load) setIsLoading(false);
+                error(err instanceof Error ? err.message : 'Terjadi kesalahan jaringan');
+                setIsLoading(false);
             }
         },
-        [nouid],
+        [nouid, onClose, error]
     );
+
+    useEffect(() => {
+        if (data?.kegiatan) {
+            setInitialData(data.kegiatan);
+            log('Data siswa loaded:', data);
+        }
+    }, [data?.kegiatan, log]);
+
     useEffect(() => {
         fetchData();
-    }, [fetchData]);
-    useEffect(() => {
-        setsubExcul(initialData.sub);
-    }, [initialData.sub]);
-    const excul = initialData.excul;
-    const subExcul = initialData.excul
-        .filter((e) => subexcul.includes(e.id))
-        .map((e) => ({
-            id: e.id,
-            name: e.name,
-            status: 'Aktif',
-        }));
+    }, []);
 
-    const subscribe = ({ e, id }: { e: React.MouseEvent<HTMLButtonElement>; id: number }) => {
-        e.preventDefault();
-        if (subexcul.includes(id)) return;
-        setProcess(id);
-        router.post(
-            route('subs.excul', nouid),
-            { excul: id },
-            {
+    const { setData, post, processing, reset } = useForm({
+        excul: 0,
+        tgl: '',
+        ket: ''
+    });
+
+    // Group all excul statuses
+    const exculStatuses = useMemo(() => {
+        return initialData.excul.map(excul => {
+            if (initialData.sub.includes(excul.id)) {
+                return { ...excul, status: 'active', statusText: 'Aktif' };
+            }
+            if (initialData.waiting.includes(excul.id)) {
+                return { ...excul, status: 'waiting', statusText: 'Menunggu' };
+            }
+            if (initialData.rejected.includes(excul.id)) {
+                return { ...excul, status: 'rejected', statusText: 'Ditolak' };
+            }
+            if (initialData.exited.includes(excul.id)) {
+                return { ...excul, status: 'exited', statusText: 'Keluar' };
+            }
+            return { ...excul, status: 'none', statusText: 'Belum Terdaftar' };
+        });
+    }, [initialData]);
+
+    // Filter by status
+    const activeExcul = useMemo(() =>
+        exculStatuses.filter(e => e.status === 'active'),
+        [exculStatuses]
+    );
+    const waitingExcul = useMemo(() =>
+        exculStatuses.filter(e => e.status === 'waiting'),
+        [exculStatuses]
+    );
+    const rejectedExcul = useMemo(() =>
+        exculStatuses.filter(e => e.status === 'rejected'),
+        [exculStatuses]
+    );
+    const exitedExcul = useMemo(() =>
+        exculStatuses.filter(e => e.status === 'exited'),
+        [exculStatuses]
+    );
+
+    const handleSubscription = useCallback(async (id: number, action: 'subscribe' | 'unsubscribe' | 'cancel') => {
+        try {
+            setData('excul', id);
+
+            if (action === 'cancel') {
+                // No dialog needed for cancel action
+                await post(route('cancel.excul', nouid), {
+                    preserveScroll: true,
+                    preserveState: true,
+                    onStart: () => setProcess(id),
+                    onSuccess: () => fetchData(false),
+                    onError: () => {
+                        toast.error('Permintaan Gagal');
+                        error(errors);
+                    },
+                    onFinish: () => setProcess(null),
+                });
+                return;
+            }
+
+            // For subscribe/unsubscribe, we need to show dialog first
+            setDialogConfig({
+                open: true,
+                action,
+                exculId: id,
+                title: action === 'subscribe' ? 'Form Pendaftaran' : 'Form Keluar Ekstrakurikuler'
+            });
+        } catch (err) {
+            error(`${action} failed:`, err);
+        }
+    }, [fetchData, nouid, errors, error, setData, post]);
+
+    const handleDialogSubmit = useCallback(async () => {
+        if (!dialogConfig.action || dialogConfig.exculId === null) return;
+
+        try {
+            const routeName = dialogConfig.action === 'subscribe' ? 'subs.excul' : 'unsubs.excul';
+
+            await post(route(routeName, nouid), {
                 preserveScroll: true,
                 preserveState: true,
-                onError: (errors) => {
-                    console.error('Validasi gagal:', errors);
+                onStart: () => setProcess(dialogConfig.exculId),
+                onSuccess: () => {
+                    fetchData(false);
+                    reset();
+                },
+                onError: () => {
+                    toast.error('Permintaan Gagal');
+                    error(errors);
                 },
                 onFinish: () => {
-                    fetchData(false);
                     setProcess(null);
+                    setDialogConfig(prev => ({ ...prev, open: false }));
                 },
-            },
-        );
-    };
+            });
+        } catch (err) {
+            error(`${dialogConfig.action} failed:`, err);
+        }
+    }, [dialogConfig, nouid, post, fetchData, reset, error, errors]);
 
-    const unsubs = ({ e, id }: { e: React.MouseEvent<HTMLButtonElement>; id: number }) => {
-        e.preventDefault();
-
-        if (!subexcul.includes(id)) return;
-        router.post(
-            route('unsubs.excul', nouid),
-            { excul: id },
-            {
-                preserveScroll: true,
-                preserveState: true,
-                onError: (errors) => {
-                    console.error('Validasi gagal:', errors);
-                },
-                onFinish: () => {
-                    fetchData(false);
-                },
-            },
-        );
-    };
+    const handleDialogClose = useCallback(() => {
+        setDialogConfig(prev => ({ ...prev, open: false }));
+        reset();
+    }, [reset]);
 
     if (isLoading) {
         return (
@@ -117,116 +219,254 @@ const Excul = ({ nouid }: ExculProps) => {
             </div>
         );
     }
-    if (error) {
-        return (
-            <div className="flex flex-row items-center justify-center space-x-3 py-4">
-                <X className="text-3xl text-red-600" />
-                <span className="text-lg font-bold text-red-600">{error}</span>
-            </div>
-        );
-    }
+
+    const getStatusBadge = (status: string) => {
+        switch (status) {
+            case 'active':
+                return <span className="rounded bg-green-100 px-2 py-1 text-xs text-green-800">Aktif</span>;
+            case 'waiting':
+                return <span className="rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800">Menunggu</span>;
+            case 'rejected':
+                return <span className="rounded bg-red-100 px-2 py-1 text-xs text-red-800">Ditolak</span>;
+            case 'exited':
+                return <span className="rounded bg-gray-100 px-2 py-1 text-xs text-gray-800">Anda telah Keluar</span>;
+            case 'registered':
+                return <span className="rounded bg-gray-100 px-2 py-1 text-xs text-gray-800">Terdaftar</span>;
+            default:
+                return null;
+        }
+    };
+
+    const getStatusIcon = (status: string) => {
+        switch (status) {
+            case 'active': return <FaRunning className="text-green-500" />;
+            case 'waiting': return <FaClock className="text-yellow-500" />;
+            case 'rejected': return <FaTimes className="text-red-500" />;
+            case 'exited': return <FaSignOutAlt className="text-gray-500" />;
+            default: return <FaBook className="text-indigo-500" />;
+        }
+    };
+
     return (
         <div className="space-y-6 p-4">
+            {/* Dialog Modal */}
+            <Modal
+                isOpen={dialogConfig.open}
+                onClose={handleDialogClose}
+                onConfirm={handleDialogSubmit}
+                className='w-100 mx-5'
+                size='xl'
+                title={dialogConfig.title}
+            >
+                <div className="flex flex-col gap-4">
+                    <InputGroup
+                        label={`Tanggal ${dialogConfig.action === 'subscribe' ? "Mulai" : "Berhenti"}`}
+                        name='tgl'
+                        type="date"
+                        onChange={(v) => setData('tgl', v as string)}
+                        required
+                    />
+                    <InputGroup
+                        label={`${dialogConfig.action === 'subscribe' ? "Motivasi mendaftar" : "Alasan Berhenti"}`}
+                        name='ket'
+                        type="textarea"
+                        onChange={(v) => setData('ket', v as string)}
+                        required
+                        rows={3}
+                    />
+                </div>
+            </Modal>
+
             <div className="mb-6 flex items-center justify-between">
                 <h3 className="text-2xl font-bold text-gray-800">Ekstrakurikuler</h3>
             </div>
 
-            {/* Ekstrakurikuler yang diikuti siswa */}
-            <div className="rounded-lg bg-white p-6 shadow">
-                <h4 className="mb-4 flex items-center gap-2 border-b pb-2 text-lg font-semibold text-gray-800">
-                    <FaRunning className="text-indigo-500" />
-                    Ekstrakurikuler Yang Diikuti
-                </h4>
+            {Object.keys(errors).length > 0 && (
+                <div className="flex flex-row items-center justify-center space-x-3 py-4">
+                    <AlertCircle className="text-3xl text-red-600" />
+                    <span className="text-lg font-bold text-red-600">{errors.message ?? "Terjadi Kesalahan"}</span>
+                </div>
+            )}
 
-                {subExcul.length > 0 ? (
+            {/* Active Excul */}
+            {(activeExcul.length > 0 || waitingExcul.length > 0) ? (
+                <div className="rounded-lg bg-white p-6 shadow">
+                    <h4 className="mb-4 flex items-center gap-2 border-b pb-2 text-lg font-semibold text-gray-800">
+                        <FaRunning className="text-green-500" />
+                        Ekstrakurikuler Aktif
+                    </h4>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        {subExcul.map((activity) => (
+                        {activeExcul.map((activity) => (
                             <div key={activity.id} className="rounded-lg border p-4 transition-shadow hover:shadow-md">
                                 <div className="flex items-start justify-between">
                                     <div>
                                         <h5 className="text-lg font-bold">{activity.name}</h5>
                                         <p className="text-gray-600">
-                                            Status: <span className="font-medium text-green-600">{activity.status}</span>
+                                            Status: {getStatusBadge(activity.status)}
                                         </p>
                                     </div>
                                     <button
-                                        onClick={(e) => unsubs({ e, id: activity.id })}
-                                        className="text-sm font-medium text-red-600 hover:text-red-800"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            handleSubscription(activity.id, 'unsubscribe');
+                                        }}
+                                        disabled={process === activity.id}
+                                        className="text-sm font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
                                     >
-                                        Keluar
+                                        {process === activity.id ? (
+                                            <FaSpinner className="animate-spin" />
+                                        ) : (
+                                            'Keluar'
+                                        )}
                                     </button>
                                 </div>
                                 <div className="mt-3 flex items-center justify-between text-sm">
-                                    <span className="text-gray-500">Rabu, 14.00-16.00</span>
+                                    <div>
+                                        <p className="text-xs text-gray-500">
+                                            Kuota: {activity.registered}/{activity.quota}
+                                        </p>
+                                        <div className="mt-1 h-1.5 w-full rounded-full bg-gray-200">
+                                            <div
+                                                className="h-1.5 rounded-full bg-green-500"
+                                                style={{
+                                                    width: `${Math.min(100, (activity.registered / activity.quota) * 100)}%`,
+                                                }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                    <span className="text-gray-500">{activity.day}, {activity.time}</span>
                                     <span className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800">Lihat Jadwal</span>
                                 </div>
                             </div>
                         ))}
-                    </div>
-                ) : (
-                    <div className="py-8 text-center text-gray-500">
-                        <p>Anda belum terdaftar dalam ekstrakurikuler apapun</p>
-                        <button className="mt-4 font-medium text-indigo-600 hover:text-indigo-800">Daftar Sekarang</button>
-                    </div>
-                )}
-            </div>
 
-            {/* Daftar Ekstrakurikuler Tersedia */}
-            <div className="rounded-lg bg-white p-6 shadow">
+                        {waitingExcul.map((activity) => (
+                            <div key={activity.id} className="rounded-lg bg-yellow-50 border-2 border-yellow-500 p-4 transition-shadow hover:shadow-md">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <h5 className="text-lg font-bold">{activity.name}</h5>
+                                        <p className="text-gray-600">
+                                            Status: {getStatusBadge(activity.status)}
+                                        </p>
+                                    </div>
+                                    {/* <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            handleSubscription(activity.id, 'cancel');
+                                        }}
+                                        disabled={process === activity.id}
+                                        className="text-sm font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
+                                    >
+                                        {process === activity.id ? (
+                                            <FaSpinner className="animate-spin" />
+                                        ) : (
+                                            'Batalkan'
+                                        )}
+                                    </button> */}
+                                </div>
+                                <div className="mt-3 flex items-center justify-between text-sm">
+                                    <div>
+                                        <p className="text-xs text-gray-500">
+                                            Kuota: {activity.registered}/{activity.quota}
+                                        </p>
+                                        <div className="mt-1 h-1.5 w-full rounded-full bg-gray-200">
+                                            <div
+                                                className="h-1.5 rounded-full bg-green-500"
+                                                style={{
+                                                    width: `${Math.min(100, (activity.registered / activity.quota) * 100)}%`,
+                                                }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                    <span className="text-gray-500">{activity.day}, {activity.time}</span>
+                                    {simulasi(activity.id)}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                <div className="py-8 text-center text-gray-500">
+                    <p>Anda belum terdaftar dalam ekstrakurikuler apapun</p>
+                    <a href="#list_excul" className="mt-4 font-medium text-indigo-600 hover:text-indigo-800">Daftar Sekarang</a>
+                </div>
+            )}
+
+            {/* Available Excul */}
+            <div id="list_excul" className="rounded-lg bg-white p-6 shadow">
                 <h4 className="mb-4 flex items-center gap-2 border-b pb-2 text-lg font-semibold text-gray-800">
                     <FaBook className="text-indigo-500" />
                     Daftar Ekstrakurikuler Tersedia
                 </h4>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {excul.map((ext) => (
-                        <div key={ext.id} className="rounded-lg border p-4 transition-shadow hover:shadow-lg">
-                            <div className="mb-3 flex items-center gap-3">
-                                {/* <div className="rounded-full bg-gray-100 p-2">{ext.icon}</div> */}
-                                <h5 className="text-lg font-bold">{ext.name}</h5>
-                            </div>
+                    {exculStatuses.map((ext) => {
+                        const isFull = ext.registered === ext.quota;
+                        const isWaiting = waitingExcul.some((a) => a.id === ext.id);
+                        const isRejected = rejectedExcul.some((a) => a.id === ext.id);
+                        const isExited = exitedExcul.some((a) => a.id === ext.id);
+                        const isRegistered = activeExcul.some((a) => a.id === ext.id);
+                        const isProcessing = process === ext.id;
 
-                            <div className="space-y-2 text-sm">
-                                <p className="flex items-center gap-2 text-gray-600">
-                                    <FaCalendarAlt className="text-gray-400" />
-                                    {ext.day}, {ext.time}
-                                </p>
-                                <p className="text-gray-600">Pelatih: {ext.coach}</p>
-                                <div className="flex items-center justify-between pt-2">
-                                    <div>
-                                        <p className="text-xs text-gray-500">
-                                            Kuota: {ext.registered}/{ext.quota}
-                                        </p>
-                                        <div className="mt-1 h-1.5 w-full rounded-full bg-gray-200">
-                                            <div
-                                                className="h-1.5 rounded-full bg-green-500"
-                                                style={{
-                                                    width: `${(ext.registered / ext.quota) * 100}%`,
-                                                }}
-                                            ></div>
+                        return (
+                            <div key={ext.id} className="rounded-lg border p-4 transition-shadow hover:shadow-lg">
+                                <div className="mb-3 flex items-center gap-3">
+                                    <h5 className="text-lg font-bold">{ext.name}</h5>
+                                    {isRejected && getStatusBadge('rejected')}
+                                    {isExited && getStatusBadge('exited')}
+                                </div>
+
+                                <div className="space-y-2 text-sm">
+                                    <p className="flex items-center gap-2 text-gray-600">
+                                        <FaCalendarAlt className="text-gray-400" />
+                                        {ext.day}, {ext.time}
+                                    </p>
+                                    <p className="text-gray-600">Pelatih: {ext.coach}</p>
+                                    <div className="flex items-center justify-between pt-2">
+                                        <div>
+                                            <p className="text-xs text-gray-500">
+                                                Kuota: {ext.registered}/{ext.quota}
+                                            </p>
+                                            <div className="mt-1 h-1.5 w-full rounded-full bg-gray-200">
+                                                <div
+                                                    className="h-1.5 rounded-full bg-green-500"
+                                                    style={{
+                                                        width: `${Math.min(100, (ext.registered / ext.quota) * 100)}%`,
+                                                    }}
+                                                ></div>
+                                            </div>
                                         </div>
+                                        {isFull ? (
+                                            <span className="rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800">Kuota Penuh</span>
+                                        ) : isWaiting ? (
+                                            getStatusBadge('waiting')
+                                        ) : (
+                                            <div className='flex items-center gap-4 justify-between pt-2'>
+                                                {isRegistered ? (
+                                                    getStatusBadge('registered')
+                                                ) : (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            handleSubscription(ext.id, 'subscribe');
+                                                        }}
+                                                        className={cn(
+                                                            `flex items-center justify-center space-x-2 rounded bg-indigo-600 px-3 py-1 text-xs text-white hover:bg-indigo-700`,
+                                                            isProcessing && 'bg-indigo-400 hover:bg-indigo-500'
+                                                        )}
+                                                        disabled={isProcessing}
+                                                    >
+                                                        {isProcessing && <FaSpinner className="animate-spin" />}
+                                                        <span>{isRejected || isExited ? "Daftar Ulang" : "Daftar"}</span>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
-                                    {ext.registered === ext.quota ? (
-                                        <span className="rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800">Kuota Pendaftaran Penuh</span>
-                                    ) : subExcul.some((a) => a.id === ext.id) ? (
-                                        <span className="rounded bg-green-100 px-2 py-1 text-xs text-green-800">Sudah Terdaftar</span>
-                                    ) : (
-                                        <button
-                                            onClick={(e) => subscribe({ e, id: ext.id })}
-                                            className={cn(
-                                                `flex items-center justify-center space-x-2 rounded bg-indigo-600 px-3 py-1 text-xs text-white hover:bg-indigo-700`,
-                                                `${process === ext.id && 'bg-indigo-400 hover:bg-indigo-500'}`,
-                                            )}
-                                            disabled={process === ext.id}
-                                        >
-                                            {process === ext.id && <FaSpinner className="animate-spin" />}
-                                            <span>Daftar</span>
-                                        </button>
-                                    )}
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
 
@@ -240,6 +480,7 @@ const Excul = ({ nouid }: ExculProps) => {
                             <li>Setiap siswa boleh mengikuti maksimal 2 ekstrakurikuler</li>
                             <li>Pendaftaran ditutup ketika kuota terpenuhi</li>
                             <li>Kehadiran minimal 80% untuk mendapatkan sertifikat</li>
+                            <li>Status pendaftaran akan diperiksa oleh admin</li>
                         </ul>
                     </div>
                 </div>

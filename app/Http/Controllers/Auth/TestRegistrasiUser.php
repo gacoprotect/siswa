@@ -8,9 +8,10 @@ use App\Models\Datmas\Indentitas;
 use App\Models\Saving\Tregistrasi;
 use App\Models\Saving\Tsnk;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
-class RegistrasiUser extends Controller
+class TestRegistrasiUser extends Controller
 {
     public function create(Request $req, $nouid)
     {
@@ -122,5 +123,36 @@ class RegistrasiUser extends Controller
         }
 
         return null;
+    }
+
+    public function simulasi(Request $req, $sim)
+    {
+        $v = $req->validate([
+            'nouid' => 'required|exists:mai2.tindentitas,nouid',
+        ]);
+        $reg = Tregistrasi::where('nouid', $v['nouid'])->firstOrfail();
+        return DB::transaction(function () use ($sim, $v, $reg) {
+            switch ($sim) {
+                case 'acc':
+                    $reg->update(['sta' => 1]);
+
+                    break;
+
+                case 'reject':
+                    $reg->update(['sta' => -1]);
+                    break;
+
+                case 'blocked':
+                    $reg->update(['sta' => -2]);
+                    break;
+
+                default:
+                    return back(400)->withErrors(['message' => 'Invalid simulation type']);
+            }
+
+            return redirect()->intended(route('siswa.index', [
+                'nouid' => $v['nouid']
+            ]));
+        });
     }
 }

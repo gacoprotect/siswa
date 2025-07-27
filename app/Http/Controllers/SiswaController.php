@@ -18,6 +18,11 @@ class SiswaController extends Controller
 {
     public function index(Request $req, $nouid)
     {
+        $req->validate([
+            'page' => 'sometimes|string|in:index,topup,riwayat,tagihan',
+            'tab' => 'sometimes|string|in:siswa,kegiatan,tagihan',
+        ]);
+        logger("Request Index", ['req' => $req->all()]);
         try {
 
             $ident = Indentitas::with('registrasi')->with(['siswa.safe' => function ($qu) {
@@ -36,12 +41,15 @@ class SiswaController extends Controller
             }
 
             $isLogin = Auth::guard('siswa')->check();
+            $page = $req->query('page') ?? 'index';
             $tab = $req->query('tab');
             $siswa = $ident->siswa;
             $safe = $siswa->safe;
             // Jika sudah login
             if ($isLogin) {
                 $data = [
+                    'page' => $page,
+                    'tab' => $tab ?? null,
                     'data' => [
                         ...$ident->toArray(),
                         'balance' => $siswa->balance,
@@ -49,8 +57,10 @@ class SiswaController extends Controller
                         'siswa' => [
                             ...$siswa->toArray(),
                             'alamat' => $safe
-                        ]
-                        // ...($tab ? ['tab' => $tab] : []),
+                        ],
+                        ...(($page === 'index' && $tab === 'kegiatan') ? [
+                            'kegiatan' => ExculController::Excul($ident->idok)
+                        ] : []),
                         // ...($tab === 'siswa' ? [
                         //     'siswa' => [
                         //         ...$siswa->toArray(),
@@ -71,8 +81,11 @@ class SiswaController extends Controller
 
             session(['current_nouid' => $nouid]);
             return Inertia::render('Siswa/Index', $data);
-        } catch (\Throwable $th) {
-            dd($th); //throw $th;
+        } catch (ValidationException $e) {
+            dd($e); //throw $th;
+
+        } catch (\Exception $e) {
+            dd($e); //throw $th;
         }
     }
 

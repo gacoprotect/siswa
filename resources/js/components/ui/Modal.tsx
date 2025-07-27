@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils";
 import { AlertCircle, X } from "lucide-react";
-import React, { forwardRef, ReactNode, useEffect, useRef, useState } from "react";
+import React, { forwardRef, ReactNode, useEffect, useRef, useState, useCallback } from "react";
 import InputGroup from "../InputGroup";
+import { useLogger } from "@/contexts/logger-context";
 
 interface ModalProps {
   title?: string;
@@ -20,10 +21,9 @@ interface ModalProps {
   confirmText?: string;
   confirmDisabled?: boolean;
   confirmClassName?: string;
-  error?: string
-  agreement?: string | React.ReactNode
+  error?: string;
+  agreement?: string | React.ReactNode;
   onScrollToBottom?: () => void;
-
 }
 
 const sizeMap = {
@@ -54,11 +54,32 @@ export const Modal: React.FC<ModalProps> = ({
   error,
   onScrollToBottom,
   agreement,
-
 }) => {
+  const { log } = useLogger();
   const [agreed, setAgreed] = useState(false);
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Calculate disabled state
+  const isDisabled = useCallback(() => {
+    const hasError = !!error;
+    const requiresAgreement = !!agreement;
+    const requiresScroll = !!onScrollToBottom;
+    
+    // Base disabled state from props
+    if (confirmDisabled) return true;
+    
+    // If there's an error
+    if (hasError) return true;
+    
+    // If agreement is required but not agreed
+    if (requiresAgreement && !agreed) return true;
+    
+    // If scroll to bottom is required but not scrolled
+    if (requiresScroll && !scrolledToBottom) return true;
+    
+    return false;
+  }, [confirmDisabled, error, agreement, agreed, onScrollToBottom, scrolledToBottom]);
 
   // Detect scroll to bottom
   useEffect(() => {
@@ -76,15 +97,18 @@ export const Modal: React.FC<ModalProps> = ({
     el.addEventListener("scroll", handleScroll);
     return () => el.removeEventListener("scroll", handleScroll);
   }, [isOpen, onScrollToBottom]);
+
   // Close with ESC key
   useEffect(() => {
     if (!isOpen || !closeOnEsc) return;
+    
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
-        setAgreed(false)
+        setAgreed(false);
       }
     };
+    
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, closeOnEsc, onClose]);
@@ -93,15 +117,28 @@ export const Modal: React.FC<ModalProps> = ({
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (closeOnOverlayClick && e.target === e.currentTarget) {
       onClose();
-      setAgreed(false)
+      setAgreed(false);
     }
   };
 
+  // Reset states when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setAgreed(false);
+      setScrolledToBottom(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const handleClose = () => {
+    onClose();
+    setAgreed(false);
+  };
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm ${overlayClassName}`}
+      className={`fixed inset-0 z-50 min-h-screen flex items-center justify-center bg-black/50 backdrop-blur-sm ${overlayClassName}`}
       onClick={handleOverlayClick}
     >
       <div
@@ -111,7 +148,7 @@ export const Modal: React.FC<ModalProps> = ({
         )}
       >
         {header && (
-          <ModalHeader onClose={() => { onClose; setAgreed(false) }}>{title}</ModalHeader>
+          <ModalHeader onClose={handleClose}>{title}</ModalHeader>
         )}
         <ModalBody className="flex-1 overflow-auto" ref={scrollRef}>
           {children}
@@ -126,9 +163,10 @@ export const Modal: React.FC<ModalProps> = ({
               classNameInput={cn(
                 'h-5 w-5 form-checkbox rounded accent-blue-500',
                 !agreed && 'animate-pulse bg-accent-primary',
-                error && 'accent-red-500')} />
+                error && 'accent-red-500'
+              )}
+            />
             {agreement}
-
           </div>
         )}
         {(footer || onConfirm) && (
@@ -143,14 +181,14 @@ export const Modal: React.FC<ModalProps> = ({
             {footer || (
               <div className="flex gap-2 items-center">
                 <button
-                  onClick={() => { onClose(); setAgreed(false); }}
+                  onClick={handleClose}
                   className="px-4 py-2 text-white text-sm font-medium rounded-md bg-red-500 hover:bg-red-400"
                 >
                   {cancelText}
                 </button>
                 <button
                   onClick={onConfirm}
-                  disabled={(confirmDisabled || !!error || (!scrolledToBottom || !agreed))}
+                  disabled={isDisabled()}
                   className={cn(
                     "px-4 py-2 text-sm font-medium rounded-md disabled:opacity-50 disabled:cursor-not-allowed",
                     confirmClassName
@@ -167,7 +205,7 @@ export const Modal: React.FC<ModalProps> = ({
   );
 };
 
-// Header
+// Header (unchanged)
 interface ModalHeaderProps {
   children: ReactNode;
   className?: string;
@@ -196,7 +234,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
   );
 };
 
-// Body
+// Body (unchanged)
 interface ModalBodyProps {
   children: ReactNode;
   className?: string;
@@ -208,7 +246,8 @@ export const ModalBody = forwardRef<HTMLDivElement, ModalBodyProps>(
     </div>
   )
 );
-// Footer
+
+// Footer (unchanged)
 interface ModalFooterProps {
   children: ReactNode;
   className?: string;

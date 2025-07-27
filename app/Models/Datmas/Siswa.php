@@ -3,6 +3,7 @@
 namespace App\Models\Datmas;
 
 use App\Helpers\MaskingHelper;
+use App\Models\Admin\Tkelsis;
 use App\Models\Saving\Ttrx;
 use App\Models\Spp\Tsalpenrut;
 use App\Models\Saving\Ttrxlog;
@@ -48,7 +49,7 @@ class Siswa extends Authenticatable
     public $timestamps = true;
     const CREATED_AT = 'createdat';
     const UPDATED_AT = 'updatedat';
-    protected $appends = ['has_pin', 'balance', 'ttl'];
+    protected $appends = ['has_pin', 'balance', 'ttl', 'tin', 'kel'];
     protected $visible = [
         'balance',
         'nis',
@@ -56,6 +57,7 @@ class Siswa extends Authenticatable
         'ttl',
         'tel',
         'kel',
+        'tin',
     ];
     protected $fillable = [
         'nis',
@@ -107,7 +109,17 @@ class Siswa extends Authenticatable
     }
     public function indentitas()
     {
-        return $this->belongsTo(Indentitas::class, 'idok', 'id');
+        return $this->belongsTo(Indentitas::class, 'id', 'idok');
+    }
+    public function kelsis()
+    {
+        return $this->belongsTo(Tkelsis::class, 'id', 'ids');
+    }
+    public function kel(): Attribute
+    {
+        return Attribute::get(function () {
+            return $this->kelsis->kel;
+        });
     }
     public function safe()
     {
@@ -126,6 +138,13 @@ class Siswa extends Authenticatable
             return $this->temlah && $tgl
                 ? "{$this->temlah}, {$tgl}"
                 : null;
+        });
+    }
+    
+    public function tin(): Attribute
+    {
+        return Attribute::get(function () {
+            return $this->kelsis->tin;
         });
     }
     public function balance(): Attribute

@@ -4,8 +4,10 @@ namespace App\Models\Admin;
 
 use App\Models\BaseModel;
 use App\Traits\LogsChanges;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Tkelas extends BaseModel
 {
@@ -16,21 +18,34 @@ class Tkelas extends BaseModel
     protected $table = 'tkelas';
     protected $primaryKey = 'id';
     public $timestamps = true;
-    protected $fillable = [
-        'id',
-        'tin',
-        'idta',
-        'nam',
-        'jen',
-        'lev',
-        'qty',
-        'idk',
-        'ket',
-        'sta',
-        'rev',
-        'createdat',
-        'updatedat',
-        'createdby',
-        'updatedby',
+    protected $appends = [];
+    protected $hidden = [
+        'jenis',
+        "createdat",
+        "updatedat",
+        "createdby",
+        "updatedby",
     ];
+    // protected $fillable = [
+    //     'id',
+    //     'tin',
+    //     'idta',
+    //     'nam',
+    //     'jen',
+    //     'lev',
+    //     'qty',
+    //     'idk',
+    //     'ket',
+    //     'sta',
+    //     'rev',
+    //     'createdat',
+    //     'updatedat',
+    //     'createdby',
+    //     'updatedby',
+    // ];
+
+    public function jenis()
+    {
+        return $this->belongsTo(Tkelasjenis::class, 'jen', 'id');
+    }
 }
