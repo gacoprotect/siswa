@@ -144,7 +144,7 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
             (level === 'desa' && !data[addressType].kec);
 
         const fieldKey = `${addressType}.${level}`;
-        const showError = touchedFields[fieldKey] || errors?.[fieldKey];
+        // const showError = touchedFields[fieldKey] || errors?.[fieldKey];
 
         const selectOptions = options.map(option => ({
             value: option.id,
@@ -298,6 +298,9 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
     return (
         <Section title='Alamat'>
             <div className='space-y-4'>
+
+                {step === 'WNA' ? renderAddressFields('alamat-domisili', 'alamat1', 'Alamat Domisili *') :
+                    data.temtin !== '' && (renderAddressFields('alamat-ktp', 'alamat1', '*Alamat Sesuai KTP'))}
                 {step === 'WNI' && (
                     <SelectInput
                         name='temtin'
@@ -320,11 +323,6 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
                     // onBlur={() => setTouchedFields(prev => ({ ...prev, temtin: true }))}
                     />
                 )}
-                {
-                    step === 'WNA' ?
-                        renderAddressFields('alamat-domisili', 'alamat1', 'Alamat Domisili *') :
-                        data.temtin !== '' && (renderAddressFields('alamat-ktp', 'alamat1', '*Alamat Sesuai KTP'))}
-
                 {data.temtin === '1' &&
                     renderAddressFields('alamat-tinggal', 'alamat2', '*Alamat Tempat Tinggal')}
             </div>

@@ -6,15 +6,8 @@ import { DataSiswa } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { FaKey } from 'react-icons/fa';
-import SetupPinPage from './SetupPin';
 import { SetupPinStep } from '@/components/SetupPinStep';
 
-interface PinFormData {
-    pin: string;
-    nouid: string;
-    otp: string;
-    [key: string]: string;
-}
 
 interface PinPageProps {
     setPage: (value: 'index' | 'topup' | 'riwayat') => void;

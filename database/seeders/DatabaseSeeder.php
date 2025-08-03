@@ -18,11 +18,8 @@ class DatabaseSeeder extends Seeder
         $this->call([
             TbankSeeder::class,
             TptSeeder::class,
-            PelExculSeeder::class,
-            ExculSeeder::class,
             SnkSeeder::class,
             TagihanSetahunSeeder::class,
-
         ]);
     }
 }

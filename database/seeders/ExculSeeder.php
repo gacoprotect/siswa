@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Admin\Tkelas;
+use App\Models\Admin\Tkelsis;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -9,6 +11,22 @@ class ExculSeeder extends Seeder
 {
     public function run(): void
     {
+        $excul = Tkelas::class;
+        // id	74
+        // tin	1
+        // idta	1
+        // nam	Basket
+        // jen	6
+        // lev	1
+        // qty	20
+        // idk	7
+        // ket	
+        // sta	0
+        // rev	0
+        // createdat	2024-10-05 03:23:11
+        // updatedat	2024-10-05 03:23:11
+        // createdby	1
+        // updatedby	0
         DB::connection('mai2')->table('texcul')->insert([
             [
                 'name' => 'Futsal',

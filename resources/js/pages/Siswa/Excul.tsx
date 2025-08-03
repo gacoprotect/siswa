@@ -1,14 +1,13 @@
 import InputGroup from '@/components/InputGroup';
-import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/Modal';
 import { useLogger } from '@/contexts/logger-context';
 import { useAppConfig } from '@/hooks/use-app-config';
 import { cn } from '@/lib/utils';
-import { DataExcul, DataSiswa, Excul as ExculType } from '@/types';
-import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { AlertCircle, X } from 'lucide-react';
+import { DataExcul, DataSiswa } from '@/types';
+import { router, useForm, usePage } from '@inertiajs/react';
+import { AlertCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FaBook, FaCalendarAlt, FaInfoCircle, FaRunning, FaSpinner, FaClock, FaTimes, FaSignOutAlt } from 'react-icons/fa';
+import { FaBook, FaCalendarAlt, FaInfoCircle, FaRunning, FaSpinner } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
 interface ExculProps {
@@ -18,7 +17,7 @@ interface ExculProps {
 
 const Excul = ({ nouid, onClose }: ExculProps) => {
     const { data, errors } = usePage<{ data: DataSiswa }>().props;
-    const { log, error } = useLogger();
+    const { log, error: logError } = useLogger();
     const { APP_DEBUG } = useAppConfig();
     const [isLoading, setIsLoading] = useState(true);
     const [process, setProcess] = useState<number | null>(null);
@@ -85,11 +84,11 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
                     }
                 );
             } catch (err) {
-                error(err instanceof Error ? err.message : 'Terjadi kesalahan jaringan');
+                logError(err instanceof Error ? err.message : 'Terjadi kesalahan jaringan');
                 setIsLoading(false);
             }
         },
-        [nouid, onClose, error]
+        [nouid, onClose, logError]
     );
 
     useEffect(() => {
@@ -103,11 +102,7 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
         fetchData();
     }, []);
 
-    const { setData, post, processing, reset } = useForm({
-        excul: 0,
-        tgl: '',
-        ket: ''
-    });
+
 
     // Group all excul statuses
     const exculStatuses = useMemo(() => {
@@ -145,8 +140,30 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
         exculStatuses.filter(e => e.status === 'exited'),
         [exculStatuses]
     );
+    const { data: FormData, setData,processing, post, reset, clearErrors, errors: FormErrors, setError } = useForm({
+        excul: 0,
+        tgl: '',
+        ket: ''
+    });
+    const validateForm = useCallback((field: string | null = null) => {
+        const newErrors: Record<string, string> = {};
+        const validateSingleField = field !== null;
 
+        const addErrorIfInvalid = (isInvalid: boolean, errorKey: string, errorMessage: string) => {
+            if ((!validateSingleField || errorKey === field) && isInvalid) {
+                newErrors[errorKey] = errorMessage;
+            }
+        };
+
+        // Validasi umum
+        addErrorIfInvalid(!FormData.excul, 'excul', 'Pilih Excul Anda');
+        addErrorIfInvalid(!FormData.tgl, 'tgl', 'Tanggal wajib diisi');
+        addErrorIfInvalid(!FormData.ket, 'ket', 'Masukkan alasan Anda');
+
+        return newErrors;
+    }, [FormData]);
     const handleSubscription = useCallback(async (id: number, action: 'subscribe' | 'unsubscribe' | 'cancel') => {
+
         try {
             setData('excul', id);
 
@@ -159,7 +176,7 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
                     onSuccess: () => fetchData(false),
                     onError: () => {
                         toast.error('Permintaan Gagal');
-                        error(errors);
+                        logError(errors);
                     },
                     onFinish: () => setProcess(null),
                 });
@@ -174,12 +191,25 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
                 title: action === 'subscribe' ? 'Form Pendaftaran' : 'Form Keluar Ekstrakurikuler'
             });
         } catch (err) {
-            error(`${action} failed:`, err);
+            logError(`${action} failed:`, err);
         }
-    }, [fetchData, nouid, errors, error, setData, post]);
+    }, [fetchData, nouid, logError, setData, post, errors]);
 
     const handleDialogSubmit = useCallback(async () => {
         if (!dialogConfig.action || dialogConfig.exculId === null) return;
+
+        const FormErrors = validateForm();
+        setError(FormErrors)
+        if (Object.keys(FormErrors).length > 0) {
+            logError("Validation Error : ", FormErrors)
+            const firstErrorKey = Object.keys(FormErrors)[0];
+            if (firstErrorKey) {
+                const element = document.getElementById(firstErrorKey) ||
+                    document.querySelector(`[name="${firstErrorKey}"], [data-name="${firstErrorKey}"]`);
+                element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
 
         try {
             const routeName = dialogConfig.action === 'subscribe' ? 'subs.excul' : 'unsubs.excul';
@@ -194,7 +224,7 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
                 },
                 onError: () => {
                     toast.error('Permintaan Gagal');
-                    error(errors);
+                    logError(errors);
                 },
                 onFinish: () => {
                     setProcess(null);
@@ -202,14 +232,15 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
                 },
             });
         } catch (err) {
-            error(`${dialogConfig.action} failed:`, err);
+            logError(`${dialogConfig.action} failed:`, err);
         }
-    }, [dialogConfig, nouid, post, fetchData, reset, error, errors]);
+    }, [dialogConfig, nouid, post, fetchData, reset, logError, errors, setError, validateForm]);
 
     const handleDialogClose = useCallback(() => {
         setDialogConfig(prev => ({ ...prev, open: false }));
         reset();
-    }, [reset]);
+        clearErrors();
+    }, [reset, clearErrors]);
 
     if (isLoading) {
         return (
@@ -237,16 +268,6 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
         }
     };
 
-    const getStatusIcon = (status: string) => {
-        switch (status) {
-            case 'active': return <FaRunning className="text-green-500" />;
-            case 'waiting': return <FaClock className="text-yellow-500" />;
-            case 'rejected': return <FaTimes className="text-red-500" />;
-            case 'exited': return <FaSignOutAlt className="text-gray-500" />;
-            default: return <FaBook className="text-indigo-500" />;
-        }
-    };
-
     return (
         <div className="space-y-6 p-4">
             {/* Dialog Modal */}
@@ -254,6 +275,7 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
                 isOpen={dialogConfig.open}
                 onClose={handleDialogClose}
                 onConfirm={handleDialogSubmit}
+                confirmText={processing? <FaSpinner className="animate-spin"/> : "Kirim"}
                 className='w-100 mx-5'
                 size='xl'
                 title={dialogConfig.title}
@@ -263,16 +285,19 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
                         label={`Tanggal ${dialogConfig.action === 'subscribe' ? "Mulai" : "Berhenti"}`}
                         name='tgl'
                         type="date"
-                        onChange={(v) => setData('tgl', v as string)}
-                        required
+                        onChange={(v) => { setData('tgl', v as string); clearErrors('tgl') }}
+                        required={true}
+                        error={FormErrors.tgl}
                     />
                     <InputGroup
                         label={`${dialogConfig.action === 'subscribe' ? "Motivasi mendaftar" : "Alasan Berhenti"}`}
                         name='ket'
                         type="textarea"
-                        onChange={(v) => setData('ket', v as string)}
-                        required
+                        onChange={(v) => { setData('ket', v as string); clearErrors('ket') }}
+                        required={true}
                         rows={3}
+                        error={FormErrors.ket}
+
                     />
                 </div>
             </Modal>
@@ -282,9 +307,9 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
             </div>
 
             {Object.keys(errors).length > 0 && (
-                <div className="flex flex-row items-center justify-center space-x-3 py-4">
+                <div className="flex flex-row items-center justify-center space-x-3 py-4 border-2 border-red-600">
                     <AlertCircle className="text-3xl text-red-600" />
-                    <span className="text-lg font-bold text-red-600">{errors.message ?? "Terjadi Kesalahan"}</span>
+                    <span className="text-md font-bold text-red-600">{errors.message ?? "Terjadi Kesalahan"}</span>
                 </div>
             )}
 
@@ -307,6 +332,7 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
                                     </div>
                                     <button
                                         onClick={(e) => {
+                                            setData('excul', activity.id)
                                             e.preventDefault();
                                             handleSubscription(activity.id, 'unsubscribe');
                                         }}

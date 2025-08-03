@@ -85,7 +85,7 @@ class AuthenticatedSessionController extends Controller
         }
     }
 
-    public function destroy(Request $request, $nouid): RedirectResponse
+    public function destroy(Request $request, $nouid)
     {
         try {
             Auth::guard('siswa')->logout();
@@ -95,14 +95,14 @@ class AuthenticatedSessionController extends Controller
 
             Log::info('User logged out', ['nouid' => $nouid]);
 
-            return redirect()->route('siswa.index', ['nouid' => $nouid]);
+            return Inertia::location(route('siswa.index', ['nouid' => $nouid]));
         } catch (\Exception $e) {
             Log::error('Logout failed', [
                 'nouid' => $nouid,
                 'error' => $e->getMessage()
             ]);
 
-            return redirect()->route('siswa.index', ['nouid' => $nouid])
+            return redirect()->intended(route('siswa.index', ['nouid' => $nouid]))
                 ->withErrors(['message' => 'Terjadi kesalahan saat logout']);
         }
     }

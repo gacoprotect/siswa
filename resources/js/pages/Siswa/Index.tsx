@@ -7,11 +7,7 @@ import { formatIDR } from '@/lib/utils';
 import { Auth, DataSiswa, SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-    FaFileInvoiceDollar,
-    FaFootballBall,
-    FaUserGraduate,
-} from 'react-icons/fa';
+import { FaFileInvoiceDollar, FaFootballBall,FaUserGraduate } from 'react-icons/fa';
 import { route } from 'ziggy-js';
 import TagihanContent from '../Tagihan/TagihanContent';
 import Topup from '../Topup';
@@ -27,6 +23,8 @@ import BalanceSection from '@/components/siswa/dashboard/balance-section';
 import MenuItems from '@/components/siswa/dashboard/menu-items';
 import RegistrationStatus from '@/components/siswa/dashboard/registration-status';
 import { useAppConfig } from '@/hooks/use-app-config';
+import { MdMail } from 'react-icons/md';
+import Izin from './Izin';
 
 // Type definitions
 export type PageState = 'index' | 'topup' | 'riwayat' | 'tagihan';
@@ -39,50 +37,21 @@ export interface TagihanParam {
     tagihan: number;
 }
 
-
-
-
 export default function SiswaDashboard() {
-    const { auth, data: initialData, page: initialPage, tab } = usePage<{ auth: Auth; data: DataSiswa; page: PageState, tab: TabState }>().props;
+    const { auth, data: initialData, page: initialPage, tab } = usePage<{
+        auth: Auth;
+        data: DataSiswa;
+        page: PageState;
+        tab: TabState
+    }>().props;
+
     const { log, count } = useLogger();
-    const { props } = usePage();
+    useToast(usePage<SharedData>().props);
+
     const { APP_DEBUG } = useAppConfig();
 
-    // Log initial render and props (only in development)
-    if (useAppConfig().APP_DEBUG) {
-        useEffect(() => {
-            count('Component Render');
-            log(props);
-        }, []);
-    }
-    useEffect(() => {
-        switch (tab) {
-            case 'tagihan':
-                setActiveItem(0)
-                break;
-
-            case 'siswa':
-                setActiveItem(1)
-                break;
-
-            case 'kegiatan':
-                setActiveItem(2)
-                break;
-
-            default:
-                setActiveItem(null)
-                break;
-        }
-    }, [tab])
     // State management
-    const [siswaData, setSiswaData] = useState({
-        idok: initialData.idok,
-        active: initialData.active,
-        nouid: initialData.nouid,
-        balance: initialData.balance,
-        summary: initialData.summary,
-        siswa: initialData.siswa,
-    });
+    const [siswaData, setSiswaData] = useState(initialData);
     const [activeItem, setActiveItem] = useState<number | null>(null);
     const [page, setPage] = useState<PageState>(initialPage);
     const [isLoading, setIsLoading] = useState(false);
@@ -94,12 +63,28 @@ export default function SiswaDashboard() {
         tagihan: 0,
     });
 
-    useToast(usePage<SharedData>().props);
-
-    // Update data when props change
+    // Debug logging
     useEffect(() => {
-        setSiswaData(prev => ({ ...prev, initialData }));
-    }, [initialData]);
+        if (APP_DEBUG) {
+            count('Component Render');
+            log({ auth, initialData });
+        }
+    }, [APP_DEBUG, count, log, auth, initialData]);
+
+    // Sync tab with active item
+    useEffect(() => {
+        const tabToIndexMap: Record<TabState, number> = {
+            tagihan: 0,
+            siswa: 1,
+            kegiatan: 2
+        };
+
+        if (tab && tab in tabToIndexMap) {
+            setActiveItem(tabToIndexMap[tab]);
+        } else {
+            setActiveItem(null);
+        }
+    }, [tab]);
 
     // Memoized menu items to prevent unnecessary re-renders
     const menuItems = useMemo(() => [
@@ -130,10 +115,16 @@ export default function SiswaDashboard() {
             color: 'border-rose-700 bg-rose-50 hover:bg-rose-100',
             content: <Excul nouid={siswaData.nouid} onClose={() => setActiveItem(null)} />,
         },
-    ], [siswaData]);
+        {
+            title: 'Izin',
+            icon: <MdMail className="h-6 w-6 text-rose-600" />,
+            color: 'border-rose-700 bg-rose-50 hover:bg-rose-100',
+            content: <Izin nouid={siswaData.nouid} onClose={() => setActiveItem(null)} />,
+        },
+    ], [siswaData.nouid, siswaData.siswa]);
 
     // Memoized formatted saldo
-    const formattedSaldo = useMemo(() => formatIDR(siswaData?.balance || 0), [siswaData?.balance]);
+    const formattedSaldo = useMemo(() => formatIDR(siswaData.balance || 0), [siswaData.balance]);
 
     // Navigation handler
     const navigateToPage = useCallback((newPage: PageState) => {
@@ -147,15 +138,15 @@ export default function SiswaDashboard() {
 
     // Data refresh using Inertia visit
     const refreshData = useCallback(() => {
+        if (isLoading) return;
+
         setIsLoading(true);
         router.visit(route('siswa.index', siswaData.nouid), {
             only: ['data'],
             preserveState: true,
-            onSuccess: () => setIsLoading(false),
-            onError: () => setIsLoading(false),
+            onFinish: () => setIsLoading(false),
         });
-        console.count('Refresh Data');
-    }, [siswaData.nouid]);
+    }, [siswaData.nouid, isLoading]);
 
     // Modal handlers
     const openPinModal = useCallback(() => {
@@ -168,21 +159,18 @@ export default function SiswaDashboard() {
 
     const closeModal = useCallback((success = false) => {
         setOpenModal(null);
+        refreshData();
         if (!success) {
             setIsHistory(false);
             setPage('index');
         }
-    }, []);
+    }, [refreshData]);
 
     const handleLogout = useCallback(() => {
-        router.post(
-            route('siswa.logout', siswaData.nouid),
-            {},
-            {
-                onStart: () => setIsLoading(true),
-                onFinish: () => setIsLoading(false),
-            },
-        );
+        router.post(route('siswa.logout', siswaData.nouid), {}, {
+            onStart: () => setIsLoading(true),
+            onFinish: () => setIsLoading(false),
+        });
     }, [siswaData.nouid]);
 
     const handleBlockRequest = useCallback(() => {
@@ -217,38 +205,39 @@ export default function SiswaDashboard() {
             <ActiveContent
                 activeItem={activeItem}
                 menuItems={menuItems}
-                onBack={() => setActiveItem(null)}
+                onBack={() => {
+                    refreshData();
+                    setActiveItem(null)
+                }}
             />
         );
     }
-    const simulasi = () => {
-        if (!APP_DEBUG) return null;
-        if (siswaData?.summary?.reg !== 0) return null;
+
+    const renderDebugMenu = () => {
+        if (!APP_DEBUG || siswaData?.summary?.reg !== 0) return null;
+
+        const handleSimulation = (type: string) => {
+            router.get(route('simulasi.reg', { sim: type, nouid: siswaData.nouid }));
+        };
 
         return (
             <div className='border-2 bg-white border-red-500 px-4 py-2 rounded-lg space-y-2'>
                 <p className='text-xs font-medium border-b-2'>Developer menu</p>
                 <div className='flex gap-2'>
                     <button
-                        onClick={() => {
-                            router.get(route('simulasi.reg', { sim: "acc", nouid: siswaData.nouid }))
-                        }}
+                        onClick={() => handleSimulation("acc")}
                         className="p-1 bg-blue-500 rounded-md text-white cursor-pointer"
                     >
                         Terima
                     </button>
                     <button
-                        onClick={() => {
-                            router.get(route('simulasi.reg', { sim: "reject", nouid: siswaData.nouid }))
-                        }}
+                        onClick={() => handleSimulation("reject")}
                         className="p-1 bg-red-500 rounded-md text-white cursor-pointer"
                     >
                         Tolak
                     </button>
                     <button
-                        onClick={() => {
-                            router.get(route('simulasi.reg', { sim: "blocked", nouid: siswaData.nouid }))
-                        }}
+                        onClick={() => handleSimulation("blocked")}
                         className="p-1 bg-red-500 rounded-md text-white cursor-pointer"
                     >
                         Block
@@ -257,6 +246,7 @@ export default function SiswaDashboard() {
             </div>
         );
     };
+
     // Render different pages based on state
     switch (page) {
         case 'topup':
@@ -267,7 +257,6 @@ export default function SiswaDashboard() {
                     onClose={() => {
                         setPage('index');
                         closeModal();
-                        refreshData();
                     }}
                 />
             );
@@ -279,7 +268,6 @@ export default function SiswaDashboard() {
                     onClose={() => {
                         setPage('index');
                         closeModal();
-                        refreshData();
                     }}
                 />
             );
@@ -318,13 +306,13 @@ export default function SiswaDashboard() {
                         )}
 
                         <RegistrationStatus data={siswaData} />
-                        {simulasi()}
+                        {renderDebugMenu()}
                     </AppLayout>
 
                     {/* Modals */}
                     <Blokir
                         open={openModal === 'blokir'}
-                        onClose={() => closeModal()}
+                        onClose={closeModal}
                         setLoading={setIsLoading}
                     />
 
@@ -344,9 +332,7 @@ export default function SiswaDashboard() {
                         open={openModal === 'setupPin'}
                         hasPin={hasPined}
                         setHasPined={() => setHasPined(true)}
-                        onClose={() => {
-                            closeModal();
-                        }}
+                        onClose={closeModal}
                     />
                 </>
             );

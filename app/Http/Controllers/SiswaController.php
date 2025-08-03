@@ -82,10 +82,11 @@ class SiswaController extends Controller
             session(['current_nouid' => $nouid]);
             return Inertia::render('Siswa/Index', $data);
         } catch (ValidationException $e) {
-            dd($e); //throw $th;
-
+            if (config('app.debug')) dd($e);
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            dd($e); //throw $th;
+            if (config('app.debug')) dd($e);
+            return abort(404, 'Data siswa tidak ditemukan');
         }
     }
 

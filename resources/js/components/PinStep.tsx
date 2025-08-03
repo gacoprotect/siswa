@@ -1,6 +1,7 @@
 // components/PinStep.tsx
 import React, { useEffect, useState } from 'react';
 import { DigitInput } from './DigitInput';
+import { AlertCircle } from 'lucide-react';
 
 interface PinStepProps {
     pin: string;
@@ -72,11 +73,15 @@ export const PinStep: React.FC<PinStepProps> = ({
                         ))}
                     </div>
                     {isError && (
-                        (errors.pin || errors.message) && (
+                        (errors.pin || errors.message) ? (
                             <div className="mb-4 flex flex-col text-center text-sm text-red-500">
                                 <span>{errors.pin ?? errors.message}</span>
                                 {parseInt(errors.remaining) < 3 && <span>{errors.remaining ? `sisa percobaan ${errors.remaining}` : ''}</span>}
-                            </div>)
+                            </div>) : (
+                            <div className="mb-4 flex flex-col text-center text-sm text-red-500">
+                                <span><AlertCircle className="text-red-500 w-5 h-5" /> Terjadi Kesalahan</span>
+                            </div>
+                        )
                     )}
                     <div className="flex justify-center">
                         <button type="button" className="text-sm text-gray-600 hover:text-gray-800" onClick={onToggleInputType}>

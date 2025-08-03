@@ -1,8 +1,8 @@
 import AppLayout from '@/Layout/AppLayout';
 import { TransactionDetail } from '@/types';
 import { router, usePage } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, Banknote, CheckCircle, Clock, CreditCard, ShoppingCart, Wallet, XCircle } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { ArrowDown, ArrowUp, Banknote, CheckCircle, Clock, CreditCard, FileText, ShoppingCart, Wallet, XCircle } from 'lucide-react';
+import React, { useState } from 'react';
 import { FaArrowAltCircleLeft } from 'react-icons/fa';
 import Detail from './Detail';
 import { useLogger } from '@/contexts/logger-context';
@@ -75,8 +75,8 @@ const History: React.FC<HistoryProps> = () => {
 
     return (
         <AppLayout title="Riwayat Transaksi">
-            <div className="overflow-hidden rounded-lg bg-white shadow-md">
-                {/* <div className="flex items-center justify-between bg-primary px-4 py-4 text-primary-foreground">
+            <div className="overflow-hidden min-h-screen rounded-lg bg-white shadow-md">
+                <div className="flex items-center justify-between bg-primary px-4 py-4 text-primary-foreground">
                     <button onClick={() => window.history.back()} className="flex items-center space-x-2">
                         <FaArrowAltCircleLeft className="text-primary-foreground" />
                         <span>Kembali</span>
@@ -85,7 +85,17 @@ const History: React.FC<HistoryProps> = () => {
                 </div>
 
                 <div className="divide-y">
-                    {transactions.map((trx) => (
+                    {transactions.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 bg-gray-50 rounded-lg">
+                            <FileText className="w-10 h-10 text-gray-400 mb-3" />
+                            <h3 className="text-lg font-medium text-gray-500 mb-1">
+                                Belum ada transaksi 
+                            </h3>
+                            <p className="text-gray-400 text-center max-w-md px-4">
+                                Anda belum memiliki riwayat transaksi. Semua transaksi akan ditampilkan disini.
+                            </p>
+                        </div>
+                    ) : transactions.map((trx) => (
                         <div
                             key={trx.order_id}
                             className="flex cursor-pointer items-center p-4 transition-colors hover:bg-gray-50"
@@ -132,7 +142,8 @@ const History: React.FC<HistoryProps> = () => {
                     ))}
                 </div>
 
-                {selectedTransaction && <Detail transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} />} */}
+                {selectedTransaction && <Detail transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} />}
+
             </div>
         </AppLayout>
     );

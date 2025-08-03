@@ -2,7 +2,6 @@ import { cn } from "@/lib/utils";
 import { AlertCircle, X } from "lucide-react";
 import React, { forwardRef, ReactNode, useEffect, useRef, useState, useCallback } from "react";
 import InputGroup from "../InputGroup";
-import { useLogger } from "@/contexts/logger-context";
 
 interface ModalProps {
   title?: string;
@@ -17,8 +16,8 @@ interface ModalProps {
   header?: boolean;
   footer?: ReactNode;
   onConfirm?: React.MouseEventHandler<HTMLButtonElement> | undefined;
-  cancelText?: string;
-  confirmText?: string;
+  cancelText?: string | React.ReactNode;
+  confirmText?: string | React.ReactNode;
   confirmDisabled?: boolean;
   confirmClassName?: string;
   error?: string;
@@ -55,7 +54,6 @@ export const Modal: React.FC<ModalProps> = ({
   onScrollToBottom,
   agreement,
 }) => {
-  const { log } = useLogger();
   const [agreed, setAgreed] = useState(false);
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -65,19 +63,19 @@ export const Modal: React.FC<ModalProps> = ({
     const hasError = !!error;
     const requiresAgreement = !!agreement;
     const requiresScroll = !!onScrollToBottom;
-    
+
     // Base disabled state from props
     if (confirmDisabled) return true;
-    
+
     // If there's an error
     if (hasError) return true;
-    
+
     // If agreement is required but not agreed
     if (requiresAgreement && !agreed) return true;
-    
+
     // If scroll to bottom is required but not scrolled
     if (requiresScroll && !scrolledToBottom) return true;
-    
+
     return false;
   }, [confirmDisabled, error, agreement, agreed, onScrollToBottom, scrolledToBottom]);
 
@@ -101,14 +99,14 @@ export const Modal: React.FC<ModalProps> = ({
   // Close with ESC key
   useEffect(() => {
     if (!isOpen || !closeOnEsc) return;
-    
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
         setAgreed(false);
       }
     };
-    
+
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, closeOnEsc, onClose]);
