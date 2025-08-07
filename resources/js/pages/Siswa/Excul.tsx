@@ -312,8 +312,8 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
                 <ConfirmDialog
                     open={dialogConfig.step === 'confirm'}
                     onOpenChange={(val) => { setDialogConfig(prev => ({ ...prev, open: val })) }}
-                    title="Batalkan Izin"
-                    description="Apakah anda yakin ingin membatalkan izin ini?"
+                    title="Keluar Ekstrakulikuler"
+                    description="Apakah anda yakin ingin keluar dari kegiatan ini?"
                     confirmText="Ya"
                     cancelText="Tidak"
                     closeOnConfirm={false}

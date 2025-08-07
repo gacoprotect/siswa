@@ -22,7 +22,7 @@ class SiswaController extends Controller
             'page' => 'sometimes|string|in:index,topup,riwayat,tagihan',
             'tab' => 'sometimes|string|in:siswa,kegiatan,tagihan',
         ]);
-        logger("Request Index", ['req' => $req->all()]);
+        logger("Request Index", ['nouid' => $nouid,'req' => $req->all()]);
         try {
 
             $ident = Indentitas::with('registrasi')->with(['siswa.safe' => function ($qu) {
