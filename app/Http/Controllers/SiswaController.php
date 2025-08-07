@@ -39,7 +39,15 @@ class SiswaController extends Controller
             if ($ident->registrasi->sta === 0 || session()->has('current_nouid') && session('current_nouid') !== $nouid) {
                 Auth::guard('siswa')->logout();
             }
-
+            if (!$ident->active) {
+                Auth::guard('siswa')->logout();
+                return Inertia::render('Siswa/Blokir', [
+                    'data'=> [
+                        'nouid' => $nouid,
+                        'summary' => $ident->summary(),
+                    ]
+                ]);
+            }
             $isLogin = Auth::guard('siswa')->check();
             $page = $req->query('page') ?? 'index';
             $tab = $req->query('tab');

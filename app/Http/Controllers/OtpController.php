@@ -202,6 +202,18 @@ class OtpController extends Controller
                     'message' => 'Gagal Mengirim Otp',
                 ]);;
             }
+        } catch (ValidationException $e) {
+            logger()->error('OtpController Error', [
+                'message' => $e->getMessage(),
+                'data' => $request->except(['password', 'otp']),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return back()
+                ->withErrors(['message' => $e->getMessage()])
+                ->withInput()
+                ->with(['success' => false, 'message' => $e->getMessage()]);
+        
         } catch (\Exception $e) {
             logger()->error('OtpController Error', [
                 'message' => $e->getMessage(),

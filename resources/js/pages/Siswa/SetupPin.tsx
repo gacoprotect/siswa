@@ -6,7 +6,7 @@ import { ArrowLeftIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 
 const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () => void; hasPin: boolean; open: boolean; onClose: () => void }) => {
-    const {auth, data: pageData, errors } = usePage<{auth:Auth; data: DataSiswa; errors: Record<string, string>; nouid: string }>().props;
+    const { auth, data: pageData, errors } = usePage<{ auth: Auth; data: DataSiswa; errors: Record<string, string>; nouid: string }>().props;
     const [step, setStep] = useState<'phone' | 'otp' | 'pin'>('phone');
     const [countdown, setCountdown] = useState(0);
     const { data, setData, post, processing, reset } = useForm({
@@ -131,8 +131,6 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                 </p>
             </div>
 
-            {errors.phone && <div className="text-center text-sm text-red-500">{errors.phone}</div>}
-
             <form onSubmit={handlePhoneSubmit} className="space-y-6">
                 <div>
                     <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
@@ -147,22 +145,23 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                             id="phone"
                             name="phone"
                             autoComplete="tel"
-                            className={`block w-full rounded-md border-2 ${errors.phone ? 'border-red-500' : 'border-gray-300'} py-2 pl-12 focus:border-blue-500 focus:ring-blue-500`}
+                            className={`block w-full rounded-md border-2 ${(errors.phone || errors.message) ? 'border-red-500' : 'border-gray-300'} py-2 pl-12 focus:border-blue-500 focus:ring-blue-500`}
                             placeholder="8123456789"
                             value={data.phone}
                             onChange={(e) => setData('phone', e.target.value.replace(/\D/g, ''))}
                             required
                         />
                     </div>
+                    {(errors.phone || errors.message) && <div className="text-center text-sm text-red-500">{(errors.phone || errors.message)}</div>}
+
                 </div>
 
                 <div>
                     <button
                         type="submit"
                         disabled={processing || data.phone.length < 10}
-                        className={`flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm ${
-                            data.phone.length >= 10 ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' : 'cursor-not-allowed bg-gray-400'
-                        } focus:ring-2 focus:ring-offset-2 focus:outline-none`}
+                        className={`flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm ${data.phone.length >= 10 ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' : 'cursor-not-allowed bg-gray-400'
+                            } focus:ring-2 focus:ring-offset-2 focus:outline-none`}
                     >
                         {processing ? 'Mengirim OTP...' : 'Kirim Kode OTP'}
                     </button>
@@ -183,8 +182,6 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                 <p className="mt-2 text-center text-sm text-gray-600">Masukkan 6 digit kode OTP yang dikirim ke +62{data.phone}</p>
             </div>
 
-            {errors.message && <div className="text-center text-sm text-red-500">{errors.message}</div>}
-
             <form onSubmit={handleOtpSubmit} className="space-y-6">
                 <div className="flex justify-center space-x-2">
                     {Array.from({ length: 6 }).map((_, index) => (
@@ -199,9 +196,8 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                             maxLength={1}
                             required
                             autoComplete="off"
-                            className={`h-12 w-12 rounded-md border text-center text-2xl focus:ring-1 focus:outline-none ${
-                                errors ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                            }`}
+                            className={`h-12 w-12 rounded-md border text-center text-2xl focus:ring-1 focus:outline-none ${errors ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                                }`}
                             value={data.otp[index] || ''}
                             onChange={(e) => handleOtpChange(e, index)}
                             onKeyDown={(e) => handleKeyDown(e, index, otpRefs)}
@@ -209,6 +205,8 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                         />
                     ))}
                 </div>
+
+                {errors.message && <div className="text-center text-sm text-red-500">{errors.message}</div>}
 
                 <div className="text-center">
                     {countdown > 0 ? (
@@ -224,9 +222,8 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                     <button
                         type="submit"
                         disabled={processing || data.otp.length !== 6}
-                        className={`flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm ${
-                            data.otp.length === 6 ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' : 'cursor-not-allowed bg-gray-400'
-                        } focus:ring-2 focus:ring-offset-2 focus:outline-none`}
+                        className={`flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm ${data.otp.length === 6 ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' : 'cursor-not-allowed bg-gray-400'
+                            } focus:ring-2 focus:ring-offset-2 focus:outline-none`}
                     >
                         {processing ? 'Memverifikasi...' : 'Verifikasi'}
                     </button>
@@ -241,10 +238,6 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                 <h2 className="text-center text-2xl font-bold text-gray-900">Buat PIN 6 Digit Baru</h2>
                 <p className="mt-2 text-center text-sm text-gray-600">Untuk keamanan akun Anda</p>
             </div>
-
-            {(errors.pin || errors.pin_confirmation) && (
-                <div className="text-center text-sm text-red-500">{errors.pin || errors.pin_confirmation}</div>
-            )}
 
             <form onSubmit={handlePinSubmit} className="space-y-6">
                 <div className="space-y-4">
@@ -265,9 +258,8 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                                     maxLength={1}
                                     required
                                     autoComplete="off"
-                                    className={`h-12 w-12 rounded-md border text-center text-2xl focus:ring-1 focus:outline-none ${
-                                        errors.pin ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                                    }`}
+                                    className={`h-12 w-12 rounded-md border text-center text-2xl focus:ring-1 focus:outline-none ${errors.pin ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                                        }`}
                                     value={data.pin[index] || ''}
                                     onChange={(e) => handlePinChange(e, index, 'pin', pinRefs)}
                                     onKeyDown={(e) => handleKeyDown(e, index, pinRefs)}
@@ -294,11 +286,10 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                                     maxLength={1}
                                     required
                                     autoComplete="off"
-                                    className={`h-12 w-12 rounded-md border text-center text-2xl focus:ring-1 focus:outline-none ${
-                                        errors.pin_confirmation
-                                            ? 'border-red-500 focus:ring-red-500'
-                                            : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                                    }`}
+                                    className={`h-12 w-12 rounded-md border text-center text-2xl focus:ring-1 focus:outline-none ${errors.pin_confirmation
+                                        ? 'border-red-500 focus:ring-red-500'
+                                        : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
+                                        }`}
                                     value={data.pin_confirmation[index] || ''}
                                     onChange={(e) => handlePinChange(e, index, 'pin_confirmation', confirmPinRefs)}
                                     onKeyDown={(e) => handleKeyDown(e, index, confirmPinRefs)}
@@ -307,6 +298,10 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                             ))}
                         </div>
                     </div>
+
+                    {(errors.pin || errors.pin_confirmation || errors.message) && (
+                        <div className="text-center text-sm text-red-500">{errors.pin || errors.pin_confirmation || errors.message}</div>
+                    )}
 
                     <div className="flex justify-center">
                         <button
@@ -333,11 +328,10 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                     <button
                         type="submit"
                         disabled={processing || data.pin.length !== 6 || data.pin !== data.pin_confirmation}
-                        className={`flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm ${
-                            data.pin.length === 6 && data.pin === data.pin_confirmation
-                                ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
-                                : 'cursor-not-allowed bg-gray-400'
-                        } focus:ring-2 focus:ring-offset-2 focus:outline-none`}
+                        className={`flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white shadow-sm ${data.pin.length === 6 && data.pin === data.pin_confirmation
+                            ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+                            : 'cursor-not-allowed bg-gray-400'
+                            } focus:ring-2 focus:ring-offset-2 focus:outline-none`}
                     >
                         {processing ? 'Menyimpan...' : 'Simpan PIN'}
                     </button>

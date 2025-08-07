@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
 import { ChangeEvent, HTMLInputTypeAttribute, ReactNode } from 'react';
 import { BsStarFill } from 'react-icons/bs';
+import { Input } from './ui/input';
 
 interface InputGroupProps<T = string | number | boolean> {
     id?: string
@@ -22,7 +23,7 @@ interface InputGroupProps<T = string | number | boolean> {
     subfix?: string | ReactNode;
     rows?: number;
     tsize?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-    min?: number | undefined;
+    min?: number | string | undefined;
     minLength?: number | undefined;
     max?: number | undefined;
     maxLength?: number | undefined;
@@ -52,7 +53,7 @@ const InputGroup: React.FC<InputGroupProps> = ({
     min,
     minLength,
     max,
-    maxLength,
+    maxLength
 }) => {
     const commonClass = `
     [type='number']::-webkit-outer-spin-button,
@@ -78,8 +79,7 @@ const InputGroup: React.FC<InputGroupProps> = ({
     const handleRatingChange = (rating: number) => {
         onChange(rating);
     };
-
-    const renderInput = () => {
+      const renderInput = () => {
         if (type === 'textarea') {
             return (
                 <textarea
@@ -116,9 +116,6 @@ const InputGroup: React.FC<InputGroupProps> = ({
                 </div>
             );
         }
-        if (type === 'checkbox') {
-            return <input type="checkbox" id={name} name={name} checked={checked} onChange={(e) => onChange?.(e.target.checked)} className={classNameInput} />;
-        }
         if (type === 'toggle') {
             const text = {
                 xs: 'text-xs',
@@ -146,9 +143,12 @@ const InputGroup: React.FC<InputGroupProps> = ({
                 </label>
             );
         }
+        if (type === 'checkbox') {
+            return <input type="checkbox" id={name} name={name} checked={checked} onChange={(e) => onChange?.(e.target.checked)} className={classNameInput} />;
+        }
 
         return (
-            <input
+            <Input
                 id={id ?? name}
                 name={name}
                 type={type === 'currency' ? 'number' : type}
@@ -166,7 +166,7 @@ const InputGroup: React.FC<InputGroupProps> = ({
                 aria-describedby={error ? `${name}-error` : undefined}
                 step={type === 'currency' ? '0.01' : undefined}
                 min={min}
-                max={min}
+                max={max}
                 maxLength={maxLength}
                 minLength={minLength}
             />

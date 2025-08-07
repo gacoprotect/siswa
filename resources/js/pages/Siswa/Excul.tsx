@@ -1,4 +1,6 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog ';
 import InputGroup from '@/components/InputGroup';
+import { OtpStep } from '@/components/OtpStep';
 import { Modal } from '@/components/ui/Modal';
 import { useLogger } from '@/contexts/logger-context';
 import { useAppConfig } from '@/hooks/use-app-config';
@@ -6,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { DataExcul, DataSiswa } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/react';
 import { AlertCircle } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FaBook, FaCalendarAlt, FaInfoCircle, FaRunning, FaSpinner } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
@@ -20,14 +22,19 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
     const { log, error: logError } = useLogger();
     const { APP_DEBUG } = useAppConfig();
     const [isLoading, setIsLoading] = useState(true);
+    const [countdown, setCountdown] = useState(0);
+    const otpRefs = useRef<Array<HTMLInputElement | null>>(Array(6).fill(null));
+
     const [process, setProcess] = useState<number | null>(null);
     const [dialogConfig, setDialogConfig] = useState<{
         open: boolean;
+        step: 'confirm' | 'form' | 'otp' | null;
         action: 'subscribe' | 'unsubscribe' | null;
         exculId: number | null;
         title: string;
     }>({
         open: false,
+        step: null,
         action: null,
         exculId: null,
         title: '',
@@ -76,7 +83,7 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
                     route('siswa.index', { nouid: nouid, page: "index", tab: "kegiatan" }),
                     {},
                     {
-                        only: ['data.kegiatan'],
+                        only: ['data.kegiatan', 'data.nouid'],
                         preserveState: true,
                         onStart: () => load && setIsLoading(true),
                         onError: onClose,
@@ -96,11 +103,24 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
             setInitialData(data.kegiatan);
             log('Data siswa loaded:', data);
         }
-    }, [data?.kegiatan, log]);
+    }, [data?.kegiatan, log, data]);
 
     useEffect(() => {
         fetchData();
     }, []);
+
+    useEffect(() => {
+        if (countdown <= 0) return;
+
+        const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+        return () => clearTimeout(timer);
+    }, [countdown]);
+
+    useEffect(() => {
+        if (dialogConfig.step === 'otp' && otpRefs.current[0]) {
+            otpRefs.current[0]?.focus();
+        }
+    }, [dialogConfig.step]);
 
 
 
@@ -140,7 +160,8 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
         exculStatuses.filter(e => e.status === 'exited'),
         [exculStatuses]
     );
-    const { data: FormData, setData,processing, post, reset, clearErrors, errors: FormErrors, setError } = useForm({
+    const { data: FormData, setData, processing, post, reset, clearErrors, errors: FormErrors, setError } = useForm({
+        otp: '',
         excul: 0,
         tgl: '',
         ket: ''
@@ -162,30 +183,14 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
 
         return newErrors;
     }, [FormData]);
-    const handleSubscription = useCallback(async (id: number, action: 'subscribe' | 'unsubscribe' | 'cancel') => {
+    const handleSubscription = useCallback(async (id: number, action: 'subscribe' | 'unsubscribe') => {
 
         try {
             setData('excul', id);
-
-            if (action === 'cancel') {
-                // No dialog needed for cancel action
-                await post(route('cancel.excul', nouid), {
-                    preserveScroll: true,
-                    preserveState: true,
-                    onStart: () => setProcess(id),
-                    onSuccess: () => fetchData(false),
-                    onError: () => {
-                        toast.error('Permintaan Gagal');
-                        logError(errors);
-                    },
-                    onFinish: () => setProcess(null),
-                });
-                return;
-            }
-
             // For subscribe/unsubscribe, we need to show dialog first
             setDialogConfig({
                 open: true,
+                step: 'confirm',
                 action,
                 exculId: id,
                 title: action === 'subscribe' ? 'Form Pendaftaran' : 'Form Keluar Ekstrakurikuler'
@@ -193,7 +198,7 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
         } catch (err) {
             logError(`${action} failed:`, err);
         }
-    }, [fetchData, nouid, logError, setData, post, errors]);
+    }, [logError, setData]);
 
     const handleDialogSubmit = useCallback(async () => {
         if (!dialogConfig.action || dialogConfig.exculId === null) return;
@@ -244,13 +249,45 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
 
     if (isLoading) {
         return (
-            <div className="flex flex-row items-center justify-center space-x-3 py-4">
+            <div className="flex flex-row min-h-screen items-center justify-center space-x-3 py-4">
                 <FaSpinner className="animate-spin text-3xl text-blue-600" />
                 <span className="text-lg font-bold text-blue-600">Memuat data</span>
             </div>
         );
     }
+    const handleOtpSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        post(route('otp.verif', data.nouid), {
+            onSuccess: () => {
+                log('OTP SUKSES');
+                handleDialogSubmit()
+                setDialogConfig(prev => ({ ...prev, step: null }));
+            },
+            onError: () => {
+                log('OTP GAGAL');
+            },
+        });
+    };
 
+    const resendOtp = () => {
+        post(route('otp.send', data.nouid), {
+            onSuccess: () => {
+                setCountdown(60);
+            },
+        });
+    };
+
+    const handleDigitChange = (value: string, field: 'otp', index: number) => {
+        const newValue = FormData[field].split('');
+        newValue[index] = value.charAt(value.length - 1) || '';
+        setData(field, newValue.join(''));
+    };
+
+    const handleOtpKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+        if (e.key === 'Backspace' && !FormData.otp[index] && index > 0 && otpRefs.current[index - 1]) {
+            otpRefs.current[index - 1]?.focus();
+        }
+    };
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'active':
@@ -271,36 +308,72 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
     return (
         <div className="space-y-6 p-4">
             {/* Dialog Modal */}
-            <Modal
-                isOpen={dialogConfig.open}
-                onClose={handleDialogClose}
-                onConfirm={handleDialogSubmit}
-                confirmText={processing? <FaSpinner className="animate-spin"/> : "Kirim"}
-                className='w-100 mx-5'
-                size='xl'
-                title={dialogConfig.title}
-            >
-                <div className="flex flex-col gap-4">
-                    <InputGroup
-                        label={`Tanggal ${dialogConfig.action === 'subscribe' ? "Mulai" : "Berhenti"}`}
-                        name='tgl'
-                        type="date"
-                        onChange={(v) => { setData('tgl', v as string); clearErrors('tgl') }}
-                        required={true}
-                        error={FormErrors.tgl}
-                    />
-                    <InputGroup
-                        label={`${dialogConfig.action === 'subscribe' ? "Motivasi mendaftar" : "Alasan Berhenti"}`}
-                        name='ket'
-                        type="textarea"
-                        onChange={(v) => { setData('ket', v as string); clearErrors('ket') }}
-                        required={true}
-                        rows={3}
-                        error={FormErrors.ket}
+            {(dialogConfig.open && dialogConfig.step === 'confirm') && (
+                <ConfirmDialog
+                    open={dialogConfig.step === 'confirm'}
+                    onOpenChange={(val) => { setDialogConfig(prev => ({ ...prev, open: val })) }}
+                    title="Batalkan Izin"
+                    description="Apakah anda yakin ingin membatalkan izin ini?"
+                    confirmText="Ya"
+                    cancelText="Tidak"
+                    closeOnConfirm={false}
+                    onConfirm={() => { setDialogConfig(prev => ({ ...prev,open: true, step: 'form' })) }}
+                />
+            )}
+            {dialogConfig.step === 'form' && (
+                <Modal
+                    isOpen={dialogConfig.open}
+                    onClose={handleDialogClose}
+                    onConfirm={() => {resendOtp(); setDialogConfig(prev => ({ ...prev, step: 'otp' }))}}
+                    confirmText={processing ? <FaSpinner className="animate-spin" /> : "Kirim"}
+                    className='w-100 mx-5'
+                    size='xl'
+                    title={dialogConfig.title}
+                >
+                    <div className="flex flex-col gap-4">
+                        <InputGroup
+                            label={`Tanggal ${dialogConfig.action === 'subscribe' ? "Mulai" : "Berhenti"}`}
+                            name='tgl'
+                            type="date"
+                            onChange={(v) => { setData('tgl', v as string); clearErrors('tgl') }}
+                            required={true}
+                            error={FormErrors.tgl}
+                        />
+                        <InputGroup
+                            label={`${dialogConfig.action === 'subscribe' ? "Motivasi mendaftar" : "Alasan Berhenti"}`}
+                            name='ket'
+                            type="textarea"
+                            onChange={(v) => { setData('ket', v as string); clearErrors('ket') }}
+                            required={true}
+                            rows={3}
+                            error={FormErrors.ket}
 
+                        />
+                    </div>
+                </Modal>
+            )}
+            {dialogConfig.step === 'otp' && (
+                <Modal
+                    isOpen={dialogConfig.open}
+                    onClose={handleDialogClose}
+                    className='w-100 mx-5'
+                    size='xl'
+                    title={dialogConfig.title}
+                >
+                    <OtpStep
+                        otp={FormData.otp}
+                        errors={errors}
+                        processing={processing}
+                        countdown={countdown}
+                        onOtpChange={(value, index) => handleDigitChange(value, 'otp', index)}
+                        onKeyDown={handleOtpKeyDown}
+                        onBack={() => setDialogConfig(prev => ({ ...prev, step: 'form' }))}
+                        onResendOtp={resendOtp}
+                        onSubmit={handleOtpSubmit}
+                        inputRefs={otpRefs}
                     />
-                </div>
-            </Modal>
+                </Modal>
+            )}
 
             <div className="mb-6 flex items-center justify-between">
                 <h3 className="text-2xl font-bold text-gray-800">Ekstrakurikuler</h3>
@@ -375,20 +448,6 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
                                             Status: {getStatusBadge(activity.status)}
                                         </p>
                                     </div>
-                                    {/* <button
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            handleSubscription(activity.id, 'cancel');
-                                        }}
-                                        disabled={process === activity.id}
-                                        className="text-sm font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
-                                    >
-                                        {process === activity.id ? (
-                                            <FaSpinner className="animate-spin" />
-                                        ) : (
-                                            'Batalkan'
-                                        )}
-                                    </button> */}
                                 </div>
                                 <div className="mt-3 flex items-center justify-between text-sm">
                                     <div>

@@ -15,18 +15,23 @@ class VerifyNouid
     {
         try {
             $nouid = $request->route('nouid');
-            
+
             // 1. Skip middleware for login routes
             if ($request->routeIs('siswa.index') || $request->routeIs('siswa.login')) {
                 return $next($request);
             }
 
             // 2. Verify nouid exists
-            if (!Indentitas::where('nouid', $nouid)->exists()) {
+            $ident = Indentitas::where('nouid', $nouid)->firstOrFail();
+            if (!$ident) {
                 Log::warning('Student data not found', ['nouid' => $nouid]);
                 abort(404, 'Data siswa tidak ditemukan');
             }
-
+            if (!$ident->active) {
+                Auth::guard('siswa')->logout();
+                Log::info('Redirecting to login - unauthenticated', ['nouid' => $nouid]);
+                return $this->redirectToLogin($nouid);
+            }
             // 3. Handle non-authenticated user
             if (!Auth::guard('siswa')->check()) {
                 Log::info('Redirecting to login - unauthenticated', ['nouid' => $nouid]);
@@ -45,14 +50,13 @@ class VerifyNouid
             }
 
             return $next($request);
-
         } catch (\Exception $e) {
             Log::error('VerifyNouid middleware failed', [
                 'nouid' => $nouid ?? null,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return $this->redirectToLogin($nouid ?? '')
                 ->withErrors(['message' => 'Terjadi kesalahan sistem']);
         }

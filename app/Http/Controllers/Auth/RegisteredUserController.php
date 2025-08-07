@@ -121,7 +121,7 @@ class RegisteredUserController extends Controller
     private function registered($nouid)
     {
         $reg = Tregistrasi::where('nouid', $nouid)->first();
-        
+
         if ($reg && in_array($reg->sta, [-2, 0, 1])) {
             return Inertia::location(route('siswa.index', [
                 'nouid' => $nouid,
@@ -404,17 +404,23 @@ class RegisteredUserController extends Controller
                 }])
                     ->where('nouid', $nouid)
                     ->firstOrFail();
-                $phone = $validated['phone'] ?? $indentitas->siswa->tel ?? $indentitas->registrasi->tel;
+                $phone = $validated['phone']
+                    ?? optional($indentitas->siswa)->tel
+                    ?? optional($indentitas->registrasi)->tel;
+
                 if (!$indentitas->siswa && !$phone) {
                     return back()->withErrors(['pin' => 'Data siswa tidak ditemukan']);
                 }
 
                 // Update PIN dan nomor telepon
-                $indentitas->siswa->update([
-                    'pin' => $validated['pin'],
-                    'tel' => $this->formatPhoneNumber($phone) // Simpan ke kolom tel
-                ]);
-                Indentitas::where('nouid', $nouid)->first()->update(['sta' => 0]);
+                if ($indentitas->siswa) {
+                    $indentitas->siswa->update([
+                        'pin' => $validated['pin'],
+                        'tel' => $this->formatPhoneNumber($phone)
+                    ]);
+                }
+
+               Indentitas::where('nouid', $nouid)->update(['sta' => 0]);
                 event(new Registered($indentitas->siswa));
 
                 Auth::login($indentitas->siswa);

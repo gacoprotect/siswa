@@ -11,6 +11,7 @@ interface ConfirmDialogProps {
     confirmText?: string;
     cancelText?: string | null;
     onConfirm: () => void;
+    closeOnConfirm?: boolean;
     children?: ReactNode;
     variant?: 'danger' | 'primary';
 }
@@ -23,13 +24,14 @@ export function ConfirmDialog({
     confirmText = 'Ya',
     cancelText = 'Batal',
     onConfirm,
+    closeOnConfirm = true,
     children,
     variant = 'danger',
 }: ConfirmDialogProps) {
     const handleConfirm = useCallback(() => {
         onConfirm();
-        onOpenChange(false);
-    }, [onConfirm, onOpenChange]);
+        if (closeOnConfirm) onOpenChange(false);
+    }, [onConfirm, onOpenChange, closeOnConfirm]);
 
     return (
         <Dialog.Root open={open} onOpenChange={onOpenChange}>

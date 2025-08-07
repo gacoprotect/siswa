@@ -119,7 +119,7 @@ export default function SiswaDashboard() {
             title: 'Izin',
             icon: <MdMail className="h-6 w-6 text-rose-600" />,
             color: 'border-rose-700 bg-rose-50 hover:bg-rose-100',
-            content: <Izin nouid={siswaData.nouid} onClose={() => setActiveItem(null)} />,
+            content: <Izin nouid={siswaData.nouid}/>,
         },
     ], [siswaData.nouid, siswaData.siswa]);
 
@@ -176,28 +176,6 @@ export default function SiswaDashboard() {
     const handleBlockRequest = useCallback(() => {
         setOpenModal('blokir');
     }, []);
-
-    // Render blocked card view if inactive
-    if (!siswaData.active) {
-        return (
-            <AppLayout title="Kartu Siswa">
-                <div className="flex min-h-screen items-center bg-white">
-                    <div className="mx-2 flex w-full flex-col items-center justify-center rounded-lg border-2 border-red-400 bg-red-50 p-6 text-center shadow-sm">
-                        <h3 className="mb-2 text-lg font-semibold text-red-600">🔒 Kartu Diblokir</h3>
-                        <p className="mb-4 text-sm text-red-700">
-                            Kartu ini telah diblokir dan tidak dapat digunakan. Silakan aktifkan kembali untuk melanjutkan.
-                        </p>
-                        <button
-                            onClick={openSetupPinModal}
-                            className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
-                        >
-                            🔓 Aktifkan Kembali
-                        </button>
-                    </div>
-                </div>
-            </AppLayout>
-        );
-    }
 
     // Render active content if an item is selected
     if (activeItem !== null) {

@@ -24,7 +24,7 @@ class Indentitas extends BaseModel
 
     protected $connection = 'mai2';
     protected $table = 'tindentitas';
-    protected $primaryKey = ['idmen', 'idok', 'tip'];
+    protected $primaryKey = ['id'];
     protected $appends = ['active'];
     public $incrementing = false;
     protected $fillable = [
