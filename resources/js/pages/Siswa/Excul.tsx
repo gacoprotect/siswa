@@ -190,8 +190,8 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
             // For subscribe/unsubscribe, we need to show dialog first
             setDialogConfig({
                 open: true,
-                step: 'confirm',
-                action,
+                step: action === 'unsubscribe' ? 'confirm' : 'form',
+                action: action,
                 exculId: id,
                 title: action === 'subscribe' ? 'Form Pendaftaran' : 'Form Keluar Ekstrakurikuler'
             });
@@ -317,14 +317,22 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
                     confirmText="Ya"
                     cancelText="Tidak"
                     closeOnConfirm={false}
-                    onConfirm={() => { setDialogConfig(prev => ({ ...prev,open: true, step: 'form' })) }}
+                    onConfirm={() => { setDialogConfig(prev => ({ ...prev, open: true, step: 'form' })) }}
                 />
             )}
             {dialogConfig.step === 'form' && (
                 <Modal
                     isOpen={dialogConfig.open}
                     onClose={handleDialogClose}
-                    onConfirm={() => {resendOtp(); setDialogConfig(prev => ({ ...prev, step: 'otp' }))}}
+                    onConfirm={() => {
+                        if (dialogConfig.action === 'unsubscribe') {
+                            resendOtp();
+                            setDialogConfig(prev => ({ ...prev, step: 'otp' }))
+                        } else if (dialogConfig.action === 'subscribe') {
+                            handleDialogSubmit()
+                            setDialogConfig(prev => ({ ...prev, step: null }));
+                        }
+                    }}
                     confirmText={processing ? <FaSpinner className="animate-spin" /> : "Kirim"}
                     className='w-100 mx-5'
                     size='xl'
@@ -358,7 +366,6 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
                     onClose={handleDialogClose}
                     className='w-100 mx-5'
                     size='xl'
-                    title={dialogConfig.title}
                 >
                     <OtpStep
                         otp={FormData.otp}
