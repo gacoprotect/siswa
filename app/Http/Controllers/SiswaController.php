@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\IzinController;
 use App\Models\Datmas\Indentitas;
 use App\Models\Saving\Tsisreqdata;
 use App\Services\IzinService;
+use App\Services\TagihanService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -19,16 +20,18 @@ use Illuminate\Validation\ValidationException;
 class SiswaController extends Controller
 {
     protected $izinService;
+    protected $tagihan;
 
-    public function __construct(IzinService $izinService)
+    public function __construct(IzinService $izinService, TagihanService $tagihan)
     {
         $this->izinService = $izinService;
+        $this->tagihan = $tagihan;
     }
     public function index(Request $req, $nouid)
     {
         $req->validate([
             'page' => 'sometimes|string|in:index,topup,riwayat,tagihan',
-            'tab' => 'sometimes|string|in:siswa,kegiatan,tagihan,izin',
+            'tab' => 'sometimes|string|in:siswa,kegiatan,tagihan,izin,pindah',
         ]);
         logger("Request Index", ['nouid' => $nouid, 'req' => $req->all()]);
         try {
@@ -84,7 +87,7 @@ class SiswaController extends Controller
                         //     ]
                         // ] : []),
                     ],
-                    ...(($page === 'index' && $tab === 'tagihan') ? TagihanController::index($nouid) : []),
+                    ...(($page === 'index' && in_array($tab, ['tagihan', 'pindah'])) ? $this->tagihan->getTagihan($nouid) : []),
                     ...(($page === 'index' && $tab === 'izin') ? $this->izinService->getByStudentId($ident->idok) : []),
                 ];
             } else {

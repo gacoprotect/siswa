@@ -1,6 +1,5 @@
 import PaymentButton from '@/components/tagihanButton';
 import { Auth, BillTagihan, DataSiswa } from '@/types';
-import { X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { FaFileInvoice, FaFileInvoiceDollar, FaHistory } from 'react-icons/fa';
 import TambahTagihan from './TambahTagihan';
@@ -28,7 +27,7 @@ export interface Summary {
     spr: number[];
 }
 const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; setTagihanParam: (v: TagihanParam) => void; onClose: () => void }) => {
-    const { errors, data, summary: sum } = usePage<{ auth: Auth; data: DataSiswa; summary: Summary }>().props
+    const { data, summary: sum } = usePage<{ auth: Auth; data: DataSiswa; summary: Summary }>().props
     const [isLoading, setIsLoading] = useState(false); // Tidak perlu loading untuk operasi lokal
     // const { loading: isLoading, setLoading: setIsLoading } = useLoading();
     const [riwayat, setRiwayat] = useState(false);
@@ -43,8 +42,8 @@ const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; se
 
 
     useEffect(() => {
-        if (Array.isArray(data)) {
-            setGroupedData(data);
+        if (Array.isArray(data.tagihan)) {
+            setGroupedData(data.tagihan);
         } else {
             setGroupedData([]); // fallback kalau bukan array
         }
@@ -53,7 +52,7 @@ const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; se
             total_disc: sum?.total_disc ?? 0,
             spr: sum?.spr ?? [],
         });
-    }, [data, sum]);
+    }, [data.tagihan, sum]);
 
     // Format mata uang
     const formatCurrency = (amount: number): string => {
@@ -129,16 +128,7 @@ const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; se
 
     if (isLoading) {
         return (
-            <Loading />
-        );
-    }
-
-    if (Object(errors).length > 0) {
-        return (
-            <div className="flex items-center justify-center space-x-3 p-4 text-red-600">
-                <X className="animate-pulse" />
-                <span>{errors.message ?? errors.tagihan ?? "Terjadi Kesalahan"}</span>
-            </div>
+            <Loading variant='overlay' />
         );
     }
 
@@ -179,78 +169,81 @@ const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; se
             </div>
 
             {/* Bills Table */}
-            {riwayat ? (<RiwayatTagihan nouid={nouid} />) : (groupedData.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center">
-                    <p className="text-gray-500">Tidak ada data tagihan</p>
-                </div>
+            {riwayat ? (
+                <RiwayatTagihan nouid={nouid} />
             ) : (
-                <div className="overflow-hidden rounded-lg border shadow-sm">
-                    <div className="bg-white p-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="mb-4 text-lg font-semibold">Rincian Tagihan</h2>
-                            <span className="mb-4 rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700">
-                                {groupedData.filter((t) => t.jen === 0).length} Tagihan
-                            </span>
-                        </div>
-
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Tagihan</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Jumlah</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Keterangan</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200 bg-white">
-                                    {groupedData.map((item) => {
-                                        return (
-                                            <tr key={`${item.tah}-${item.bulan}-${item.ket}`}>
-                                                <td className="flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap text-gray-900">
-                                                    {item.tah} - {item.bulan}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm whitespace-nowrap text-gray-900">{formatCurrency(item.jumlah)}</td>
-                                                <td className="px-4 py-3 text-sm whitespace-nowrap text-gray-900">{item.ket}</td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* Summary Footer */}
-                        <div className="mt-6 space-y-3 border-t pt-4">
-                            {summary.total_disc ? (
-                                <>
-                                    <div className="flex justify-between">
-                                        <span className="font-medium">Total:</span>
-                                        <span className="font-medium text-red-600">{formatCurrency(summary.total_tagihan - summary.total_disc)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="font-medium">Potongan :</span>
-                                        <span className="font-medium text-red-600">{formatCurrency(summary.total_disc)}</span>
-                                    </div>
-                                </>
-                            ) : null}
-
-                            <div className="flex justify-between text-lg font-semibold">
-                                <span>Total Tagihan:</span>
-                                <span className="text-blue-600">{formatCurrency(summary.total_tagihan)}</span>
+                groupedData.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center">
+                        <p className="text-gray-500">Tidak ada data tagihan</p>
+                    </div>
+                ) : (
+                    <div className="overflow-hidden rounded-lg border shadow-sm">
+                        <div className="bg-white p-4">
+                            <div className="flex items-center justify-between">
+                                <h2 className="mb-4 text-lg font-semibold">Rincian Tagihan</h2>
+                                <span className="mb-4 rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700">
+                                    {groupedData.filter((t) => t.jen === 0).length} Tagihan
+                                </span>
                             </div>
-                            <div className="pt-4 flex items-center gap-4">
-                                <button className="rounded-lg bg-red-600 p-2 text-sm text-white transition-colors hover:bg-red-700"
-                                    onClick={() => {
-                                        setIsLoading(true)
-                                        // fetchData()
-                                    }}>
-                                    Batal
-                                </button>
-                                <PaymentButton onClose={onClose} setparam={setTagihanParam} summary={summary} />
+
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Tagihan</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Jumlah</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Keterangan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200 bg-white">
+                                        {groupedData.map((item) => {
+                                            return (
+                                                <tr key={`${item.tah}-${item.bulan}-${item.ket}`}>
+                                                    <td className="flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap text-gray-900">
+                                                        {item.tah} - {item.bulan}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm whitespace-nowrap text-gray-900">{formatCurrency(item.jumlah)}</td>
+                                                    <td className="px-4 py-3 text-sm whitespace-nowrap text-gray-900">{item.ket}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Summary Footer */}
+                            <div className="mt-6 space-y-3 border-t pt-4">
+                                {summary.total_disc ? (
+                                    <>
+                                        <div className="flex justify-between">
+                                            <span className="font-medium">Total:</span>
+                                            <span className="font-medium text-red-600">{formatCurrency(summary.total_tagihan - summary.total_disc)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="font-medium">Potongan :</span>
+                                            <span className="font-medium text-red-600">{formatCurrency(summary.total_disc)}</span>
+                                        </div>
+                                    </>
+                                ) : null}
+
+                                <div className="flex justify-between text-lg font-semibold">
+                                    <span>Total Tagihan:</span>
+                                    <span className="text-blue-600">{formatCurrency(summary.total_tagihan)}</span>
+                                </div>
+                                <div className="pt-4 flex items-center gap-4">
+                                    <button className="rounded-lg bg-red-600 p-2 text-sm text-white transition-colors hover:bg-red-700"
+                                        onClick={() => {
+                                            setIsLoading(true)
+                                            // fetchData()
+                                        }}>
+                                        Batal
+                                    </button>
+                                    <PaymentButton onClose={onClose} setparam={setTagihanParam} summary={summary} />
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            ))}
+                ))}
 
             {/* Add Bill Modal */}
             <TambahTagihan setTambahTagihan={handleTambahTagihan} open={buatTagihanModal} onClose={() => setBuatTagihanModal(false)} nouid={nouid} />

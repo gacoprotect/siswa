@@ -9,7 +9,7 @@ class TagihanSetahunSeeder extends Seeder
 {
     public function run(): void
     {
-        $idsis = 12; // ID siswa
+        $idsis = 3363; // ID siswa
         $idset = 1;  // ID setting tagihan
         $idgru = 1;  // ID group
         $created = Carbon::now();

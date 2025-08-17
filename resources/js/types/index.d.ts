@@ -87,6 +87,7 @@ export interface DataSiswa {
     kegiatan?: DataExcul;
     tagihan?: BillTagihan[] | [];
     izin?: IzinType[] | [];
+    pindah?: DataPindahSekolah;
 }
 export interface Siswa {
     nouid: string;
@@ -269,4 +270,30 @@ export interface IzinType {
     dok: string | null;
     sta: StatusIzin | number;
     created_at: Date;
+}
+
+export type FormDataPindahSekolah = {
+    tgl: string;
+    kelas: string;
+    tujuan: string;
+    tgl_stop: string;
+    ket: string;
+};
+
+export interface PindahSekolahProps {
+    nouid: string;
+}
+export interface DataPindahSekolah {
+    id?: number;
+    nops?: string;
+    tin?: number;
+    idta: number;
+    tgl: Date;
+    idsis:number;
+    oldidkel?:number;
+    sek: string;
+    ala: string;
+    sta: number | string ;
+    rev?: number;
+    created_at: Date;   
 }

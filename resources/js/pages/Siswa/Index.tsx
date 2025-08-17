@@ -25,10 +25,11 @@ import { useAppConfig } from '@/hooks/use-app-config';
 import { MdMail } from 'react-icons/md';
 import Izin from './Izin';
 import { useLoading } from '@/contexts/loading-context';
+import PindahSekolah from './PindahSekolah';
 
 // Type definitions
 export type PageState = 'index' | 'topup' | 'riwayat' | 'tagihan';
-export type TabState = 'tagihan' | 'siswa' | 'kegiatan' | 'izin';
+export type TabState = 'tagihan' | 'siswa' | 'kegiatan' | 'izin' | 'pindah';
 export type ModalState = 'pin' | 'setupPin' | 'blokir' | null;
 
 export interface TagihanParam {
@@ -81,6 +82,7 @@ export default function SiswaDashboard() {
             siswa: 1,
             kegiatan: 2,
             izin: 3,
+            pindah: 4,
         };
 
         if (tab && tab in tabToIndexMap) {
@@ -128,6 +130,13 @@ export default function SiswaDashboard() {
             icon: <MdMail className="h-6 w-6 text-rose-600" />,
             color: 'border-rose-700 bg-rose-50 hover:bg-rose-100',
             content: <Izin nouid={siswaData.nouid ?? auth?.user?.nouid} />,
+        },
+        {
+            title: 'Pindah Sekolah',
+            tab: 'pindah',
+            icon: <MdMail className="h-6 w-6 text-rose-600" />,
+            color: 'border-rose-700 bg-rose-50 hover:bg-rose-100',
+            content: <PindahSekolah nouid={siswaData.nouid ?? auth?.user?.nouid} />,
         },
     ], [siswaData.nouid, auth?.user?.nouid, siswaData.siswa]);
 
@@ -253,7 +262,7 @@ export default function SiswaDashboard() {
                             menuItems={menuItems}
                             onBack={() => {
                                 // refreshData();
-                                window.history.back();
+                                router.get(route('siswa.index', siswaData.nouid ?? auth?.user?.nouid))
                                 setActiveItem(null)
                             }}
                         />}

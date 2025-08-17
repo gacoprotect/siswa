@@ -3,8 +3,8 @@ import { SharedData, Siswa } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { FaArrowAltCircleLeft, FaSpinner } from 'react-icons/fa';
-import { TagihanParam } from '../Siswa/Index1';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { TagihanParam } from '../Siswa/Index';
 
 interface TagihanItem {
     id: number;
