@@ -85,8 +85,11 @@ export interface DataSiswa {
     summary?: SiswaSummary;
     siswa: Siswa;
     kegiatan?: DataExcul;
+    tagihan?: BillTagihan[] | [];
+    izin?: IzinType[] | [];
 }
 export interface Siswa {
+    nouid: string;
     has_pin: boolean;
     balance: number;
     excul?: number[];
@@ -250,4 +253,20 @@ export interface Excul {
     time?: string;
     coach?: string;
     pel?: Pelatih;
+}
+export type StatusIzin = 'menunggu' | 'disetujui' | 'ditolak' | 'dibatalkan';
+export interface JenisIzin {
+    id: number,
+    name: string,
+    title: string,
+}
+export interface IzinType {
+    id: string;
+    title: string
+    tgl_mulai: string;
+    tgl_akhir: string;
+    ket: string;
+    dok: string | null;
+    sta: StatusIzin | number;
+    created_at: Date;
 }

@@ -1,28 +1,58 @@
 import { useLogger } from '@/contexts/logger-context';
 import { SharedData } from '@/types';
-import { useEffect } from 'react';
+import { usePage } from '@inertiajs/react';
+import { useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 
-export const useToast = ({ errors, flash }: SharedData) => {
-    const { error, log } = useLogger()
+export const useToast = () => {
+    const { errors, flash } = usePage<SharedData>().props;
+    const { error: logError, log } = useLogger();
+
+    // Memoize errors untuk optimasi performa
+    const processedErrors = useMemo(() => {
+        if (!errors) return [];
+
+        return Object.values(errors)
+            .flat()
+            .filter((err): err is string => typeof err === 'string' && err.length > 0);
+    }, [errors]);
+
+    // Handle errors
     useEffect(() => {
-        const allErrors = Object.values(errors || {});
-        allErrors.forEach((err) => {
-            if (err) {
-                error(err, { toastId: `err-${err}` });
+        if (processedErrors.length === 0) return;
+
+        processedErrors.forEach((err) => {
+            const toastId = `err-${err}`;
+
+            if (!toast.isActive(toastId)) {
+                toast.error("Terjadi Kesalahan", { toastId });
+                logError(err, { toastId });
             }
         });
-    }, [errors, error]);
+    }, [processedErrors, logError]);
 
+    // Handle flash messages
     useEffect(() => {
-        if (flash?.message) {
-            if (flash.success === true) {
-                toast.success(flash.message, { toastId: `flash-${flash.message}` });
-                log(flash.message)
-            } else if (flash.success === false) {
-                toast.error(flash.message, { toastId: `flash-${flash.message}` });
-                error(flash.message)
-            }
+        if (!flash?.message) return;
+
+        const { message, success } = flash;
+        const toastId = `flash-${message}`;
+
+        if (toast.isActive(toastId)) return;
+
+        if (success === true) {
+            toast.success(message, {
+                toastId
+            });
+            log(message);
+        } else {
+            toast.error(message, { toastId });
+            logError(message);
         }
-    }, [flash, log, error]);
+    }, [flash, log, logError]);
+
+    return {
+        toast,
+        dismissAllToasts: toast.dismiss
+    };
 };

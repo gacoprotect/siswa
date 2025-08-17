@@ -1,89 +1,86 @@
-import { CheckCircle, Clock, XCircle, Plus, FileText, CalendarDays, HeartPulse, Scissors, User, HelpCircle, Send } from 'lucide-react';
+import { Plus, FileText, CalendarDays, Send } from 'lucide-react';
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { useLogger } from '@/contexts/logger-context';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import InputGroup from '@/components/InputGroup';
 import InputFile from '@/components/InputFile';
-import { useForm } from '@inertiajs/react';
+import { router, useForm, usePage } from '@inertiajs/react';
 import { ConfirmDialog } from '@/components/ConfirmDialog ';
+import { Auth, DataSiswa, IzinType, JenisIzin } from '@/types';
+import { SelectInput } from '@/components/SelectInput';
+import { useAppConfig } from '@/hooks/use-app-config';
+import dayjs from 'dayjs';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
+import { StatusBadge } from '@/components/status-badge';
 
-type IzinProps = { nouid: string; onClose?: () => void };
+type IzinProps = {
+    nouid: string;
+    onClose?: () => void;
+};
 
-type JenisIzin = 'sakit' | 'dispensasi' | 'pribadi' | 'lainnya';
-type StatusIzin = 'menunggu' | 'disetujui' | 'ditolak' | 'dibatalkan';
-
-interface Izin {
-    id: string;
-    jenis: JenisIzin;
-    tglStart: string;
-    tglEnd: string;
+type FormData = {
+    jen: number;
+    tgl_mulai: string;
+    tgl_akhir: string;
     ket: string;
-    dok: string | null;
-    status: StatusIzin;
-    dibuatPada: Date;
-}
+    dok: File | null;
+};
 
-interface FormErrors {
-    jenis?: string;
-    tglStart?: string;
-    tglEnd?: string;
-    ket?: string;
-    dok?: string;
-}
+type FormErrors = Partial<Record<keyof FormData, string>>;
 
-const JENIS_IZIN_OPTIONS = [
-    { value: 'sakit', label: 'Izin Sakit', icon: HeartPulse, color: 'text-red-500' },
-    { value: 'dispensasi', label: 'Dispensasi', icon: Scissors, color: 'text-blue-500' },
-    { value: 'pribadi', label: 'Keperluan Pribadi', icon: User, color: 'text-purple-500' },
-    { value: 'lainnya', label: 'Lainnya', icon: HelpCircle, color: 'text-gray-500' },
-] as const;
+const Izin: React.FC<IzinProps> = ({ nouid }) => {
+    const { auth, data: pageData, jenis = [] } = usePage<{
+        auth: Auth;
+        data: DataSiswa;
+        jenis: JenisIzin[];
+    }>().props;
 
-const STATUS_CONFIG = {
-    menunggu: { label: 'Menunggu', icon: Clock, color: 'text-yellow-500', bg: 'bg-yellow-50', border: 'border-yellow-100', text: 'text-yellow-600' },
-    disetujui: { label: 'Disetujui', icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-50', border: 'border-green-100', text: 'text-green-600' },
-    ditolak: { label: 'Ditolak', icon: XCircle, color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-100', text: 'text-red-600' },
-    dibatalkan: { label: 'Dibatalkan', icon: XCircle, color: 'text-gray-500', bg: 'bg-gray-50', border: 'border-gray-100', text: 'text-gray-600' },
-} as const;
-
-const Izin: React.FC<IzinProps> = () => {
+    const isMobile = useIsMobile();
     const { log, error: logError } = useLogger();
+    const { APP_DEBUG } = useAppConfig();
     const [sedangMembuat, setSedangMembuat] = useState(false);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedIzinId, setSelectedIzinId] = useState<string | null>(null);
-    const [daftarIzin, setDaftarIzin] = useState<Izin[]>([]);
+    const [daftarIzin, setDaftarIzin] = useState<IzinType[]>(pageData.izin || []);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [errors, setErrors] = useState<FormErrors>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const { data, setData, reset } = useForm({
-        jenis: '' as JenisIzin,
-        tglStart: '',
-        tglEnd: '',
-        ket: '',
-        dok: null as File | null
+    const { data, setData, reset, post, processing } = useForm<FormData>({
+        jen: APP_DEBUG ? 2 : 0,
+        tgl_mulai: APP_DEBUG ? dayjs().format('YYYY-MM-DD') : '',
+        tgl_akhir: APP_DEBUG ? dayjs().format('YYYY-MM-DD') : '',
+        ket: APP_DEBUG ? 'TEST AJA DULU YA GAES' : '',
+        dok: null
     });
+
+    const jenisIzinOptions = useMemo(() => (
+        jenis.map(item => ({
+            value: item.id.toString(),
+            label: item.title
+        }))
+    ), [jenis]);
 
     const validateForm = useCallback((): boolean => {
         const newErrors: FormErrors = {};
         let isValid = true;
 
-        if (!data.jenis) {
-            newErrors.jenis = 'Jenis izin harus dipilih';
+        if (!data.jen) {
+            newErrors.jen = 'Jenis izin harus dipilih';
             isValid = false;
         }
 
-        if (!data.tglStart) {
-            newErrors.tglStart = 'Tanggal mulai harus diisi';
+        if (!data.tgl_mulai) {
+            newErrors.tgl_mulai = 'Tanggal mulai harus diisi';
             isValid = false;
         }
 
-        if (!data.tglEnd) {
-            newErrors.tglEnd = 'Tanggal selesai harus diisi';
+        if (!data.tgl_akhir) {
+            newErrors.tgl_akhir = 'Tanggal selesai harus diisi';
             isValid = false;
-        } else if (new Date(data.tglEnd) < new Date(data.tglStart)) {
-            newErrors.tglEnd = 'Tanggal selesai tidak boleh sebelum tanggal mulai';
+        } else if (dayjs(data.tgl_akhir).isBefore(dayjs(data.tgl_mulai))) {
+            newErrors.tgl_akhir = 'Tanggal selesai tidak boleh sebelum tanggal mulai';
             isValid = false;
         }
 
@@ -99,84 +96,103 @@ const Izin: React.FC<IzinProps> = () => {
             newErrors.dok = 'Dokumen pendukung diperlukan';
             isValid = false;
             setTimeout(() => {
-                const fileInputButton = document.querySelector('.file-upload-container');
-                if (fileInputButton) {
-                    (fileInputButton as HTMLElement).focus();
-                }
+                fileInputRef.current?.focus();
             }, 0);
         }
+
         setErrors(newErrors);
-        if (!isValid) logError(newErrors)
+        if (!isValid) logError('Validation errors', newErrors);
         return isValid;
     }, [data, imagePreview, logError]);
 
     const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            // Validate file type and size
-            const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-            const maxSize = 2 * 1024 * 1024; // 2MB
+        if (!file) return;
 
-            if (!validTypes.includes(file.type)) {
-                setErrors(prev => ({ ...prev, dok: 'Format file harus JPG, JPEG, atau PNG' }));
-                return;
-            }
+        const validTypes = ['image/jpeg', 'image/png'];
+        const maxSize = 2 * 1024 * 1024; // 2MB
 
-            if (file.size > maxSize) {
-                setErrors(prev => ({ ...prev, dok: 'Ukuran file maksimal 2MB' }));
-                return;
-            }
+        if (!validTypes.includes(file.type)) {
+            setErrors(prev => ({ ...prev, dok: 'Format file harus JPG atau PNG' }));
+            return;
+        }
 
-            setErrors(prev => ({ ...prev, dok: undefined }));
+        if (file.size > maxSize) {
+            setErrors(prev => ({ ...prev, dok: 'Ukuran file maksimal 2MB' }));
+            return;
+        }
 
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                setImagePreview(event.target?.result as string);
-                setData('dok', file);
-            };
-            reader.readAsDataURL(file);
+        setErrors(prev => ({ ...prev, dok: undefined }));
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            setImagePreview(event.target?.result as string);
+            setData('dok', file);
+        };
+        reader.readAsDataURL(file);
+    }, [setData]);
+
+    const handleRemoveImage = useCallback(() => {
+        setImagePreview(null);
+        setData('dok', null);
+        setErrors(prev => ({ ...prev, dok: undefined }));
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
         }
     }, [setData]);
 
-    const handleRemoveImage = useCallback((name: keyof FormErrors) => {
-        setImagePreview(null);
-        setData(name, null);
-        setErrors(prev => ({ ...prev, [name]: undefined }));
-    }, [setData]);
-
-    const handleInputChange = useCallback((name: keyof typeof data, value: string | File | null) => {
+    const handleInputChange = useCallback(<K extends keyof FormData>(
+        name: K,
+        value: FormData[K]
+    ) => {
         setData(prev => ({ ...prev, [name]: value }));
-        // Clear error when user types
-        if (errors[name as keyof FormErrors]) {
+        if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: undefined }));
         }
     }, [setData, errors]);
 
-    const handleSubmit = useCallback((e: React.FormEvent) => {
+    const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!validateForm()) {
-            return;
+        if (!validateForm()) return;
+
+        setSedangMembuat(true);
+
+        try {
+            await post(route('izin.store', nouid), {
+                onSuccess: () => {
+                    const jenisIzin = jenis.find(j => j.id === data.jen);
+                    const title = jenisIzin?.title || 'Unknown';
+
+                    const izinBaru: IzinType = {
+                        id: Math.random().toString(36).substring(2, 9),
+                        ...data,
+                        dok: imagePreview || null,
+                        sta: 'menunggu',
+                        created_at: new Date(),
+                        title: title
+                    };
+
+                    setDaftarIzin(prev => [...prev, izinBaru]);
+                    reset();
+                    setImagePreview(null);
+                    setErrors({});
+                    log('Pengajuan izin berhasil', izinBaru);
+                },
+                onError: (errors) => {
+                    setErrors(errors);
+                    log('Gagal mengajukan izin', { errors, data });
+                },
+                onFinish: () => {
+                    setSedangMembuat(false);
+                }
+            });
+        } catch (error) {
+            console.error('Submission error:', error);
+            setSedangMembuat(false);
+            log('Error sistem saat mengajukan izin', { error });
         }
-
-        const izinBaru: Izin = {
-            id: Math.random().toString(36).substring(2, 9),
-            jenis: data.jenis,
-            tglStart: data.tglStart,
-            tglEnd: data.tglEnd,
-            ket: data.ket,
-            dok: imagePreview,
-            status: 'menunggu',
-            dibuatPada: new Date()
-        };
-
-        setDaftarIzin(prev => [...prev, izinBaru]);
-        setSedangMembuat(false);
-        reset();
-        setImagePreview(null);
-        setErrors({});
-        log('Pengajuan izin dikirim', izinBaru);
-    }, [data, imagePreview, log, reset, validateForm]);
+    }, [data, imagePreview, validateForm, nouid, reset, log, post, jenis]);
 
     const handleBatal = useCallback((id: string) => {
         setSelectedIzinId(id);
@@ -185,22 +201,20 @@ const Izin: React.FC<IzinProps> = () => {
 
     const batalkanIzin = useCallback(() => {
         if (!selectedIzinId) return;
+        router.post(route('izin.cancel', nouid), { id: selectedIzinId }, {
+            onSuccess: () => {
+                setDaftarIzin(prev => prev.map(izin =>
+                    izin.id === selectedIzinId ? { ...izin, sta: 'dibatalkan' } : izin
+                ));
+                setDialogOpen(false);
+                log('Izin dibatalkan', { idIzin: selectedIzinId });
+            }
+        });
 
-        setDaftarIzin(prev => prev.map(izin =>
-            izin.id === selectedIzinId ? { ...izin, status: 'dibatalkan' } : izin
-        ));
-        setDialogOpen(false);
-        log('Izin dibatalkan', { idIzin: selectedIzinId });
-    }, [selectedIzinId, log]);
+    }, [selectedIzinId, log, nouid]);
 
     const formatDate = useCallback((date: Date | string, withTime = false) => {
-        const options: Intl.DateTimeFormatOptions = {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-            ...(withTime && { hour: '2-digit', minute: '2-digit' })
-        };
-        return new Date(date).toLocaleDateString('id-ID', options);
+        return dayjs(date).format(withTime ? 'DD MMMM YYYY HH:mm' : 'DD MMMM YYYY');
     }, []);
 
     const renderEmptyState = useMemo(() => (
@@ -215,179 +229,152 @@ const Izin: React.FC<IzinProps> = () => {
         </div>
     ), []);
 
-    const renderIzinItem = useCallback((izin: Izin) => {
-        const status = STATUS_CONFIG[izin.status];
-        const jenisIzin = JENIS_IZIN_OPTIONS.find(j => j.value === izin.jenis);
-
+    const renderIzinItem = useCallback((izin: IzinType) => {
         return (
-            <div key={izin.id} className="border rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow bg-white">
+            <div key={izin.id} className="border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow bg-white space-y-2">
                 <div className="flex justify-between items-start">
                     <div>
                         <div className="flex items-center gap-2">
                             <h3 className="font-semibold text-lg text-gray-800 capitalize">
-                                {jenisIzin?.label}
+                                {izin.title || 'Izin Tidak Diketahui'}
                             </h3>
                         </div>
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 mt-1">
                             <CalendarDays className="inline mr-1 w-4 h-4" />
-                            {formatDate(izin.tglStart)} - {formatDate(izin.tglEnd)}
+                            {formatDate(izin.tgl_mulai)} - {formatDate(izin.tgl_akhir)}
                         </p>
                     </div>
-                    <Badge
-                        variant="outline"
-                        className={`flex items-center gap-1 px-3 py-1 ${status.bg} ${status.text} ${status.border}`}
-                    >
-                        <status.icon className={status.color} size={16} />
-                        <span className="capitalize">{status.label}</span>
-                    </Badge>
+                    <StatusBadge status={izin.sta} />
                 </div>
 
-                <div className="mt-4 space-y-2">
-                    <div>
-                        <h4 className="text-sm font-medium text-gray-500">Keterangan</h4>
-                        <p className="text-gray-600 whitespace-pre-line">{izin.ket}</p>
-                    </div>
-                </div>
-
-                <div className="mt-4 flex justify-between items-center">
-                    <span className="text-xs text-gray-400">
-                        Diajukan pada: {formatDate(izin.dibuatPada, true)}
+                <div className={cn("mt-4 flex justify-between gap-2 items-end", isMobile && "flex-col-reverse items-start")}>
+                    <span className="text-xs text-start text-gray-400">
+                        Diajukan pada: {formatDate(izin.created_at, true)}
                     </span>
-                    {izin.status === 'menunggu' && (
+                    <div className={cn("flex-1 flex w-full gap-2 justify-end", isMobile && "w-full")}>
+                        {izin.sta === 'menunggu' && (
+                            <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleBatal(izin.id)}
+                                className="hover:bg-red-600 transition-colors"
+                            >
+                                Batalkan
+                            </Button>
+                        )}
                         <Button
-                            variant="destructive"
                             size="sm"
-                            onClick={() => handleBatal(izin.id)}
-                            className="hover:bg-red-600 transition-colors"
+                            onClick={() => { }}
                         >
-                            Batalkan Pengajuan
+                            Detail
                         </Button>
-                    )}
+                    </div>
                 </div>
             </div>
         );
-    }, [formatDate, handleBatal]);
+    }, [formatDate, handleBatal, isMobile]);
 
     const renderForm = useMemo(() => (
         <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-800">Formulir Pengajuan Izin</h2>
+            <div className="flex items-center justify-center mb-6">
+                <h2 className="text-xl font-bold text-blue-800">Formulir Pengajuan Izin</h2>
             </div>
 
             <div className="space-y-5">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Jenis Izin*</label>
-                    <Select
-                        value={data.jenis}
-                        onValueChange={(value) => handleInputChange("jenis", value as JenisIzin)}
-                    >
-                        <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Pilih jenis izin" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {JENIS_IZIN_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value} className="hover:bg-gray-50">
-                                    <div className="flex items-center gap-2">
-                                        <option.icon className={`w-4 h-4 ${option.color}`} />
-                                        <span>{option.label}</span>
-                                    </div>
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    {errors.jenis && (
-                        <p className="mt-1 text-sm text-red-600">{errors.jenis}</p>
-                    )}
-                </div>
+                <SelectInput
+                    name="jen"
+                    label="Jenis Izin"
+                    value={data.jen.toString()}
+                    onChange={(value) => handleInputChange("jen", parseInt(value))}
+                    options={jenisIzinOptions}
+                    placeholder="Pilih jenis izin"
+                    errors={errors}
+                    required
+                />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Mulai*</label>
-                        <InputGroup
-                            type="date"
-                            name="tglStart"
-                            value={data.tglStart}
-                            onChange={(e) => handleInputChange("tglStart", e as string)}
-                            className="focus:ring-blue-500 focus:border-blue-500"
-                            error={errors.tglStart}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Tanggal Selesai*</label>
-                        <InputGroup
-                            type="date"
-                            name="tglEnd"
-                            value={data.tglEnd}
-                            onChange={(e) => handleInputChange("tglEnd", e as string)}
-                            min={data.tglStart}
-                            error={errors.tglEnd}
-                            className="focus:ring-blue-500 focus:border-blue-500"
-                        />
-                    </div>
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Keterangan*</label>
                     <InputGroup
-                        name="ket"
-                        type='textarea'
-                        value={data.ket}
-                        onChange={(e) => handleInputChange("ket", e as string)}
-                        placeholder="Berikan penjelasan detail alasan izin..."
-                        rows={4}
-                        error={errors.ket}
-                        className="focus:ring-blue-500 focus:border-blue-500"
+                        label="Tanggal Mulai"
+                        type={data.jen === 3 ? "datetime-local" : "date"}
+                        name="tgl_mulai"
+                        value={data.tgl_mulai}
+                        min={dayjs().format('YYYY-MM-DD')}
+                        onChange={(e) => handleInputChange("tgl_mulai", e as string)}
+                        errors={errors}
+                        required
+                    />
+
+                    <InputGroup
+                        label="Tanggal Selesai"
+                        type={data.jen === 3 ? "datetime-local" : "date"}
+                        name="tgl_akhir"
+                        value={data.tgl_akhir}
+                        onChange={(e) => handleInputChange("tgl_akhir", e as string)}
+                        min={data.tgl_mulai}
+                        errors={errors}
+                        required
                     />
                 </div>
 
-                <div>
-                    <InputFile
-                        ref={fileInputRef}
-                        name="dok"
-                        label="Dokumen Pendukung"
-                        preview={imagePreview ?? undefined}
-                        showError={!!errors.dok}
-                        errorMessage={errors.dok}
-                        handleRemoveImage={() => {
-                            handleRemoveImage('dok');
-                            setData('dok', null);
-                        }}
-                        handleFileChange={handleFileChange}
-                        className="file-upload-container" // Add this class for focusing
-                    />
-                    <p className="mt-1 text-sm text-gray-500">Format: JPG, PNG (Maks. 2MB)</p>
-                </div>
+                <InputGroup
+                    label="Keterangan"
+                    type="textarea"
+                    name="ket"
+                    value={data.ket}
+                    onChange={(e) => handleInputChange("ket", e as string)}
+                    placeholder="Berikan penjelasan detail alasan izin..."
+                    rows={4}
+                    errors={errors}
+                    required
+                />
+
+                <InputFile
+                    ref={fileInputRef}
+                    name="dok"
+                    label="Dokumen Pendukung"
+                    preview={imagePreview ?? undefined}
+                    showError={!!errors.dok}
+                    errorMessage={errors.dok}
+                    handleRemoveImage={handleRemoveImage}
+                    handleFileChange={handleFileChange}
+                />
+                <p className="mt-1 text-sm text-gray-500">Format: JPG, PNG (Maks. 2MB)</p>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                     <Button
                         variant="destructive"
                         type="button"
                         onClick={() => {
-                            setSedangMembuat(false);
+                            reset();
                             setErrors({});
+                            setImagePreview(null);
+                            setSedangMembuat(false);
                         }}
+                        disabled={processing}
                     >
                         Batal
                     </Button>
                     <Button
                         type="submit"
-                        className="bg-blue-600 hover:bg-blue-700 transition-colors"
+                        className="bg-blue-600 hover:bg-blue-700"
+                        disabled={processing}
                     >
-                        <Send className="mr-2 w-4 h-4" /> Ajukan Izin
+                        <Send className="mr-2 w-4 h-4" />
+                        {processing ? 'Mengajukan...' : 'Ajukan Izin'}
                     </Button>
                 </div>
             </div>
         </form>
-    ), [data, setData, errors, handleFileChange, handleInputChange, handleRemoveImage, handleSubmit, imagePreview]);
+    ), [data, errors, handleFileChange, handleInputChange, handleRemoveImage, handleSubmit, imagePreview, reset, jenisIzinOptions, processing]);
 
     return (
-        <div className="max-w-4xl mx-auto p-4 md:p-6">
+        <div className="max-w-4xl mx-auto p-2">
             {!sedangMembuat ? (
                 <>
                     <div className="flex justify-between items-center mb-6">
                         <Button
                             onClick={() => setSedangMembuat(true)}
-                            className="bg-blue-600 hover:bg-blue-700 transition-colors"
+                            className="bg-blue-600 hover:bg-blue-700"
                         >
                             <Plus className="mr-2" size={16} /> Ajukan Izin Baru
                         </Button>

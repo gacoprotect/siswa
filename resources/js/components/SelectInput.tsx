@@ -13,7 +13,7 @@ import { AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SelectOption {
-    value: string;
+    value: string | number;
     label: string;
     disabled?: boolean;
 }
@@ -25,10 +25,10 @@ interface SelectGroupOption {
 
 interface SelectInputProps {
     name: string;
-    id: string;
+    id?: string;
     label?: string;
-    value?: string;
-    defaultValue?: string;
+    value?: string | number;
+    defaultValue?: string | number;
     onChange?: (value: string) => void;
     options: SelectOption[] | SelectGroupOption[];
     placeholder?: string;
@@ -45,7 +45,7 @@ const SelectInput = React.forwardRef<HTMLButtonElement, SelectInputProps>(
     (
         {
             name,
-            id,
+            id = name,
             label,
             value,
             defaultValue,
@@ -58,57 +58,68 @@ const SelectInput = React.forwardRef<HTMLButtonElement, SelectInputProps>(
             className = "",
             triggerClassName = "",
             contentClassName = "",
-            allowEmpty = false,
         },
         ref
     ) => {
-        const hasGroups = options.some(
-            (option) => "options" in option && Array.isArray((option as SelectGroupOption).options)
-        );
+        const hasGroups = React.useMemo(() => {
+            return options.some((option) => "options" in option);
+        }, [options]);
 
-        const safeValue = value === "" ? "__placeholder__" : value;
+        // Cari label berdasarkan value
+        const findLabelByValue = (val: string | number) => {
+            if (val === "" || val === undefined || val === null) return null;
 
-        const handleValueChange = (val: string) => {
-            onChange?.(val === "__placeholder__" ? "" : val);
+            const flatOptions = hasGroups
+                ? (options as SelectGroupOption[]).flatMap(group => group.options)
+                : (options as SelectOption[]);
+
+            const found = flatOptions.find(opt => String(opt.value) === String(val));
+            return found ? found.label : null;
         };
 
-        const renderGroupOptions = (group: SelectGroupOption, groupIndex: number) => (
-            <SelectGroup key={`group-${groupIndex}`}>
-                {group.label && <SelectLabel>{group.label}</SelectLabel>}
-                {group.options
-                    .filter((opt) => opt.value !== "")
-                    .map((option) => (
-                        <SelectItem className="text-sm" key={`${groupIndex}-${option.value}`} value={option.value} disabled={option.disabled}>
-                            {option.label}
-                        </SelectItem>
-                    ))}
-            </SelectGroup>
-        );
+        // Handle perubahan nilai
+        const handleValueChange = (val: string) => {
+            onChange?.(val);
+        };
 
-        const renderFlatOptions = (opts: SelectOption[]) => (
-            <SelectGroup>
-                {allowEmpty && (
-                    <SelectItem
-                        key="__placeholder__"
-                        value="__placeholder__"
-                        disabled
-                        className="text-sm hidden"
-                    >
-                        {placeholder}
-                    </SelectItem>
-                )}
-                {opts
-                    .filter((opt) => opt.value !== "")
-                    .map((option) => (
-                        <SelectItem className="text-sm" key={option.value} value={option.value} disabled={option.disabled}>
-                            {option.label}
-                        </SelectItem>
-                    ))}
-            </SelectGroup>
-        );
+        // Render opsi
+        const renderOptions = () => {
+            if (hasGroups) {
+                return (options as SelectGroupOption[]).map((group, groupIndex) => (
+                    <SelectGroup key={`group-${groupIndex}`}>
+                        {group.label && <SelectLabel>{group.label}</SelectLabel>}
+                        {group.options.map((option) => (
+                            <SelectItem
+                                className="text-sm"
+                                key={`${groupIndex}-${option.value}`}
+                                value={String(option.value)}
+                                disabled={option.disabled}
+                            >
+                                {option.label}
+                            </SelectItem>
+                        ))}
+                    </SelectGroup>
+                ));
+            } else {
+                return (
+                    <SelectGroup>
+                        {(options as SelectOption[]).map((option) => (
+                            <SelectItem
+                                className="text-sm"
+                                key={String(option.value)}
+                                value={String(option.value)}
+                                disabled={option.disabled}
+                            >
+                                {option.label}
+                            </SelectItem>
+                        ))}
+                    </SelectGroup>
+                );
+            }
+        };
 
         return (
-            <div id={name ?? id} className={cn("text-sm flex flex-col gap-2", className)}>
+            <div id={id} className={cn("text-sm flex flex-col gap-1", className)}>
                 {label && (
                     <Label htmlFor={id}>
                         {label}
@@ -117,36 +128,35 @@ const SelectInput = React.forwardRef<HTMLButtonElement, SelectInputProps>(
                 )}
 
                 <Select
-                    value={safeValue}
-                    defaultValue={defaultValue}
+                    value={value !== undefined && value !== null ? String(value) : undefined}
+                    defaultValue={defaultValue !== undefined && defaultValue !== null ? String(defaultValue) : undefined}
                     onValueChange={handleValueChange}
                     disabled={disabled}
                     required={required}
+                    name={name}
                 >
                     <SelectTrigger
                         ref={ref}
                         id={id}
                         className={cn("w-full", triggerClassName, errors?.[name] && "border-destructive")}
+                        aria-invalid={!!errors?.[name]}
+                        aria-required={required}
                     >
                         <SelectValue placeholder={placeholder}>
-                            {value === "" ? placeholder : undefined}
+                            {(value !== undefined && value !== null && value !== "" && findLabelByValue(value)) ?? placeholder}
                         </SelectValue>
                     </SelectTrigger>
                     <SelectContent className={contentClassName}>
-                        {hasGroups
-                            ? (options as SelectGroupOption[]).map(renderGroupOptions)
-                            : renderFlatOptions(options as SelectOption[])}
+                        {renderOptions()}
                     </SelectContent>
                 </Select>
 
                 {errors?.[name] && (
-                    <p className="flex items-center gap-2 text-xs text-red-500 mt-1">
+                    <p className="flex items-center gap-2 text-xs text-destructive mt-1">
                         <AlertCircle className="w-4 h-4" />
-                        {errors?.[name]}
+                        {errors[name]}
                     </p>
                 )}
-                {name && <input type="hidden" name={name} value={value ?? ""} />}
-
             </div>
         );
     }

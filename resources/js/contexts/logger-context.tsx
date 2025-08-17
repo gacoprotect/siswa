@@ -1,5 +1,6 @@
 import useDebugLogger, { Logger } from '@/hooks/use-debug-logger';
 import React, { createContext, useContext, ReactNode } from 'react';
+import { LoadingProvider } from './loading-context';
 
 const LoggerContext = createContext<Logger | null>(null);
 
@@ -9,10 +10,12 @@ interface LoggerProviderProps {
 
 export const LoggerProvider = ({ children }: LoggerProviderProps) => {
     const logger = useDebugLogger();
-    
+
     return (
         <LoggerContext.Provider value={logger}>
-            {children}
+            <LoadingProvider>
+                {children}
+            </LoadingProvider>
         </LoggerContext.Provider>
     );
 };

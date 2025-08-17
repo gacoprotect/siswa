@@ -15,11 +15,8 @@ use Inertia\Inertia;
 
 class TagihanController extends Controller
 {
-    public function index(Request $request, $nouid)
+    public static function index($nouid): array
     {
-        if (!Auth::check()) {
-            return redirect()->intended(route('siswa.index', $nouid));
-        }
 
         $identitas = Indentitas::select('idok')
             ->where('nouid', $nouid)
@@ -54,15 +51,15 @@ class TagihanController extends Controller
         $total_disc = $identitas->tagihan->where('jen', 1)->sum('jumlah');
         $totalTagihan = max(0, $identitas->tagihan->sum('jumlah'));
 
-        return response()->json([
-            'status' => true,
-            'data' => $data,
+        return [
+            'nouid' => $nouid,
+            'data' => ['tagihan' => $data],
             'summary' => [
                 'total_tagihan' => $totalTagihan,
                 'total_disc'    => $total_disc,
                 'spr'           => $spr,
             ],
-        ]);
+        ];
     }
 
     public function show(Request $request, $nouid)

@@ -15,7 +15,7 @@ class Tkelasjenis extends BaseModel
     protected $connection = 'mai1';
     protected $table = 'tkelasjenis';
     protected $primaryKey = 'id';
-    public $timestamps = true;
+    public $timestamps = false;
     protected $appends = [];
     protected $visible = [];
     // protected $fillable = [

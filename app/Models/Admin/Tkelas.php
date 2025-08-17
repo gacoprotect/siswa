@@ -17,7 +17,7 @@ class Tkelas extends BaseModel
     protected $connection = 'mai1';
     protected $table = 'tkelas';
     protected $primaryKey = 'id';
-    public $timestamps = true;
+    public $timestamps = false;
     protected $appends = [];
     protected $hidden = [
         'jenis',

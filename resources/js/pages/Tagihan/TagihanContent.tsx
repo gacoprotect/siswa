@@ -1,11 +1,13 @@
 import PaymentButton from '@/components/tagihanButton';
-import { BillTagihan } from '@/types';
+import { Auth, BillTagihan, DataSiswa } from '@/types';
 import { X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { FaFileInvoice, FaFileInvoiceDollar, FaHistory, FaSpinner, FaTrashAlt } from 'react-icons/fa';
-import { TagihanParam } from '../Siswa/Index1';
+import { FaFileInvoice, FaFileInvoiceDollar, FaHistory } from 'react-icons/fa';
 import TambahTagihan from './TambahTagihan';
 import RiwayatTagihan from './RiwayatTagihan';
+import { TagihanParam } from '../Siswa/Index';
+import { usePage } from '@inertiajs/react';
+import { Loading } from '@/components/loading-screen';
 
 interface DataTambahTagihan {
     tah: string;
@@ -25,50 +27,34 @@ export interface Summary {
     total_disc?: number;
     spr: number[];
 }
-
-const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-
 const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; setTagihanParam: (v: TagihanParam) => void; onClose: () => void }) => {
+    const { errors, data, summary: sum } = usePage<{ auth: Auth; data: DataSiswa; summary: Summary }>().props
     const [isLoading, setIsLoading] = useState(false); // Tidak perlu loading untuk operasi lokal
+    // const { loading: isLoading, setLoading: setIsLoading } = useLoading();
     const [riwayat, setRiwayat] = useState(false);
     const [buatTagihanModal, setBuatTagihanModal] = useState(false);
-    const [groupedData, setGroupedData] = useState<BillTagihan[]>([]);
-    const [error, setError] = useState<string | null>(null);
+    const [groupedData, setGroupedData] = useState<BillTagihan[]>(data.tagihan ?? []);
     const initialSummary = {
-        total_tagihan: 0,
-        total_disc: 0,
-        spr: [],
+        total_tagihan: sum?.total_tagihan ?? 0,
+        total_disc: sum?.total_disc ?? 0,
+        spr: sum?.spr ?? [],
     } as Summary;
     const [summary, setSummary] = useState<Summary>(initialSummary);
-    const fetchData = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            setError(null);
 
-            const response = await fetch(route('tagihan.index', nouid));
-
-            if (!response.ok) {
-                throw new Error('Gagal memuat data tagihan');
-            }
-
-            const data = await response.json();
-
-            if (data.success) {
-                throw new Error('Terjadi kesalahan server');
-            }
-
-            setGroupedData(data.data);
-            setSummary(data.summary);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Terjadi kesalahan jaringan');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [nouid])
 
     useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        if (Array.isArray(data)) {
+            setGroupedData(data);
+        } else {
+            setGroupedData([]); // fallback kalau bukan array
+        }
+        setSummary({
+            total_tagihan: sum?.total_tagihan ?? 0,
+            total_disc: sum?.total_disc ?? 0,
+            spr: sum?.spr ?? [],
+        });
+    }, [data, sum]);
+
     // Format mata uang
     const formatCurrency = (amount: number): string => {
         return new Intl.NumberFormat('id-ID', {
@@ -118,7 +104,6 @@ const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; se
 
                 let totalNewAmount = 0;
                 const newSpr: number[] = [];
-                const newJen1: number[] = [];
 
                 items.data.forEach((item, index) => {
                     const normalizedMonth = item.bulan.toLowerCase();
@@ -144,18 +129,15 @@ const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; se
 
     if (isLoading) {
         return (
-            <div className="flex min-h-screen flex-col items-center justify-center space-y-3">
-                <FaSpinner className="animate-spin text-3xl text-blue-600" />
-                <span className="text-lg text-gray-700">Memuat data...</span>
-            </div>
+            <Loading />
         );
     }
 
-    if (error) {
+    if (Object(errors).length > 0) {
         return (
             <div className="flex items-center justify-center space-x-3 p-4 text-red-600">
                 <X className="animate-pulse" />
-                <span>{error}</span>
+                <span>{errors.message ?? errors.tagihan ?? "Terjadi Kesalahan"}</span>
             </div>
         );
     }
@@ -258,7 +240,8 @@ const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; se
                             <div className="pt-4 flex items-center gap-4">
                                 <button className="rounded-lg bg-red-600 p-2 text-sm text-white transition-colors hover:bg-red-700"
                                     onClick={() => {
-                                        fetchData()
+                                        setIsLoading(true)
+                                        // fetchData()
                                     }}>
                                     Batal
                                 </button>
