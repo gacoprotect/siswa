@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\MaskingHelper;
+use App\Http\Controllers\Admin\IzinController;
 use App\Models\Datmas\Indentitas;
 use App\Models\Saving\Tsisreqdata;
+use App\Services\IzinService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -16,13 +18,19 @@ use Illuminate\Validation\ValidationException;
 
 class SiswaController extends Controller
 {
+    protected $izinService;
+
+    public function __construct(IzinService $izinService)
+    {
+        $this->izinService = $izinService;
+    }
     public function index(Request $req, $nouid)
     {
         $req->validate([
             'page' => 'sometimes|string|in:index,topup,riwayat,tagihan',
-            'tab' => 'sometimes|string|in:siswa,kegiatan,tagihan',
+            'tab' => 'sometimes|string|in:siswa,kegiatan,tagihan,izin',
         ]);
-        logger("Request Index", ['nouid' => $nouid,'req' => $req->all()]);
+        logger("Request Index", ['nouid' => $nouid, 'req' => $req->all()]);
         try {
 
             $ident = Indentitas::with('registrasi')->with(['siswa.safe' => function ($qu) {
@@ -42,7 +50,7 @@ class SiswaController extends Controller
             if (!$ident->active) {
                 Auth::guard('siswa')->logout();
                 return Inertia::render('Siswa/Blokir', [
-                    'data'=> [
+                    'data' => [
                         'nouid' => $nouid,
                         'summary' => $ident->summary(),
                     ]
@@ -76,6 +84,8 @@ class SiswaController extends Controller
                         //     ]
                         // ] : []),
                     ],
+                    ...(($page === 'index' && $tab === 'tagihan') ? TagihanController::index($nouid) : []),
+                    ...(($page === 'index' && $tab === 'izin') ? $this->izinService->getByStudentId($ident->idok) : []),
                 ];
             } else {
                 $data = [

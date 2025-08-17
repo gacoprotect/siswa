@@ -16,7 +16,7 @@ class Tkelsis extends BaseModel
     protected $connection = 'mai1';
     protected $table = 'tkelsis';
     protected $primaryKey = 'ids';
-    public $timestamps = true;
+    public $timestamps = false;
     protected $appends = ['kel'];
     protected $hidden = [
         "createdat",

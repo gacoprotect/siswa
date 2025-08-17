@@ -49,8 +49,9 @@ class Siswa extends Authenticatable
     public $timestamps = true;
     const CREATED_AT = 'createdat';
     const UPDATED_AT = 'updatedat';
-    protected $appends = ['has_pin', 'balance', 'ttl', 'tin', 'kel'];
+    protected $appends = ['has_pin', 'balance', 'ttl', 'tin', 'kel','nouid'];
     protected $visible = [
+        'nouid',
         'balance',
         'nis',
         'namlen',
@@ -114,6 +115,12 @@ class Siswa extends Authenticatable
     public function kelsis()
     {
         return $this->belongsTo(Tkelsis::class, 'id', 'ids');
+    }
+    public function nouid(): Attribute
+    {
+        return Attribute::get(function () {
+            return $this->indentitas->nouid;
+        });
     }
     public function kel(): Attribute
     {

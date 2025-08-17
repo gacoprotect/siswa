@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils';
 import { ChangeEvent, HTMLInputTypeAttribute, ReactNode } from 'react';
 import { BsStarFill } from 'react-icons/bs';
 import { Input } from './ui/input';
+import { AlertCircle } from 'lucide-react';
 
 interface InputGroupProps<T = string | number | boolean> {
     id?: string
@@ -11,7 +12,7 @@ interface InputGroupProps<T = string | number | boolean> {
     onBlur?: () => void;
     touched?: boolean;
     checked?: boolean;
-    error?: string;
+    errors?: Record<string, string>;
     name: string;
     type?: HTMLInputTypeAttribute | 'currency' | 'rating' | 'textarea' | 'checkbox' | 'toggle';
     placeholder?: string;
@@ -40,7 +41,7 @@ const InputGroup: React.FC<InputGroupProps> = ({
     onBlur,
     touched,
     checked = false,
-    error,
+    errors,
     placeholder,
     className = '',
     classNameInput = '',
@@ -66,8 +67,7 @@ const InputGroup: React.FC<InputGroupProps> = ({
   }
     mt-1 block w-full outline-none
     ${type === 'toggle' ? 'rounded-full' : 'rounded-md'} 
-    border ${error ? 'border-red-500' : 'border-gray-300'} 
-    bg-muted/20 px-3 py-2 shadow-sm transition-all duration-200 text-md
+    border border-gray-300 bg-muted/20 px-3 py-2 shadow-sm transition-all duration-200 text-md
     ${disabled ? 'cursor-not-allowed bg-gray-100' : ''} 
     ${prefix ? 'pl-12' : 'pr-10'}`;
 
@@ -79,7 +79,7 @@ const InputGroup: React.FC<InputGroupProps> = ({
     const handleRatingChange = (rating: number) => {
         onChange(rating);
     };
-      const renderInput = () => {
+    const renderInput = () => {
         if (type === 'textarea') {
             return (
                 <textarea
@@ -90,11 +90,11 @@ const InputGroup: React.FC<InputGroupProps> = ({
                     onChange={handleChange}
                     onBlur={onBlur}
                     placeholder={placeholder || `Masukan ${String(label).toLowerCase()}`}
-                    className={cn(commonClass, classNameInput)}
-                    required={required}
+                    className={cn(commonClass, errors?.[name] && 'border-red-500', classNameInput)}
+                    // required={required}
                     disabled={disabled}
-                    aria-invalid={!!error}
-                    aria-describedby={error ? `${name}-error` : undefined}
+                    aria-invalid={!!errors?.[name]}
+                    aria-describedby={errors?.[name] ? `${name}-error` : undefined}
                 />
             );
         }
@@ -157,13 +157,13 @@ const InputGroup: React.FC<InputGroupProps> = ({
                 onBlur={onBlur}
                 placeholder={placeholder ? placeholder : label ? `Ketik ${label?.toLowerCase()}` : `Ketik ${name?.toLowerCase()}`}
                 className={cn(classNameInput,
-                    commonClass,
+                    commonClass, errors?.[name] && 'border-red-500',
                     'appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
                 )}
-                required={required}
+                // required={required}
                 disabled={disabled}
-                aria-invalid={!!error}
-                aria-describedby={error ? `${name}-error` : undefined}
+                aria-invalid={!!errors?.[name]}
+                aria-describedby={errors?.[name] ? `${name}-error` : undefined}
                 step={type === 'currency' ? '0.01' : undefined}
                 min={min}
                 max={max}
@@ -172,7 +172,6 @@ const InputGroup: React.FC<InputGroupProps> = ({
             />
         );
     };
-
     return (
         <div className={className}>
             {label && (
@@ -201,9 +200,10 @@ const InputGroup: React.FC<InputGroupProps> = ({
             </div>
 
             {
-                touched || error && (
-                    <p id={`${name}-error`} className="mt-1 text-sm text-red-600">
-                        {error}
+                touched || errors?.[name] && (
+                    <p className="flex items-center gap-2 text-xs text-destructive mt-1">
+                        <AlertCircle className="w-4 h-4" />
+                        {errors[name]}
                     </p>
                 )}
         </div>

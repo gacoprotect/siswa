@@ -14,14 +14,12 @@ import { toast } from 'react-toastify';
 
 interface ExculProps {
     nouid: string;
-    onClose: () => void;
 }
 
-const Excul = ({ nouid, onClose }: ExculProps) => {
+const Excul = ({ nouid }: ExculProps) => {
     const { data, errors } = usePage<{ data: DataSiswa }>().props;
     const { log, error: logError } = useLogger();
     const { APP_DEBUG } = useAppConfig();
-    const [isLoading, setIsLoading] = useState(true);
     const [countdown, setCountdown] = useState(0);
     const otpRefs = useRef<Array<HTMLInputElement | null>>(Array(6).fill(null));
 
@@ -75,39 +73,12 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
             </div>
         );
     };
-
-    const fetchData = useCallback(
-        async (load = true) => {
-            try {
-                await router.get(
-                    route('siswa.index', { nouid: nouid, page: "index", tab: "kegiatan" }),
-                    {},
-                    {
-                        only: ['data.kegiatan', 'data.nouid'],
-                        preserveState: true,
-                        onStart: () => load && setIsLoading(true),
-                        onError: onClose,
-                        onFinish: () => load && setIsLoading(false)
-                    }
-                );
-            } catch (err) {
-                logError(err instanceof Error ? err.message : 'Terjadi kesalahan jaringan');
-                setIsLoading(false);
-            }
-        },
-        [nouid, onClose, logError]
-    );
-
     useEffect(() => {
         if (data?.kegiatan) {
             setInitialData(data.kegiatan);
             log('Data siswa loaded:', data);
         }
     }, [data?.kegiatan, log, data]);
-
-    useEffect(() => {
-        fetchData();
-    }, []);
 
     useEffect(() => {
         if (countdown <= 0) return;
@@ -224,7 +195,6 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
                 preserveState: true,
                 onStart: () => setProcess(dialogConfig.exculId),
                 onSuccess: () => {
-                    fetchData(false);
                     reset();
                 },
                 onError: () => {
@@ -239,7 +209,7 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
         } catch (err) {
             logError(`${dialogConfig.action} failed:`, err);
         }
-    }, [dialogConfig, nouid, post, fetchData, reset, logError, errors, setError, validateForm]);
+    }, [dialogConfig, nouid, post, reset, logError, errors, setError, validateForm]);
 
     const handleDialogClose = useCallback(() => {
         setDialogConfig(prev => ({ ...prev, open: false }));
@@ -247,14 +217,6 @@ const Excul = ({ nouid, onClose }: ExculProps) => {
         clearErrors();
     }, [reset, clearErrors]);
 
-    if (isLoading) {
-        return (
-            <div className="flex flex-row min-h-screen items-center justify-center space-x-3 py-4">
-                <FaSpinner className="animate-spin text-3xl text-blue-600" />
-                <span className="text-lg font-bold text-blue-600">Memuat data</span>
-            </div>
-        );
-    }
     const handleOtpSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('otp.verif', data.nouid), {

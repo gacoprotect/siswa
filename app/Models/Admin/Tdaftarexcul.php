@@ -13,7 +13,7 @@ class Tdaftarexcul extends BaseModel
     protected $connection = 'mai1';
     protected $table = 'tdaftarexcul';
     protected $primaryKey = 'id';
-    public $timestamps = true;
+    public $timestamps = false;
     protected $appends = [];
     protected $hidden = [
         "createdat",

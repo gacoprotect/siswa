@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\IzinController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -70,6 +71,8 @@ Route::middleware(['web'])->group(function () {
 
             Route::post('/excul/subs', [ExculController::class, 'subs'])->name('subs.excul');
             Route::post('/excul/unsubs', [ExculController::class, 'unsubs'])->name('unsubs.excul');
+            Route::post('/izin', [IzinController::class, 'store'])->name('izin.store');
+            Route::post('/izin/cancel', [IzinController::class, 'cancel'])->name('izin.cancel');
         });
     });
 });

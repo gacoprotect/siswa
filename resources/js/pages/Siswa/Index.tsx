@@ -1,13 +1,12 @@
 import { Blokir } from '@/components/blokir';
 import { Loading } from '@/components/loading-screen';
 import { useLogger } from '@/contexts/logger-context';
-import { useToast } from '@/hooks/use-toast';
 import AppLayout from '@/Layout/AppLayout';
 import { formatIDR } from '@/lib/utils';
-import { Auth, DataSiswa, SharedData } from '@/types';
+import { Auth, DataSiswa } from '@/types';
 import { router, usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FaFileInvoiceDollar, FaFootballBall,FaUserGraduate } from 'react-icons/fa';
+import { FaFileInvoiceDollar, FaFootballBall, FaUserGraduate } from 'react-icons/fa';
 import { route } from 'ziggy-js';
 import TagihanContent from '../Tagihan/TagihanContent';
 import Topup from '../Topup';
@@ -25,10 +24,11 @@ import RegistrationStatus from '@/components/siswa/dashboard/registration-status
 import { useAppConfig } from '@/hooks/use-app-config';
 import { MdMail } from 'react-icons/md';
 import Izin from './Izin';
+import { useLoading } from '@/contexts/loading-context';
 
 // Type definitions
 export type PageState = 'index' | 'topup' | 'riwayat' | 'tagihan';
-export type TabState = 'tagihan' | 'siswa' | 'kegiatan';
+export type TabState = 'tagihan' | 'siswa' | 'kegiatan' | 'izin';
 export type ModalState = 'pin' | 'setupPin' | 'blokir' | null;
 
 export interface TagihanParam {
@@ -38,6 +38,7 @@ export interface TagihanParam {
 }
 
 export default function SiswaDashboard() {
+    const props = usePage().props
     const { auth, data: initialData, page: initialPage, tab } = usePage<{
         auth: Auth;
         data: DataSiswa;
@@ -46,15 +47,13 @@ export default function SiswaDashboard() {
     }>().props;
 
     const { log, count } = useLogger();
-    useToast(usePage<SharedData>().props);
-
     const { APP_DEBUG } = useAppConfig();
 
     // State management
     const [siswaData, setSiswaData] = useState(initialData);
     const [activeItem, setActiveItem] = useState<number | null>(null);
     const [page, setPage] = useState<PageState>(initialPage);
-    const [isLoading, setIsLoading] = useState(false);
+    const { loading: isLoading, setLoading: setIsLoading } = useLoading();
     const [isHistory, setIsHistory] = useState(false);
     const [hasPined, setHasPined] = useState(Boolean(initialData.summary?.pin));
     const [openModal, setOpenModal] = useState<ModalState>(null);
@@ -67,16 +66,21 @@ export default function SiswaDashboard() {
     useEffect(() => {
         if (APP_DEBUG) {
             count('Component Render');
-            log({ auth, initialData });
+            log({ props, siswaData });
         }
-    }, [APP_DEBUG, count, log, auth, initialData]);
+    }, [APP_DEBUG, count, log, props, siswaData]);
+
+    useEffect(() => {
+        setSiswaData(prev => ({ ...prev, ...initialData }));
+    }, [initialData]);
 
     // Sync tab with active item
     useEffect(() => {
         const tabToIndexMap: Record<TabState, number> = {
             tagihan: 0,
             siswa: 1,
-            kegiatan: 2
+            kegiatan: 2,
+            izin: 3,
         };
 
         if (tab && tab in tabToIndexMap) {
@@ -90,38 +94,42 @@ export default function SiswaDashboard() {
     const menuItems = useMemo(() => [
         {
             title: 'Tagihan',
+            tab: 'tagihan',
             icon: <FaFileInvoiceDollar className="h-6 w-6 text-green-600" />,
             color: 'border-green-700 bg-green-50 hover:bg-green-100',
-            content: (
+            content:
                 <TagihanContent
-                    nouid={siswaData.nouid}
+                    nouid={siswaData.nouid ?? auth?.user?.nouid}
                     setTagihanParam={(v: TagihanParam) => {
                         setTagihanParam(v);
                         setPage('tagihan');
                     }}
                     onClose={() => setActiveItem(null)}
                 />
-            ),
+            ,
         },
         {
             title: 'Data Siswa',
+            tab: 'siswa',
             icon: <FaUserGraduate className="h-6 w-6 text-amber-600" />,
             color: 'border-amber-700 bg-amber-50 hover:bg-amber-100',
-            content: <DataSiswaContent nouid={siswaData.nouid} siswa={siswaData.siswa} />,
+            content: <DataSiswaContent nouid={siswaData.nouid ?? auth?.user?.nouid} siswa={siswaData.siswa} />,
         },
         {
             title: 'Kegiatan',
+            tab: 'kegiatan',
             icon: <FaFootballBall className="h-6 w-6 text-rose-600" />,
             color: 'border-rose-700 bg-rose-50 hover:bg-rose-100',
-            content: <Excul nouid={siswaData.nouid} onClose={() => setActiveItem(null)} />,
+            content: <Excul nouid={siswaData.nouid ?? auth?.user?.nouid} />,
         },
         {
             title: 'Izin',
+            tab: 'izin',
             icon: <MdMail className="h-6 w-6 text-rose-600" />,
             color: 'border-rose-700 bg-rose-50 hover:bg-rose-100',
-            content: <Izin nouid={siswaData.nouid}/>,
+            content: <Izin nouid={siswaData.nouid ?? auth?.user?.nouid} />,
         },
-    ], [siswaData.nouid, siswaData.siswa]);
+    ], [siswaData.nouid, auth?.user?.nouid, siswaData.siswa]);
 
     // Memoized formatted saldo
     const formattedSaldo = useMemo(() => formatIDR(siswaData.balance || 0), [siswaData.balance]);
@@ -136,17 +144,15 @@ export default function SiswaDashboard() {
         }
     }, []);
 
-    // Data refresh using Inertia visit
-    const refreshData = useCallback(() => {
-        if (isLoading) return;
+    // const refreshData = useCallback(() => {
+    //     if (isLoading) return;
 
-        setIsLoading(true);
-        router.visit(route('siswa.index', siswaData.nouid), {
-            only: ['data'],
-            preserveState: true,
-            onFinish: () => setIsLoading(false),
-        });
-    }, [siswaData.nouid, isLoading]);
+    //     setIsLoading(true);
+    //     router.visit(route('siswa.index', siswaData.nouid ?? auth?.user?.nouid), {
+    //         preserveState: true,
+    //         onFinish: () => setIsLoading(false),
+    //     });
+    // }, [siswaData.nouid, auth?.user?.nouid, isLoading, setIsLoading]);
 
     // Modal handlers
     const openPinModal = useCallback(() => {
@@ -159,43 +165,30 @@ export default function SiswaDashboard() {
 
     const closeModal = useCallback((success = false) => {
         setOpenModal(null);
-        refreshData();
+        // refreshData();
         if (!success) {
             setIsHistory(false);
             setPage('index');
         }
-    }, [refreshData]);
+    }, []);
 
     const handleLogout = useCallback(() => {
-        router.post(route('siswa.logout', siswaData.nouid), {}, {
+        router.post(route('siswa.logout', siswaData.nouid ?? auth?.user?.nouid), {}, {
             onStart: () => setIsLoading(true),
             onFinish: () => setIsLoading(false),
         });
-    }, [siswaData.nouid]);
+    }, [siswaData.nouid, auth?.user?.nouid, setIsLoading]);
 
     const handleBlockRequest = useCallback(() => {
         setOpenModal('blokir');
     }, []);
 
-    // Render active content if an item is selected
-    if (activeItem !== null) {
-        return (
-            <ActiveContent
-                activeItem={activeItem}
-                menuItems={menuItems}
-                onBack={() => {
-                    refreshData();
-                    setActiveItem(null)
-                }}
-            />
-        );
-    }
 
     const renderDebugMenu = () => {
         if (!APP_DEBUG || siswaData?.summary?.reg !== 0) return null;
 
         const handleSimulation = (type: string) => {
-            router.get(route('simulasi.reg', { sim: type, nouid: siswaData.nouid }));
+            router.get(route('simulasi.reg', { sim: type, nouid: siswaData.nouid ?? auth?.user?.nouid }));
         };
 
         return (
@@ -231,7 +224,7 @@ export default function SiswaDashboard() {
             return (
                 <Topup
                     siswa={siswaData.siswa}
-                    nouid={siswaData.nouid}
+                    nouid={siswaData.nouid ?? auth?.user?.nouid}
                     onClose={() => {
                         setPage('index');
                         closeModal();
@@ -242,7 +235,7 @@ export default function SiswaDashboard() {
             return (
                 <PaymentPage
                     siswa={siswaData.siswa}
-                    tagihanParam={{ ...tagihanParam, nouid: siswaData.nouid }}
+                    tagihanParam={{ ...tagihanParam, nouid: siswaData.nouid ?? auth?.user?.nouid }}
                     onClose={() => {
                         setPage('index');
                         closeModal();
@@ -252,8 +245,18 @@ export default function SiswaDashboard() {
         default:
             return (
                 <>
-                    {isLoading && <Loading text="Memuat Data" variant="overlay" />}
-
+                    {isLoading && <Loading variant="overlay" />}
+                    {(activeItem !== null) &&
+                        <ActiveContent
+                            nouid={siswaData.nouid ?? auth?.user?.nouid}
+                            activeItem={activeItem}
+                            menuItems={menuItems}
+                            onBack={() => {
+                                // refreshData();
+                                window.history.back();
+                                setActiveItem(null)
+                            }}
+                        />}
                     <AppLayout title={auth.user?.namlen ?? 'Login'}>
                         <StudentInfo
                             auth={auth}

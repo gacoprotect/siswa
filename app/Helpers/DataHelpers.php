@@ -143,8 +143,13 @@ function formatPhoneNumber($number)
 function idta()
 {
     try {
-       return DB::connection('mai1')->table('ttahunajaran')->where('staakt', 1)->firstOrFail();
+        return DB::connection('mai1')->table('ttahunajaran')->where('staakt', 1)->firstOrFail();
     } catch (\Throwable $th) {
         throw $th;
     }
+}
+
+function isdebug(): bool
+{
+    return config('app.debug') === true;
 }
