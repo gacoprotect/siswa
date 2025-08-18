@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Siswa, FormDataPindahSekolah } from '@/types';
+import { FormPindahSekolah, Siswa } from '@/types';
 import InputGroup from '@/components/InputGroup';
 import dayjs from 'dayjs';
 import { useAppConfig } from '@/hooks/use-app-config';
@@ -7,10 +7,9 @@ import { usePage } from '@inertiajs/react';
 
 interface PindahSekolahFormProps {
     siswa: Siswa;
-    onSubmit: (data: FormDataPindahSekolah) => void;
+    onSubmit: (data: FormPindahSekolah) => void;
     isTagihanLunas: boolean;
 }
-
 const PindahSekolahForm: React.FC<PindahSekolahFormProps> = ({
     siswa,
     onSubmit,
@@ -18,17 +17,16 @@ const PindahSekolahForm: React.FC<PindahSekolahFormProps> = ({
 }) => {
     const { errors } = usePage().props
     const { APP_DEBUG } = useAppConfig();
-    const [formData, setFormData] = useState<FormDataPindahSekolah>({
-        tgl: APP_DEBUG ? dayjs().format('YYYY-MM-DD') : '',
-        kelas: siswa.kel || '',
-        tujuan: APP_DEBUG ? 'TEST MODE' : '',
-        tgl_stop: APP_DEBUG ? dayjs().format('YYYY-MM-DD') : '',
-        ket: APP_DEBUG ? 'TEST MODE TEST MODE' : '',
+    const [formData, setFormData] = useState<FormPindahSekolah>({
+        tgl: dayjs().format('YYYY-MM-DD'),
+        kelas: siswa.kel ?? '',
+        sek: APP_DEBUG ? 'TEST MODE' : '',
+        ala: APP_DEBUG ? 'TEST MODE TEST MODE' : '',
     });
     const [error, setError] = useState<Record<string, string>>(errors)
-    const handleInputChange = useCallback(<K extends keyof FormDataPindahSekolah>(
+    const handleInputChange = useCallback(<K extends keyof FormPindahSekolah>(
         name: K,
-        value: FormDataPindahSekolah[K]
+        value: FormPindahSekolah[K]
     ) => {
         setFormData(prev => ({ ...prev, [name]: value }));
         if (error[name]) {
@@ -66,31 +64,22 @@ const PindahSekolahForm: React.FC<PindahSekolahFormProps> = ({
                     <InputGroup
                         label="Sekolah Tujuan"
                         type="text"
-                        name="tujuan"
-                        value={formData.tujuan}
-                        onChange={(e) => handleInputChange("tujuan", e as string)}
+                        name="sek"
+                        value={formData.sek}
+                        onChange={(e) => handleInputChange("sek", e as string)}
                         errors={errors}
                         required
                     />
-                    <InputGroup
-                        label="Tanggal mulai berhenti"
-                        type="date"
-                        name="tgl_stop"
-                        value={formData.tgl_stop}
-                        min={dayjs().format('YYYY-MM-DD')}
-                        onChange={(e) => handleInputChange("tgl_stop", e as string)}
-                        errors={errors}
-                        required
-                    />
+                    
                 </div>
 
                 <InputGroup
                     label="Alasan"
                     type="textarea"
-                    name="ket"
-                    value={formData.ket}
+                    name="ala"
+                    value={formData.ala}
                     min={dayjs().format('YYYY-MM-DD')}
-                    onChange={(e) => handleInputChange("ket", e as string)}
+                    onChange={(e) => handleInputChange("ala", e as string)}
                     errors={errors}
                     className='mb-4'
                     required

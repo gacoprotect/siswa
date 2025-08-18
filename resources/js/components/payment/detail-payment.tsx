@@ -1,9 +1,8 @@
 import { Auth, BillTagihan, DataSiswa, Siswa } from '@/types';
 import { useForm, usePage } from '@inertiajs/react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FaSpinner } from 'react-icons/fa';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { TagihanParam } from '@/pages/Siswa/Index';
 import { Summary } from '@/pages/Tagihan/TagihanContent';
 
 
@@ -17,12 +16,11 @@ interface ResponseData {
     orderId: string;
 }
 interface PaymentPageProps {
-    tagihanParam: TagihanParam;
     siswa: Siswa;
     onClose?: () => void;
 }
 
-const DetailPayment: React.FC<PaymentPageProps> = ({ siswa, tagihanParam, onClose }) => {
+const DetailPayment: React.FC<PaymentPageProps> = ({ siswa, onClose }) => {
     const { auth, data: pageData, summary } = usePage<{ auth: Auth; data: DataSiswa, summary: Summary }>().props;
     const isMobile = useIsMobile();
     const [exist, setExist] = useState(false);
@@ -30,7 +28,7 @@ const DetailPayment: React.FC<PaymentPageProps> = ({ siswa, tagihanParam, onClos
     const [initialData, setInitialData] = useState<ResponseData>({
         nouid: pageData.nouid ?? auth.user?.nouid,
         items: pageData.tagihan ?? [],
-        total_tagihan: summary?.total_tagihan ?? tagihanParam.tagihan as number,
+        total_tagihan: summary?.total_tagihan ?? 0,
         total_diskon: summary.total_disc ?? 0,
         sisa_tagihan: 0,
         orderId: '',
@@ -39,10 +37,10 @@ const DetailPayment: React.FC<PaymentPageProps> = ({ siswa, tagihanParam, onClos
     const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'va'>('wallet');
 
     const { data, post, processing, setData, errors } = useForm({
-        spr: tagihanParam.spr as number[],
-        nouid: tagihanParam.nouid,
+        spr: summary?.spr as number[],
+        nouid: pageData.nouid,
         payment_method: paymentMethod,
-        amount: tagihanParam.tagihan,
+        amount: summary.total_tagihan,
         orderId: '',
         uri: null as string | null,
     });
@@ -56,7 +54,7 @@ const DetailPayment: React.FC<PaymentPageProps> = ({ siswa, tagihanParam, onClos
 
         if (isSubmitDisabled) return;
 
-        await post(route('tagihan.pay', tagihanParam.nouid), {
+        await post(route('tagihan.pay', pageData.nouid), {
             preserveScroll: true,
             onSuccess: () => {
                 setLunas(true);

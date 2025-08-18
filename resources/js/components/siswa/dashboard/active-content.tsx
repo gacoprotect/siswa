@@ -1,11 +1,10 @@
 import { Loading } from "@/components/loading-screen";
 import { useLoading } from "@/contexts/loading-context";
-import { useLogger } from "@/contexts/logger-context";
 import AppLayout from "@/Layout/AppLayout";
 import { router } from "@inertiajs/react";
-import React, { JSX, useCallback, useEffect, useMemo } from "react";
+import React, { JSX, useCallback, useEffect } from "react";
 import { FaArrowAltCircleLeft } from "react-icons/fa";
-import { toast } from "react-toastify";
+
 
 interface MenuItem {
     title: string;
@@ -15,6 +14,7 @@ interface MenuItem {
     content: JSX.Element;
 }
 
+
 interface ActiveContentProps {
     nouid: string;
     activeItem: number | null;
@@ -22,76 +22,44 @@ interface ActiveContentProps {
     onBack: () => void;
 }
 
-export type TabState = 'tagihan' | 'siswa' | 'kegiatan';
-
-const ActiveContent: React.FC<ActiveContentProps> = ({
-    nouid,
-    activeItem,
-    menuItems,
-    onBack
+const ActiveContent: React.FC<ActiveContentProps> = ({ 
+    nouid, 
+    activeItem, 
+    menuItems, 
+    onBack 
 }) => {
     const { loading, setLoading } = useLoading();
-    const { error: logError } = useLogger();
+    const currentTab = activeItem !== null ? menuItems[activeItem]?.tab : null;
 
-    // Memoize params untuk menghindari recreating object pada setiap render
-    const params = useMemo(() => ({
-        nouid: nouid,
-        page: "index",
-        tab: activeItem !== null ? menuItems[activeItem].tab : ''
-    }), [nouid, activeItem, menuItems]);
+    const fetchData = useCallback(async () => {
+        if (!currentTab) return;
 
-    const fetchData = useCallback(
-        async (load = true) => {
-            try {
-                await router.visit(
-                    route('siswa.index', params),
-                    {
-                        except:['auth', 'ziggy'],
-                        preserveState: true,
-                        preserveScroll: true,
-                        onStart: () => load && setLoading(true),
-                        onError: () => {
-                            toast.error('Terjadi Kesalahan')
-                            onBack()
-                            setLoading(false);
-                        },
-                        onFinish: () => load && setLoading(false)
-                    }
-                );
-            } catch (err) {
-                logError(err instanceof Error ? err.message : 'Terjadi kesalahan jaringan');
-                setLoading(false);
-            }
-        },
-        [params, setLoading, logError, onBack]
-    );
-
-    // Efek untuk fetch data ketika activeItem berubah
-    useEffect(() => {
-        if (activeItem === null) {
+        try {
+            setLoading(true);
+            await router.visit(route('siswa.index', { 
+                nouid, 
+                page: "index", 
+                tab: currentTab 
+            }), {
+                preserveState: true,
+                preserveScroll: true,
+                onFinish: () => setLoading(false)
+            });
+        } catch (error) {
             setLoading(false);
-            return;
+            console.error("Fetch error:", error);
         }
+    }, [currentTab, nouid, setLoading]);
 
-        const loadData = async () => {
-            await fetchData();
-        };
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
-        loadData();
-    }, [activeItem, setLoading]);
+    if (activeItem === null) return null;
 
-    // Early return jika tidak ada item aktif
-    if (activeItem === null) {
-        return null;
-    }
-
-    const item = menuItems[activeItem];
-    if (!item?.content) {
-        return (
-            <div className="p-4 text-center text-red-500">
-                Konten tidak tersedia
-            </div>
-        );
+    const currentItem = menuItems[activeItem];
+    if (!currentItem?.content) {
+        return <div className="p-4 text-red-500">Konten tidak tersedia</div>;
     }
 
     return (
@@ -99,26 +67,20 @@ const ActiveContent: React.FC<ActiveContentProps> = ({
             {loading ? (
                 <Loading variant="overlay" />
             ) : (
-                <AppLayout title={item?.title || 'MAI'}>
-                    <div className="flex flex-col min-h-screen rounded-lg bg-white shadow-md">
+                <AppLayout title={currentItem.title}>
+                    <div className="flex flex-col min-h-screen bg-white shadow-md">
                         {/* Header */}
-                        <div className="flex-shrink-0 flex items-center justify-between bg-primary px-4 py-4 text-primary-foreground">
-                            <button
-                                onClick={onBack}
-                                className="flex items-center space-x-2 transition-opacity hover:opacity-80 cursor-pointer"
-                                aria-label="Kembali"
-                            >
-                                <FaArrowAltCircleLeft className="text-primary-foreground" />
+                        <div className="bg-primary px-4 py-4 text-primary-foreground flex items-center justify-between">
+                            <button onClick={onBack} className="flex items-center gap-2">
+                                <FaArrowAltCircleLeft />
                                 <span>Kembali</span>
                             </button>
-                            <h1 className="text-2xl font-bold text-white">{item.title}</h1>
+                            <h1 className="text-2xl font-bold">{currentItem.title}</h1>
                         </div>
-
-                        {/* Content Area - Scrollable */}
-                        <div className="flex-1 overflow-y-auto">
-                            <div className="p-4 h-full">
-                                {item.content}
-                            </div>
+                        
+                        {/* Content */}
+                        <div className="flex-1 overflow-auto p-4">
+                            {React.cloneElement(currentItem.content, { key: currentTab })}
                         </div>
                     </div>
                 </AppLayout>

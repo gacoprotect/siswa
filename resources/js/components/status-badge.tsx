@@ -40,7 +40,7 @@ const STATUS_CONFIG = {
 } as const;
 
 interface StatusBadgeProps {
-  status: StatusType | number;
+  status: StatusType | number | string;
   className?: string;
 }
 

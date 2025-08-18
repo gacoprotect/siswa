@@ -1,9 +1,8 @@
 import PindahSekolahForm from '@/components/siswa/pindah-sekolah/PindahSekolahForm';
 import TagihanStatus from '@/components/siswa/pindah-sekolah/TagihanStatus';
-import { Auth, DataPindahSekolah, DataSiswa, FormDataPindahSekolah, PindahSekolahProps } from '@/types';
+import { Auth, DataPindahSekolah, DataSiswa, FormPindahSekolah, PindahSekolahProps } from '@/types';
 import { usePage } from '@inertiajs/react';
 import React, { useCallback, useEffect, useState } from 'react';
-import { TagihanParam } from './Index';
 import DetailPayment from '@/components/payment/detail-payment';
 import { Summary } from '../Tagihan/TagihanContent';
 import { CalendarDays } from 'lucide-react';
@@ -14,10 +13,10 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 const PindahSekolah: React.FC<PindahSekolahProps> = ({ nouid }) => {
-    const { auth, data: pageData, summary } = usePage<{
+    const { data: pageData, summary } = usePage<{
         auth: Auth;
         data: DataSiswa;
-        summary: Summary
+        summary?: Summary
     }>().props;
 
     const isMobile = useIsMobile();
@@ -32,33 +31,28 @@ const PindahSekolah: React.FC<PindahSekolahProps> = ({ nouid }) => {
     }, [pageData.pindah]);
 
     const billData = {
-        tagihan: summary.total_tagihan ?? 0,
+        tagihan: summary?.total_tagihan ?? 0,
         transactions: pageData.tagihan ?? []
     };
 
     const isTagihanLunas = billData.tagihan <= 0;
-    const [tagihanParam, setTagihanParam] = useState<TagihanParam>({
-        spr: summary.spr ?? [],
-        tagihan: summary.total_tagihan ?? 0,
-    });
 
     const formatDate = useCallback((date: Date | string, withTime = false) => {
         return dayjs(date).format(withTime ? 'DD MMMM YYYY HH:mm' : 'DD MMMM YYYY');
     }, []);
 
-    const handleFormSubmit = (formData: FormDataPindahSekolah) => {
+    const handleFormSubmit = (formData: FormPindahSekolah) => {
         const newPindahData: DataPindahSekolah = {
             nops: `PS-${Math.floor(Math.random() * 10000)}`, // Contoh nomor dummy
             tin: 0,
             idta: 0,
             tgl: formData.tgl,
-            idsis: pageData.siswa?.id || 0,
-            oldidkel: pageData.siswa?.idkel || 0,
-            sek: formData.tujuan,
-            ala: formData.ket,
+            idsis: pageData.idok || 0,
+            sek: formData.sek,
+            kelas: formData.kelas,
+            ala: formData.ala,
             sta: 'menunggu',
             created_at: new Date().toISOString(),
-            tgl_stop: formData.tgl_stop
         };
 
         setSubmittedData(newPindahData);
@@ -102,7 +96,7 @@ const PindahSekolah: React.FC<PindahSekolahProps> = ({ nouid }) => {
                                     <span className="font-medium">Alasan:</span> {displayData.ala}
                                 </p>
                                 <p className="text-sm">
-                                    <span className="font-medium">Tanggal Berhenti:</span> {formatDate(displayData.tgl_stop)}
+                                    <span className="font-medium">Tanggal Berhenti:</span> {formatDate(displayData.tgl)}
                                 </p>
                             </div>
                         </div>
@@ -137,27 +131,20 @@ const PindahSekolah: React.FC<PindahSekolahProps> = ({ nouid }) => {
                 <>
                     <h2 className="text-center text-blue-500 text-xl font-bold mb-6">Formulir Permohonan Pindah Sekolah</h2>
 
-                    <TagihanStatus billData={billData} />
-
-                    {!isTagihanLunas && (
-                        <DetailPayment
-                            siswa={pageData.siswa}
-                            tagihanParam={{ ...tagihanParam, nouid: pageData.nouid }}
-                            walletBalance={pageData.balance}
-                            onClose={() => { }}
-                        />
-                    )}
-
                     <PindahSekolahForm
                         siswa={pageData.siswa}
                         onSubmit={handleFormSubmit}
                         isTagihanLunas={isTagihanLunas}
-                        initialFormData={{
-                            kelas: pageData.siswa?.kelas?.nama || '',
-                            tgl: new Date().toISOString().split('T')[0]
-                        }}
-                        walletBalance={pageData.balance}
                     />
+                    <TagihanStatus billData={billData} />
+                    {!isTagihanLunas && (
+                        <DetailPayment
+                            siswa={pageData.siswa}
+                            onClose={() => { }}
+                        />
+                    )}
+
+
                 </>
             )}
         </div>

@@ -1,3 +1,4 @@
+import { StatusType } from '@/components/status-badge';
 import { LucideIcon } from 'lucide-react';
 import type { Config } from 'ziggy-js';
 
@@ -272,13 +273,6 @@ export interface IzinType {
     created_at: Date;
 }
 
-export type FormDataPindahSekolah = {
-    tgl: string;
-    kelas: string;
-    tujuan: string;
-    tgl_stop: string;
-    ket: string;
-};
 
 export interface PindahSekolahProps {
     nouid: string;
@@ -288,12 +282,19 @@ export interface DataPindahSekolah {
     nops?: string;
     tin?: number;
     idta: number;
-    tgl: Date;
+    tgl: string;
     idsis:number;
-    oldidkel?:number;
+    kelas:string;
     sek: string;
     ala: string;
-    sta: number | string ;
+    sta: number | string | StatusType;
     rev?: number;
-    created_at: Date;   
+    created_at: string;   
+}
+
+interface FormPindahSekolah{
+    tgl: string,
+    kelas: string,
+    sek: string,
+    ala: string,
 }

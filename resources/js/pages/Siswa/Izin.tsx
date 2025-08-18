@@ -6,7 +6,7 @@ import InputGroup from '@/components/InputGroup';
 import InputFile from '@/components/InputFile';
 import { router, useForm, usePage } from '@inertiajs/react';
 import { ConfirmDialog } from '@/components/ConfirmDialog ';
-import { Auth, DataSiswa, IzinType, JenisIzin } from '@/types';
+import { DataSiswa, IzinType, JenisIzin } from '@/types';
 import { SelectInput } from '@/components/SelectInput';
 import { useAppConfig } from '@/hooks/use-app-config';
 import dayjs from 'dayjs';
@@ -30,8 +30,7 @@ type FormData = {
 type FormErrors = Partial<Record<keyof FormData, string>>;
 
 const Izin: React.FC<IzinProps> = ({ nouid }) => {
-    const { auth, data: pageData, jenis = [] } = usePage<{
-        auth: Auth;
+    const { data: pageData, jenis = [] } = usePage<{
         data: DataSiswa;
         jenis: JenisIzin[];
     }>().props;
@@ -51,7 +50,7 @@ const Izin: React.FC<IzinProps> = ({ nouid }) => {
         jen: APP_DEBUG ? 2 : 0,
         tgl_mulai: APP_DEBUG ? dayjs().format('YYYY-MM-DD') : '',
         tgl_akhir: APP_DEBUG ? dayjs().format('YYYY-MM-DD') : '',
-        ket: APP_DEBUG ? 'TEST AJA DULU YA GAES' : '',
+        ket: APP_DEBUG ? 'TEST MODE TEST MODE' : '',
         dok: null
     });
 
