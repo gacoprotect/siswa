@@ -8,28 +8,27 @@ export const useToast = () => {
     const { errors, flash } = usePage<SharedData>().props;
     const { error: logError, log } = useLogger();
 
-    // Memoize errors untuk optimasi performa
-    const processedErrors = useMemo(() => {
-        if (!errors) return [];
+    // // Memoize errors untuk optimasi performa
+    // const processedErrors = useMemo(() => {
+    //     if (!errors) return [];
 
-        return Object.values(errors)
-            .flat()
-            .filter((err): err is string => typeof err === 'string' && err.length > 0);
-    }, [errors]);
+    //     return Object.values(errors)
+    //         .flat()
+    //         .filter((err): err is string => typeof err === 'string' && err.length > 0);
+    // }, [errors]);
 
     // Handle errors
     useEffect(() => {
-        if (processedErrors.length === 0) return;
+        if (Object.keys(errors).length > 0) {
 
-        processedErrors.forEach((err) => {
-            const toastId = `err-${err}`;
+            const toastId = `err-${errors.message}`;
 
             if (!toast.isActive(toastId)) {
-                toast.error("Terjadi Kesalahan", { toastId });
-                logError(err, { toastId });
+                toast.error(errors.message, { toastId });
             }
-        });
-    }, [processedErrors, logError]);
+            logError(errors, { toastId });
+        }
+    }, [errors, logError]);
 
     // Handle flash messages
     useEffect(() => {

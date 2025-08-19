@@ -43,13 +43,7 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'flash' => function () use ($request) {
-                $flash = [
-                    'success' => $request->session()->get('success'),
-                    'message' => $request->session()->get('message'),
-                    'expires_at' => $request->session()->get('expires_at'),
-                ];
-                $request->session()->forget(['success', 'message', 'expires_at']);
-                return $flash;
+               return $request->session()->get('message');
             },
             'data' => function () use ($request) {
                 return $request->session()->get('data');
@@ -61,7 +55,7 @@ class HandleInertiaRequests extends Middleware
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),
             ],
-            'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            // 'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             // '__conf' => [
             //     'APP_DEBUG' => config('app.debug'),
             //     'APP_ENV' => config('app.env'),

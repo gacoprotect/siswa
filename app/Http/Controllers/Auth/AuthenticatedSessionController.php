@@ -9,7 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
+use Illuminate\Validation\ValidationException;
+use Inertia\Inertia; 
 use Inertia\Response;
 
 class AuthenticatedSessionController extends Controller
@@ -63,7 +64,7 @@ class AuthenticatedSessionController extends Controller
                 'success' => true,
                 'message' => 'Pin terverifikasi',
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             Log::error('Login process failed', [
                 'nouid' => $nouid ?? null,
                 'message' => $e->getMessage(),
@@ -71,7 +72,10 @@ class AuthenticatedSessionController extends Controller
 
             ]);
 
-            return back()->withErrors($e->errors())->withInput();
+            return back()->withErrors($e->errors())->withInput()->withMessage([
+                'success' => true,
+                'message' => $e->getMessage(),
+            ]);
         } catch (\Exception $e) {
             Log::error('Login process Error', [
                 'nouid' => $nouid ?? null,

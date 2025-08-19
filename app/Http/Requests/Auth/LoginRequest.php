@@ -89,10 +89,10 @@ class LoginRequest extends FormRequest
                 }
                 $errorData = [
 
-                    'pin' => 'PIN yang Anda Masukkan Salah',
+                    // 'pin' => 'PIN yang Anda Masukkan Salah',
                     // 'tel' => $indentitas->siswa->tel,
                     // 'attempt_count' => $attempts + 1,
-                    'remaining' => max(0, $remainingAttempts),
+                    // 'remaining' => max(0, $remainingAttempts),
                     // 'max_attempts' => self::MAX_ATTEMPTS,
                     'message' => $remainingAttempts > 0
                         ? "PIN yang Anda Masukkan Salah. Sisa percobaan: {$remainingAttempts}"
@@ -162,9 +162,9 @@ class LoginRequest extends FormRequest
 
         $errorData = [
 
-            'pin' => 'Terlalu banyak percobaan login',
+            // 'pin' => 'Terlalu banyak percobaan login',
             // 'attempt_count' => self::MAX_ATTEMPTS,
-            'remaining' => 0,
+            // 'remaining' => 0,
             // 'max_attempts' => self::MAX_ATTEMPTS,
             // 'retry_after' => $seconds,
             'message' => "Terlalu banyak percobaan login. Silakan coba lagi dalam {$seconds} detik."

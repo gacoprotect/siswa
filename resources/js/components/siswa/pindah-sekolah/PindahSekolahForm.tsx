@@ -23,14 +23,14 @@ const PindahSekolahForm: React.FC<PindahSekolahFormProps> = ({
         sek: APP_DEBUG ? 'TEST MODE' : '',
         ala: APP_DEBUG ? 'TEST MODE TEST MODE' : '',
     });
-    const [error, setError] = useState<Record<string, string>>(errors)
+    const [error, setError] = useState<FormPindahSekolah>(errors)
     const handleInputChange = useCallback(<K extends keyof FormPindahSekolah>(
         name: K,
         value: FormPindahSekolah[K]
     ) => {
         setFormData(prev => ({ ...prev, [name]: value }));
         if (error[name]) {
-            // setError(prev => ({ ...prev, [name]: undefined }));
+            setError(prev => ({ ...prev, [name]: undefined }));
         }
     }, [setFormData, error]);
     const handleSubmit = (e: React.FormEvent) => {
@@ -43,7 +43,7 @@ const PindahSekolahForm: React.FC<PindahSekolahFormProps> = ({
             <form onSubmit={handleSubmit}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <InputGroup
-                        label="Tanggal"
+                        label="Tanggal mulai berhenti"
                         type="date"
                         name="tgl"
                         value={formData.tgl}
