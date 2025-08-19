@@ -4,7 +4,6 @@ import { Auth, DataPindahSekolah, DataSiswa, FormPindahSekolah, PindahSekolahPro
 import { usePage } from '@inertiajs/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import DetailPayment from '@/components/payment/detail-payment';
-import { Summary } from '../Tagihan/TagihanContent';
 import { CalendarDays } from 'lucide-react';
 import { StatusBadge } from '@/components/status-badge';
 import dayjs from 'dayjs';
@@ -13,10 +12,9 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 const PindahSekolah: React.FC<PindahSekolahProps> = ({ nouid }) => {
-    const { data: pageData, summary } = usePage<{
+    const { data: pageData } = usePage<{
         auth: Auth;
         data: DataSiswa;
-        summary?: Summary
     }>().props;
 
     const isMobile = useIsMobile();
@@ -31,7 +29,7 @@ const PindahSekolah: React.FC<PindahSekolahProps> = ({ nouid }) => {
     }, [pageData.pindah]);
 
     const billData = {
-        tagihan: summary?.total_tagihan ?? 0,
+        tagihan: pageData?.summary?.total_tagihan ?? 0,
         transactions: pageData.tagihan ?? []
     };
 

@@ -41,6 +41,7 @@ const ActiveContent: React.FC<ActiveContentProps> = ({
                 page: "index", 
                 tab: currentTab 
             }), {
+                only: ['data','nouid'],
                 preserveState: true,
                 preserveScroll: true,
                 onFinish: () => setLoading(false)

@@ -45,17 +45,19 @@ class TagihanService
             'nouid' => $nouid,
             'data' => [
                 'tagihan' => $data,
-                'siswa' => $identitas->siswa
+                'siswa' => $identitas->siswa,
+                'summary' => [
+                    'total_tagihan' => $totalTagihan,
+                    'total_disc'    => $total_disc,
+                    'spr'           => $spr,
+                ],
             ],
-            'summary' => [
-                'total_tagihan' => $totalTagihan,
-                'total_disc'    => $total_disc,
-                'spr'           => $spr,
-            ],
+
         ];
     }
 
-    public function detail(): array {
+    public function detail(): array
+    {
 
         return [];
     }

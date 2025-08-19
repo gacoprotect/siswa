@@ -13,7 +13,7 @@ export interface NestedData {
 
 export interface PageProps {
     flash?: FlashMessage;
-    errors?: Record<string, string>;
+    errors?: Record<string, string[]>;
     name?: string;
     data?: NestedData
     [key: string]: unknown
@@ -71,6 +71,13 @@ export interface SiswaSummary {
     sign?: string | null;
     version?: string;
 }
+
+export interface Summary {
+    total_tagihan: number;
+    total_pembayaran?: number;
+    total_disc?: number;
+    spr: number[];
+}
 export interface DataExcul {
     sub: number[];
     waiting: number[];
@@ -83,7 +90,7 @@ export interface DataSiswa {
     active: boolean;
     nouid: string;
     balance: number;
-    summary?: SiswaSummary;
+    summary?: Record<SiswaSummary | Summary>;
     siswa: Siswa;
     kegiatan?: DataExcul;
     tagihan?: BillTagihan[] | [];
@@ -283,16 +290,16 @@ export interface DataPindahSekolah {
     tin?: number;
     idta: number;
     tgl: string;
-    idsis:number;
-    kelas:string;
+    idsis: number;
+    kelas: string;
     sek: string;
     ala: string;
     sta: number | string | StatusType;
     rev?: number;
-    created_at: string;   
+    created_at: string;
 }
 
-interface FormPindahSekolah{
+interface FormPindahSekolah {
     tgl: string,
     kelas: string,
     sek: string,

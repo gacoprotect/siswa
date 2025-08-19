@@ -1,5 +1,5 @@
-import { TagihanParam } from '@/pages/Siswa/Index1';
-import { Summary } from '@/pages/Tagihan/TagihanContent';
+import { TagihanParam } from '@/pages/Siswa/Index';
+import { Summary } from '@/types';
 import { FaFileInvoiceDollar } from 'react-icons/fa';
 
 interface Props {
