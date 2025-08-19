@@ -1,5 +1,5 @@
 import PaymentButton from '@/components/tagihanButton';
-import { Auth, BillTagihan, DataSiswa } from '@/types';
+import { BillTagihan, DataSiswa, Summary } from '@/types';
 import { useCallback, useEffect, useState } from 'react';
 import { FaFileInvoice, FaFileInvoiceDollar, FaHistory } from 'react-icons/fa';
 import TambahTagihan from './TambahTagihan';
@@ -20,23 +20,17 @@ interface SetTambahTagihan {
     data: DataTambahTagihan[];
 }
 
-export interface Summary {
-    total_tagihan: number;
-    total_pembayaran?: number;
-    total_disc?: number;
-    spr: number[];
-}
 const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; setTagihanParam: (v: TagihanParam) => void; onClose: () => void }) => {
-    const { data, summary: sum } = usePage<{ auth: Auth; data: DataSiswa; summary: Summary }>().props
+    const { data } = usePage<{ data: DataSiswa; }>().props
     const [isLoading, setIsLoading] = useState(false); // Tidak perlu loading untuk operasi lokal
     // const { loading: isLoading, setLoading: setIsLoading } = useLoading();
     const [riwayat, setRiwayat] = useState(false);
     const [buatTagihanModal, setBuatTagihanModal] = useState(false);
     const [groupedData, setGroupedData] = useState<BillTagihan[]>(data.tagihan ?? []);
     const initialSummary = {
-        total_tagihan: sum?.total_tagihan ?? 0,
-        total_disc: sum?.total_disc ?? 0,
-        spr: sum?.spr ?? [],
+        total_tagihan: data.summary?.total_tagihan ?? 0,
+        total_disc: data.summary?.total_disc ?? 0,
+        spr: data.summary?.spr ?? [],
     } as Summary;
     const [summary, setSummary] = useState<Summary>(initialSummary);
 
@@ -48,11 +42,11 @@ const TagihanContent = ({ nouid, setTagihanParam, onClose }: { nouid: string; se
             setGroupedData([]); // fallback kalau bukan array
         }
         setSummary({
-            total_tagihan: sum?.total_tagihan ?? 0,
-            total_disc: sum?.total_disc ?? 0,
-            spr: sum?.spr ?? [],
+            total_tagihan: data.summary?.total_tagihan ?? 0,
+            total_disc: data.summary?.total_disc ?? 0,
+            spr: data.summary?.spr ?? [],
         });
-    }, [data.tagihan, sum]);
+    }, [data.tagihan, data.summary]);
 
     // Format mata uang
     const formatCurrency = (amount: number): string => {

@@ -1,9 +1,8 @@
-import { Auth, BillTagihan, DataSiswa, Siswa } from '@/types';
+import { Summary,Auth, BillTagihan, DataSiswa, Siswa } from '@/types';
 import { useForm, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
 import { FaSpinner } from 'react-icons/fa';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Summary } from '@/pages/Tagihan/TagihanContent';
 
 
 
@@ -21,15 +20,15 @@ interface PaymentPageProps {
 }
 
 const DetailPayment: React.FC<PaymentPageProps> = ({ siswa, onClose }) => {
-    const { auth, data: pageData, summary } = usePage<{ auth: Auth; data: DataSiswa, summary: Summary }>().props;
+    const { auth, data: pageData } = usePage<{ auth: Auth; data: DataSiswa }>().props;
     const isMobile = useIsMobile();
     const [exist, setExist] = useState(false);
     const [lunas, setLunas] = useState(false);
     const [initialData, setInitialData] = useState<ResponseData>({
         nouid: pageData.nouid ?? auth.user?.nouid,
         items: pageData.tagihan ?? [],
-        total_tagihan: summary?.total_tagihan ?? 0,
-        total_diskon: summary.total_disc ?? 0,
+        total_tagihan: pageData.summary?.total_tagihan ?? 0,
+        total_diskon: pageData.summary?.total_disc ?? 0,
         sisa_tagihan: 0,
         orderId: '',
     });
@@ -37,10 +36,10 @@ const DetailPayment: React.FC<PaymentPageProps> = ({ siswa, onClose }) => {
     const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'va'>('wallet');
 
     const { data, post, processing, setData, errors } = useForm({
-        spr: summary?.spr as number[],
+        spr: pageData.summary?.spr as number[],
         nouid: pageData.nouid,
         payment_method: paymentMethod,
-        amount: summary.total_tagihan,
+        amount: pageData.summary?.total_tagihan,
         orderId: '',
         uri: null as string | null,
     });
