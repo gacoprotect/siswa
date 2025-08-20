@@ -15,6 +15,7 @@ use App\Http\Controllers\TopupController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\EncryptionController;
 
 
 
@@ -23,16 +24,19 @@ Route::middleware(['guest'])->group(function () {
         return Inertia::render('welcome');
     });
 });
+
+
 // Route::prefix('/snk')->group(function () {
 //     // Route::get('/', [SnkController::class, 'index']) ->name('snk.index');          // SNK aktif
 //     // Route::get('/{version}', [SnkController::class, 'show'])->name('snk.getshow');
 //     // Route::get('/snk/sign', [SignatureController::class, 'verify'])->name('snk.sign');
 // });
 Route::middleware(['web'])->group(function () {
-    Route::prefix('/{nouid}')->group(function () {
-        Route::get('register', [RegisteredUserController::class, 'create'])->name('register');
-        Route::post('register', [RegisteredUserController::class, 'create'])->name('register');
+    Route::prefix('u/{nouid}')->group(function () {
+
+        Route::resource('register', RegisteredUserController::class)->only(['index', 'create', 'store']);
         Route::post('/auth/register', [RegisteredUserController::class, 'store'])->name('auth.register');
+
         Route::post('/snk', [SnkController::class, 'show'])->name('snk.show');
         Route::get('/snk/sign', [SignatureController::class, 'verify'])->name('snk.sign');
 

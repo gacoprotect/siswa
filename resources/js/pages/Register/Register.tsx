@@ -185,8 +185,8 @@ const Register = ({ nouid, agreement }: Props) => {
                 ...(data.warneg === 'ID' ? { nik: data.nik } : { paspor: data.paspor })
             };
             await Promise.all([
-                router.visit(route('register', { nouid: nouid, q: 'agreement' }), {
-                    method: 'post',
+                router.visit(route('register.create', { nouid: nouid, q: 'agreement' }), {
+                    // method: 'post',
                     data: signatureFormData,
                     only: ['agreement'], // hanya ambil props sesuai tab
                     preserveState: true,

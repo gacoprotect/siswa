@@ -45,7 +45,7 @@ class SiswaController extends Controller
             }
             if (!$ident->registrasi) {
                 Auth::guard('siswa')->logout();
-                return Inertia::location(route("register", ['nouid' => $nouid]));
+                return Inertia::location(route("register.create", ['nouid' => $nouid]));
             }
             if ($ident->registrasi->sta === 0 || session()->has('current_nouid') && session('current_nouid') !== $nouid) {
                 Auth::guard('siswa')->logout();

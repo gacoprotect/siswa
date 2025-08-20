@@ -13,7 +13,7 @@ export default function Welcome() {
     return (
         <div className="min-h-screen w-full bg-gray-50">
             <Head title="SchoolPay - Dompet Digital Sekolah" />
-            
+
             {/* Hero Section */}
             <div className="relative bg-gradient-to-br from-blue-600 to-blue-800 py-24 px-4 sm:px-6 lg:px-8 shadow-lg">
                 <div className="max-w-7xl mx-auto relative z-10">
@@ -29,7 +29,7 @@ export default function Welcome() {
                         </p>
                         <div className="pt-6 flex flex-col sm:flex-row gap-4 justify-center">
                             <Button asChild variant="secondary" size="lg" className="shadow-md hover:shadow-lg transition-all">
-                                <Link href="/a7095648">Coba Sekarang</Link>
+                                <Link href={route('siswa.index', "a7095648")}>Coba Sekarang</Link>
                             </Button>
                             <Button asChild variant="outline" size="lg" className="bg-transparent text-white border-white hover:bg-white/10">
                                 <Link href="#payment-methods">Metode Pembayaran</Link>
@@ -98,7 +98,7 @@ export default function Welcome() {
                     </div>
 
                     <div className="space-y-12">
-                                                {/* Transfer Bank */}
+                        {/* Transfer Bank */}
                         <div>
                             <h3 className="text-xl font-semibold text-gray-800 mb-6 text-center">Transfer Bank</h3>
                             <div className="grid grid-cols-2 sm:grid-cols-5 gap-6">
@@ -111,9 +111,9 @@ export default function Welcome() {
                                 ].map((bank, index) => (
                                     <div key={index} className="flex flex-col items-center p-4 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
                                         <div className="p-2 h-12 flex items-center">
-                                            <img 
-                                                src={bank.logo} 
-                                                alt={bank.alt} 
+                                            <img
+                                                src={bank.logo}
+                                                alt={bank.alt}
                                                 className="h-full object-contain"
                                             />
                                         </div>
@@ -172,7 +172,7 @@ export default function Welcome() {
                             <div>
                                 <h2 className="text-2xl font-bold">Kontrol Orang Tua</h2>
                                 <p className="mt-4 leading-relaxed">
-                                    Orang tua dapat memantau pengeluaran anak, menerima notifikasi real-time, 
+                                    Orang tua dapat memantau pengeluaran anak, menerima notifikasi real-time,
                                     dan mengatur limit pengeluaran harian/mingguan melalui aplikasi khusus orang tua.
                                 </p>
                                 <div className="mt-6">

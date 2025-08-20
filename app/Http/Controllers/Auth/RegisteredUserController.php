@@ -13,6 +13,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Http\Controllers\Saving\SignatureController;
+use App\Services\AgreementService;
+use App\Services\DataValidatorService;
+use App\Services\TimagableService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -20,101 +23,61 @@ use Illuminate\Validation\ValidationException;
 
 class RegisteredUserController extends Controller
 {
+    protected DataValidatorService $validator;
+    protected TimagableService $imageService;
+    protected AgreementService $agreement;
+
+    public function __construct(DataValidatorService $validator, TimagableService $imageService, AgreementService $agreement)
+    {
+        $this->validator = $validator;
+        $this->imageService = $imageService;
+        $this->agreement = $agreement;
+    }
+
+
     /**
      * Show the registration page.
      */
+
+    public function index(Request $req, $nouid)
+    {
+        $redirect = $this->registered($nouid);
+        if ($redirect) return $redirect;
+
+        $props = ['nouid' => $nouid];
+
+        return Inertia::render('Register/Register', $props);
+    }
     public function create(Request $req, $nouid)
     {
         $redirect = $this->registered($nouid);
         if ($redirect) return $redirect;
 
-        $data = [];
+
+        $data = $req->validate([
+            'nouid' => 'required|string|exists:mai2.tindentitas,nouid',
+            'warneg' => 'required|string',
+            'nama' => 'required|string',
+            'nik' => 'required_if:warneg,ID|nullable|digits:16|numeric',
+            'paspor' => 'required_if:warneg,!ID|nullable|string',
+            'kabName' => 'required|string',
+        ]);
         $props = ['nouid' => $nouid];
-        if ($req->isMethod('POST')) {
-            $data = $req->validate([
-                'nouid' => 'required|string|exists:mai2.tindentitas,nouid',
-                'warneg' => 'required|string',
-                'nama' => 'required|string',
-                'nik' => 'required_if:warneg,ID|nullable|digits:16|numeric',
-                'paspor' => 'required_if:warneg,!ID|nullable|string',
-                'kabName' => 'required|string',
-            ]);
-            if ($req->query('q') === 'agreement') {
-                try {
-                    if (empty($data)) {
-                        return back()->withErrors(['data' => 'Terjadi kesalahan data tidak valid']);
-                    }
-                    $props = array_merge($props, self::agreement($data));
-                } catch (\Exception $e) {
-                    logger()->error('Gagal membuat agreement: ' . $e->getMessage(), [
-                        'data' => $data,
-                        'exception' => $e,
-                    ]);
-                    return back()->withErrors(['agreement' => 'Terjadi kesalahan saat membuat agreement.']);
+        if ($req->query('q') === 'agreement') {
+            try {
+                if (empty($data)) {
+                    return back()->withErrors(['data' => 'Terjadi kesalahan data tidak valid']);
                 }
+                $props = array_merge($props, $this->agreement->agreement($data));
+            } catch (\Exception $e) {
+                logger()->error('Gagal membuat agreement: ' . $e->getMessage(), [
+                    'data' => $data,
+                    'exception' => $e,
+                ]);
+                return back()->withErrors(['agreement' => 'Terjadi kesalahan saat membuat agreement.']);
             }
         }
-
         return Inertia::render('Register/Register', $props);
-    }
-
-
-    private function agreement(array $data)
-    {
-        // Validasi manual minimum data
-        if (
-            empty($data['nouid']) ||
-            empty($data['nama']) ||
-            empty($data['warneg']) ||
-            ($data['warneg'] === 'ID' && empty($data['nik'])) ||
-            ($data['warneg'] !== 'ID' && empty($data['paspor'])) ||
-            empty($data['kabName'])
-        ) {
-            throw new \InvalidArgumentException('Data tidak lengkap untuk memproses agreement.');
-        }
-
-        $snk = Tsnk::with(['points' => fn($q) => $q->orderBy('nmr')])
-            ->where('is_active', true)
-            ->latest('version')
-            ->firstOrFail();
-
-        $siswa = Indentitas::where('nouid', $data['nouid'])->with('siswa')->firstOrFail()->siswa;
-
-        $signatureData = [
-            'nouid' => $data['nouid'],
-            'snk_version' => $snk->version,
-            'nama' => $data['nama'],
-            'id' => $data['warneg'] === 'ID' ? $data['nik'] : $data['paspor'],
-            'waktu' => now()->toISOString(),
-        ];
-
-        $signature = SignatureController::getSign($signatureData, $data['nouid']);
-
-        if (!$signature || !isset($signature['sign'])) {
-            throw new \RuntimeException('Gagal menghasilkan tanda tangan digital.');
-        }
-
-        return [
-            'agreement' => [
-                'payload' => encrypt($signatureData),
-                'sign' => $signature['sign'],
-                'qr_code_svg' => $signature['qr_code_svg'] ?? null,
-                'ortu' => $data['nama'],
-                'siswa' => $siswa->namlen,
-                'kota' => $data['kabName'] . ', ' . now()->translatedFormat('d F Y'),
-                'snk' => [
-                    'version' => $snk->version,
-                    'effective' => $snk->effective,
-                    'title' => $snk->title,
-                    'summary' => $snk->summary,
-                    'points' => $snk->points->map(fn($point) => [
-                        'nmr' => $point->nmr,
-                        'title' => $point->title,
-                        'content' => $point->content,
-                    ]),
-                ],
-            ],
-        ];
     }
 
 
@@ -348,26 +311,13 @@ class RegisteredUserController extends Controller
         }
     }
 
-    protected function formatPhoneNumber($number): string
-    {
-        $number = preg_replace('/[^0-9]/', '', $number);
-
-        // Hilangkan prefix 0 atau 62 jika ada
-        if (str_starts_with($number, '0')) {
-            $number = substr($number, 1);
-        } elseif (str_starts_with($number, '62')) {
-            $number = substr($number, 2);
-        }
-
-        return '62' . $number;
-    }
     public function verifphone(Request $request, $nouid)
     {
         $request->validate([
             'number' => 'required|string|regex:/^[0-9]+$/|min:10|max:15'
         ]);
 
-        $phone = $this->formatPhoneNumber($request->number);
+        $phone = formatPhoneNumber($request->number);
         $indentitas = Indentitas::with('siswa')
             ->where('nouid', $nouid)
             ->firstOrFail();
@@ -384,8 +334,6 @@ class RegisteredUserController extends Controller
         $indentitas->siswa->tel = $phone;
         $indentitas->siswa->save();
     }
-
-
     public function setupPin(Request $request, $nouid): \Inertia\Response|\Illuminate\Http\RedirectResponse
     {
         logger('RegisteredUserController', ['request' => $request->all(), 'nouid' => $nouid]);
@@ -416,11 +364,11 @@ class RegisteredUserController extends Controller
                 if ($indentitas->siswa) {
                     $indentitas->siswa->update([
                         'pin' => $validated['pin'],
-                        'tel' => $this->formatPhoneNumber($phone)
+                        'tel' => formatPhoneNumber($phone)
                     ]);
                 }
 
-               Indentitas::where('nouid', $nouid)->update(['sta' => 0]);
+                Indentitas::where('nouid', $nouid)->update(['sta' => 0]);
                 event(new Registered($indentitas->siswa));
 
                 Auth::login($indentitas->siswa);
