@@ -137,6 +137,14 @@ const Excul = ({ nouid }: ExculProps) => {
         tgl: '',
         ket: ''
     });
+    const inputErrors = useMemo(() => {
+        const result: Record<string, string[]> = {};
+        Object.entries(FormErrors ?? {}).forEach(([key, value]) => {
+            if (!value) return;
+            result[key] = Array.isArray(value) ? value : [value as string];
+        });
+        return result;
+    }, [FormErrors]);
     const validateForm = useCallback((field: string | null = null) => {
         const newErrors: Record<string, string> = {};
         const validateSingleField = field !== null;
@@ -307,7 +315,7 @@ const Excul = ({ nouid }: ExculProps) => {
                             type="date"
                             onChange={(v) => { setData('tgl', v as string); clearErrors('tgl') }}
                             required={true}
-                            error={FormErrors.tgl}
+                            errors={inputErrors}
                         />
                         <InputGroup
                             label={`${dialogConfig.action === 'subscribe' ? "Motivasi mendaftar" : "Alasan Berhenti"}`}
@@ -316,7 +324,7 @@ const Excul = ({ nouid }: ExculProps) => {
                             onChange={(v) => { setData('ket', v as string); clearErrors('ket') }}
                             required={true}
                             rows={3}
-                            error={FormErrors.ket}
+                            errors={inputErrors}
 
                         />
                     </div>

@@ -12,7 +12,7 @@ interface InputGroupProps<T = string | number | boolean> {
     onBlur?: () => void;
     touched?: boolean;
     checked?: boolean;
-    errors?: Record<string, string>;
+    errors?: Record<string, string[]>;
     name: string;
     type?: HTMLInputTypeAttribute | 'currency' | 'rating' | 'textarea' | 'checkbox' | 'toggle';
     placeholder?: string;
