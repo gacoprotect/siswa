@@ -134,15 +134,7 @@ const PindahSekolah: React.FC<PindahSekolahProps> = ({ nouid }) => {
                         onSubmit={handleFormSubmit}
                         isTagihanLunas={isTagihanLunas}
                     />
-                    <TagihanStatus billData={billData} />
-                    {!isTagihanLunas && (
-                        <DetailPayment
-                            siswa={pageData.siswa}
-                            onClose={() => { }}
-                        />
-                    )}
-
-
+                    <TagihanStatus siswa={pageData.siswa} billData={billData} />
                 </>
             )}
         </div>
