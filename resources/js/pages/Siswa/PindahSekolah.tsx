@@ -3,7 +3,7 @@ import TagihanStatus from '@/components/siswa/pindah-sekolah/TagihanStatus';
 import { Auth, DataPindahSekolah, DataSiswa, FormPindahSekolah, PindahSekolahProps } from '@/types';
 import { usePage } from '@inertiajs/react';
 import React, { useCallback, useEffect, useState } from 'react';
-import DetailPayment from '@/components/payment/detail-payment';
+import DetailPayment from '@/components/tagihan/detail-payment';
 import { Summary } from '../Tagihan/TagihanContent';
 import { CalendarDays } from 'lucide-react';
 import { StatusBadge } from '@/components/status-badge';

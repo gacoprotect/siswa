@@ -1,12 +1,13 @@
 import { useLogger } from '@/contexts/logger-context';
 import { SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { toast } from 'react-toastify';
 
 export const useToast = () => {
     const { errors, flash } = usePage<SharedData>().props;
     const { error: logError, log } = useLogger();
+    const initializedRef = useRef(false);
 
     // Memoize errors untuk optimasi performa
     const processedErrors = useMemo(() => {
@@ -50,6 +51,13 @@ export const useToast = () => {
             logError(message);
         }
     }, [flash, log, logError]);
+
+    // Initialize toast hanya sekali
+    useEffect(() => {
+        if (!initializedRef.current) {
+            initializedRef.current = true;
+        }
+    }, []);
 
     return {
         toast,

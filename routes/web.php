@@ -1,12 +1,13 @@
 <?php
 
+use App\Http\Controllers\Admin\BillController;
 use App\Http\Controllers\Admin\IzinController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\ExculController;
 use App\Http\Controllers\OtpController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Saving\SignatureController;
 use App\Http\Controllers\Saving\SnkController;
 use App\Http\Controllers\SiswaController;
@@ -15,8 +16,6 @@ use App\Http\Controllers\TopupController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-
-
 
 Route::middleware(['guest'])->group(function () {
     Route::get('/', function () {
@@ -54,10 +53,32 @@ Route::middleware(['web'])->group(function () {
             Route::get('/topup', [TopupController::class, 'index'])->name('topup');
             Route::post('/topup/charge', [TopupController::class, 'charge'])->name('topup.charge');
 
-            // Transaction history        
-            Route::get('/payment/{orderId}', [TransactionController::class, 'paymentInstruction'])->name('payment.instruction');
-            Route::post('/payment/{orderId}/simulate', [TransactionController::class, 'simulateVa'])->name('payment.simulate');
-            Route::post('/payment/{orderId}/cancel-order', [TransactionController::class, 'cancel'])->name('transactions.cancel');
+            // Payment System Routes
+            Route::prefix('/payment')->name('payment.')->group(function () {
+                Route::get('/', [PaymentController::class, 'index'])->name('index');
+                Route::get('/invoice', [PaymentController::class, 'invoice'])->name('invoice');
+                Route::get('/invoice/{invoiceId}', [PaymentController::class, 'invoiceDetail'])->name('invoice.detail');
+                Route::get('/history', [PaymentController::class, 'history'])->name('history');
+                Route::get('/methods', [PaymentController::class, 'methods'])->name('methods');
+                Route::get('/success', [PaymentController::class, 'success'])->name('success');
+                Route::get('/va-payment', [PaymentController::class, 'vaPayment'])->name('va-payment');
+
+                // API endpoints for payment actions
+                Route::post('/invoice/{invoiceId}/download', [PaymentController::class, 'downloadInvoice'])->name('invoice.download');
+                Route::post('/invoice/{invoiceId}/print', [PaymentController::class, 'printInvoice'])->name('invoice.print');
+                Route::post('/invoice/{invoiceId}/view', [PaymentController::class, 'viewInvoice'])->name('invoice.view');
+                Route::post('/process', [PaymentController::class, 'processPayment'])->name('process');
+            });
+
+            // Transaction history
+            // Route::get('/payment/inv', function () {
+            //     return Inertia::render('Payment/Invoice', [
+            //         'data' => ['tagihan' => []],
+            //     ]);
+            // });
+            // Route::get('/payment/{orderId}', [TransactionController::class, 'paymentInstruction'])->name('payment.instruction');
+            // Route::post('/payment/{orderId}/simulate', [TransactionController::class, 'simulateVa'])->name('payment.simulate');
+            // Route::post('/payment/{orderId}/cancel-order', [TransactionController::class, 'cancel'])->name('transactions.cancel');
             Route::get('/transactions/{orderId}/status', [TransactionController::class, 'checkStatus'])->name('transactions.status');
             Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions');
             Route::get('/transactions/{orderId}', [TransactionController::class, 'show'])->name('transactions.show');
@@ -67,7 +88,7 @@ Route::middleware(['web'])->group(function () {
             Route::post('/tagihan/pay', [TagihanController::class, 'handlePay'])->name('tagihan.pay');
             Route::get('/tagihan/history', [TagihanController::class, 'history'])->name('tagihan.history');
 
-
+            Route::resource('bill', BillController::class);
 
             Route::post('/excul/subs', [ExculController::class, 'subs'])->name('subs.excul');
             Route::post('/excul/unsubs', [ExculController::class, 'unsubs'])->name('unsubs.excul');
@@ -77,6 +98,5 @@ Route::middleware(['web'])->group(function () {
     });
 });
 
-
-require __DIR__ . '/test.php';
+require __DIR__.'/test.php';
 // require __DIR__ . '/auth.php';

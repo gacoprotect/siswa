@@ -1,18 +1,47 @@
+import { useLogger } from '@/contexts/logger-context';
 import { useAppConfig } from '@/hooks/use-app-config';
 import { useToast } from '@/hooks/use-toast';
-import { Head } from '@inertiajs/react';
-import React from 'react';
+import { Head, usePage } from '@inertiajs/react';
+import React, { useMemo, useEffect, useRef } from 'react';
 
 type AppLayoutProps = {
     children: React.ReactNode;
     title?: string;
     className?: string;
 };
-const AppLayout = ({ children, title, className = '' }: AppLayoutProps) => {
+
+const AppLayout = React.memo(({ children, title, className = '' }: AppLayoutProps) => {
+    const { props: pageProps } = usePage();
+    const { log, count } = useLogger();
     const config = useAppConfig();
-    const isDebug = config.APP_DEBUG;
-    const isDev = config.APP_ENV === 'local'
+    const renderCountRef = useRef(0);
+
+    // Memoize computed values untuk mencegah re-render yang tidak perlu
+    const isDebug = useMemo(() => config.APP_DEBUG, [config.APP_DEBUG]);
+    const isDev = useMemo(() => config.APP_ENV === 'local', [config.APP_ENV]);
+
+    // Initialize toast
     useToast();
+
+    // Debug logging dengan tracking render count
+    useEffect(() => {
+        renderCountRef.current += 1;
+
+        if (isDebug) {
+            count('Component Rendered');
+            log({
+                renderCount: renderCountRef.current,
+                pageProps,
+                timestamp: new Date().toISOString(),
+                component: 'AppLayout'
+            });
+
+            // Warning jika render lebih dari sekali
+            if (renderCountRef.current > 1) {
+                console.warn(`⚠️ AppLayout rendered ${renderCountRef.current} times!`);
+            }
+        }
+    }, [isDebug, count, log, pageProps]);
 
     return (
         <div className="min-h-screen relative bg-primary overflow-hidden">
@@ -35,6 +64,8 @@ const AppLayout = ({ children, title, className = '' }: AppLayoutProps) => {
             </div>
         </div>
     );
-};
+});
+
+AppLayout.displayName = 'AppLayout';
 
 export default AppLayout;

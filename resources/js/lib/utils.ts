@@ -66,3 +66,77 @@ export function formatBulan(bulid: number): string {
     ];
     return bulan[bulid - 1] || 'Undefined';
 }
+
+export function formatCurrency(amount: number | string): string {
+    const amountNumber = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(amountNumber)) return 'Rp 0 ,-';
+
+    // Handle negative numbers by placing minus sign after "Rp"
+    if (amountNumber < 0) {
+        const absoluteValue = Math.abs(amountNumber);
+        const formatted = new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+        }).format(absoluteValue);
+
+        // Replace "Rp" with "Rp -" to get the desired format
+        return formatted.replace('Rp', 'Rp -');
+    }
+
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+    }).format(amountNumber);
+}
+
+/**
+ * Format angka dalam format akuntansi Indonesia
+ * Format: angka positif = 1.000.000, angka negatif = (1.000.000)
+ * @param amount Jumlah yang akan diformat
+ * @param decimals Jumlah desimal (default: 0)
+ * @returns String yang sudah diformat
+ */
+export function formatAccounting(amount: number | string, decimals: number = 0): string {
+    const amountNumber = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(amountNumber)) return '0';
+
+    // Format angka dengan pemisah ribuan
+    const formatted = new Intl.NumberFormat('id-ID', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+    }).format(Math.abs(amountNumber));
+
+    // Jika negatif, tambahkan tanda kurung
+    if (amountNumber < 0) {
+        return `- ${formatted}`;
+    }
+
+    return formatted;
+}
+
+/**
+ * Format mata uang dalam format akuntansi Indonesia
+ * Format: angka positif = Rp 1.000.000, angka negatif = (Rp 1.000.000)
+ * @param amount Jumlah yang akan diformat
+ * @param decimals Jumlah desimal (default: 0)
+ * @returns String yang sudah diformat
+ */
+export function formatAccountingCurrency(amount: number | string, decimals: number = 0): string {
+    const amountNumber = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(amountNumber)) return 'Rp 0';
+
+    // Format angka dengan pemisah ribuan
+    const formatted = new Intl.NumberFormat('id-ID', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+    }).format(Math.abs(amountNumber));
+
+    // Jika negatif, tambahkan tanda kurung
+    if (amountNumber < 0) {
+        return `(Rp ${formatted})`;
+    }
+
+    return `Rp ${formatted}`;
+}

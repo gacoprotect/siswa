@@ -1,0 +1,303 @@
+/* Print Styles for Invoice */
+@media print {
+    /* Hide all elements except print area */
+    body * {
+        visibility: hidden;
+    }
+
+    .print\:block,
+    .print\:block * {
+        visibility: visible;
+    }
+
+    /* Reset print area styles */
+    .print\:block {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background: white;
+    }
+
+    /* Hide screen-only elements */
+    .print\:hidden {
+        display: none !important;
+    }
+
+    /* Print-specific typography */
+    .print\:text-2xl {
+        font-size: 24px !important;
+        line-height: 32px !important;
+    }
+
+    .print\:text-xl {
+        font-size: 20px !important;
+        line-height: 28px !important;
+    }
+
+    .print\:text-lg {
+        font-size: 18px !important;
+        line-height: 28px !important;
+    }
+
+    .print\:text-sm {
+        font-size: 14px !important;
+        line-height: 20px !important;
+    }
+
+    .print\:text-xs {
+        font-size: 12px !important;
+        line-height: 16px !important;
+    }
+
+    /* Print-specific spacing */
+    .print\:mb-8 {
+        margin-bottom: 32px !important;
+    }
+
+    .print\:mb-2 {
+        margin-bottom: 8px !important;
+    }
+
+    .print\:mb-1 {
+        margin-bottom: 4px !important;
+    }
+
+    .print\:mt-8 {
+        margin-top: 32px !important;
+    }
+
+    .print\:mt-1 {
+        margin-top: 4px !important;
+    }
+
+    .print\:pt-2 {
+        padding-top: 8px !important;
+    }
+
+    .print\:pt-4 {
+        padding-top: 16px !important;
+    }
+
+    .print\:p-8 {
+        padding: 32px !important;
+    }
+
+    .print\:p-4 {
+        padding: 16px !important;
+    }
+
+    .print\:p-2 {
+        padding: 8px !important;
+    }
+
+    .print\:px-4 {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+
+    .print\:py-2 {
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+    }
+
+    .print\:py-3 {
+        padding-top: 12px !important;
+        padding-bottom: 12px !important;
+    }
+
+    /* Print-specific layout */
+    .print\:flex {
+        display: flex !important;
+    }
+
+    .print\:grid {
+        display: grid !important;
+    }
+
+    .print\:grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .print\:justify-between {
+        justify-content: space-between !important;
+    }
+
+    .print\:justify-end {
+        justify-content: flex-end !important;
+    }
+
+    .print\:items-center {
+        align-items: center !important;
+    }
+
+    .print\:items-start {
+        align-items: flex-start !important;
+    }
+
+    .print\:space-x-4 > * + * {
+        margin-left: 16px !important;
+    }
+
+    .print\:space-x-3 > * + * {
+        margin-left: 12px !important;
+    }
+
+    .print\:space-y-6 > * + * {
+        margin-top: 24px !important;
+    }
+
+    .print\:space-y-2 > * + * {
+        margin-top: 8px !important;
+    }
+
+    .print\:space-y-1 > * + * {
+        margin-top: 4px !important;
+    }
+
+    /* Print-specific sizing */
+    .print\:w-full {
+        width: 100% !important;
+    }
+
+    .print\:w-64 {
+        width: 256px !important;
+    }
+
+    .print\:w-16 {
+        width: 64px !important;
+    }
+
+    .print\:h-16 {
+        height: 64px !important;
+    }
+
+    /* Print-specific colors */
+    .print\:bg-white {
+        background-color: white !important;
+    }
+
+    .print\:bg-blue-600 {
+        background-color: #2563eb !important;
+    }
+
+    .print\:bg-gray-100 {
+        background-color: #f3f4f6 !important;
+    }
+
+    .print\:bg-gray-300 {
+        background-color: #d1d5db !important;
+    }
+
+    .print\:text-white {
+        color: white !important;
+    }
+
+    .print\:text-gray-900 {
+        color: #111827 !important;
+    }
+
+    .print\:text-gray-700 {
+        color: #374151 !important;
+    }
+
+    .print\:text-gray-600 {
+        color: #4b5563 !important;
+    }
+
+    /* Print-specific borders */
+    .print\:border {
+        border-width: 1px !important;
+    }
+
+    .print\:border-gray-300 {
+        border-color: #d1d5db !important;
+    }
+
+    .print\:border-t {
+        border-top-width: 1px !important;
+    }
+
+    .print\:border-collapse {
+        border-collapse: collapse !important;
+    }
+
+    /* Print-specific typography weights */
+    .print\:font-bold {
+        font-weight: 700 !important;
+    }
+
+    .print\:font-semibold {
+        font-weight: 600 !important;
+    }
+
+    .print\:font-medium {
+        font-weight: 500 !important;
+    }
+
+    .print\:font-mono {
+        font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace !important;
+    }
+
+    /* Print-specific text alignment */
+    .print\:text-left {
+        text-align: left !important;
+    }
+
+    .print\:text-right {
+        text-align: right !important;
+    }
+
+    /* Print-specific gaps */
+    .print\:gap-8 {
+        gap: 32px !important;
+    }
+
+    .print\:gap-4 {
+        gap: 16px !important;
+    }
+
+    .print\:gap-3 {
+        gap: 12px !important;
+    }
+
+    /* Print-specific rounded corners */
+    .print\:rounded-lg {
+        border-radius: 8px !important;
+    }
+
+    /* Print-specific tracking */
+    .print\:tracking-wider {
+        letter-spacing: 0.05em !important;
+    }
+
+    /* Print-specific uppercase */
+    .print\:uppercase {
+        text-transform: uppercase !important;
+    }
+
+    /* Print-specific table styles */
+    .print\:border-collapse {
+        border-collapse: collapse !important;
+    }
+
+    /* Ensure proper page breaks */
+    .print\:block {
+        page-break-inside: avoid;
+    }
+
+    /* Remove shadows and backgrounds for better printing */
+    * {
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
+
+    /* Ensure white background */
+    body {
+        background: white !important;
+        color: black !important;
+    }
+}
