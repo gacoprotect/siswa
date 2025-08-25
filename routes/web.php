@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\IzinController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ExculController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\PaymentController;
@@ -94,6 +95,9 @@ Route::middleware(['web'])->group(function () {
             Route::post('/excul/unsubs', [ExculController::class, 'unsubs'])->name('unsubs.excul');
             Route::post('/izin', [IzinController::class, 'store'])->name('izin.store');
             Route::post('/izin/cancel', [IzinController::class, 'cancel'])->name('izin.cancel');
+
+            // Calendar
+            Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
         });
     });
 });
