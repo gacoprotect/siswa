@@ -5,50 +5,53 @@ namespace App\Models\Admin;
 use App\Models\BaseModel;
 use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Event extends BaseModel
 {
-    use LogsChanges;
+    use LogsChanges, SoftDeletes;
 
     protected $connection = 'mai1';
 
     protected $table = 'events';
 
     protected $fillable = [
-        'nouid',
-        'event_category_id',
-        'title',
-        'description',
+        'judul',
+        'desk',
         'start_at',
         'end_at',
-        'all_day',
-        'location',
-        'status',
-        'is_important',
+        'fullday',
+        'lokasi',
+        'penting',
+        'sifat',
+        'kategori_id',
+        'sta',
         'meta',
     ];
 
     protected $casts = [
         'start_at' => 'datetime',
         'end_at' => 'datetime',
-        'all_day' => 'boolean',
-        'is_important' => 'boolean',
+        'fullday' => 'boolean',
+        'penting' => 'boolean',
+        'sta' => 'boolean',
         'meta' => 'array',
     ];
 
-    public function category(): BelongsTo
+    public function category()
     {
-        return $this->belongsTo(EventCategory::class, 'event_category_id');
+        return $this->belongsTo(EventCategory::class, 'kategori_id');
     }
 
-    public function color(): Attribute
+    public function targets()
     {
-        return Attribute::get(fn () => $this->category?->color ?? '#999999');
+        return $this->hasMany(EventTarget::class, 'event_id');
     }
 
-    public function icon(): Attribute
+    protected function sifatLabel(): Attribute
     {
-        return Attribute::get(fn () => $this->category?->icon);
+        return Attribute::make(
+            get: fn () => $this->sifat == 1 ? 'Wajib' : 'Opsional'
+        );
     }
 }

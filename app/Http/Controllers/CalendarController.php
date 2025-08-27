@@ -11,7 +11,7 @@ class CalendarController extends Controller
 {
     public function __construct(private readonly CalendarService $calendar) {}
 
-    public function index(string $nouid, Request $request): Response
+    public function index(Request $request, string $nouid): Response
     {
         $start = $request->has('start') ? (string) $request->input('start') : null;
         $end = $request->has('end') ? (string) $request->input('end') : null;
@@ -38,15 +38,15 @@ class CalendarController extends Controller
             ]),
             'events' => $events->map(fn ($e) => [
                 'id' => $e->id,
-                'title' => $e->title,
+                'title' => $e->judul,
                 'start' => optional($e->start_at)->toIso8601String(),
                 'end' => optional($e->end_at)->toIso8601String(),
-                'allDay' => (bool) $e->all_day,
+                'allDay' => (bool) $e->fullday,
                 'extendedProps' => [
-                    'description' => $e->description,
-                    'location' => $e->location,
-                    'status' => $e->status,
-                    'isImportant' => (bool) $e->is_important,
+                    'description' => $e->desk,
+                    'location' => $e->lokasi,
+                    'status' => $e->sifat_label,
+                    'isImportant' => (bool) $e->penting,
                     'category' => [
                         'slug' => $e->category?->slug,
                         'name' => $e->category?->name,

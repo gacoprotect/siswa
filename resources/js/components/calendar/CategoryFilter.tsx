@@ -2,7 +2,7 @@ import React from 'react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import { CalendarCategory } from '@/types/calendar'
-import { Filter, FilterX } from 'lucide-react'
+import { Filter, FilterX, CheckIcon } from 'lucide-react'
 
 export type CategoryFilterProps = {
     categories: CalendarCategory[]
@@ -63,26 +63,28 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({ categories, acti
                     </div>
                     <div className="max-h-60 overflow-auto">
                         {categories.map((c) => {
-                            const checked = activeSlugs.length === 0 || activeSlugs.includes(c.slug)
+                            const checked = activeSlugs.includes(c.slug)
                             return (
                                 <DropdownMenu.CheckboxItem
                                     key={c.id}
                                     checked={checked}
                                     onCheckedChange={() => onToggle(c.slug)}
-                                    className="flex cursor-pointer select-none items-center gap-2 rounded px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-gray-100"
+                                    className="flex justify-between cursor-pointer select-none items-center gap-2 rounded px-2 py-1 text-sm outline-none data-[highlighted]:bg-gray-100"
                                 >
+                                    <div title={c.name} className="flex gap-2 items-center">
+                                        <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: c.color }} />
+                                        {c.name}
+                                    </div>
                                     <DropdownMenu.ItemIndicator>
-                                        <span className="inline-block w-3 text-green-600">✓</span>
+                                        <CheckIcon className="inline-block w-5 h-5 text-green-600" />
                                     </DropdownMenu.ItemIndicator>
-                                    <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: c.color }} />
-                                    {c.name}
                                 </DropdownMenu.CheckboxItem>
                             )
                         })}
                     </div>
                     <div className="mt-2 flex items-center justify-between">
-                        <span className="text-xs text-gray-500">
-                            {activeSlugs.length === 0 ? 'Semua kategori aktif' : `Dipilih: ${categories.filter(c => activeSlugs.includes(c.slug)).map(c => c.name).join(', ')}`}
+                        <span className="text-xs text-gray-500" title={categories.filter(c => activeSlugs.includes(c.slug)).map(c => c.name).join(', ')}>
+                            {activeSlugs.length === 0 ? 'Tidak ada Filter' : `Dipilih: ${activeSlugs.length}`}
                         </span>
                         <button
                             onClick={() => onClear?.()}

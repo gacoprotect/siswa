@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Admin\Event;
 use App\Models\Admin\EventCategory;
+use App\Models\Admin\EventTarget;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 
@@ -11,7 +12,7 @@ class EventCalendarSeeder extends Seeder
 {
     public function run(): void
     {
-        $nouid = 'a7095648';
+        $idsis = 3363; // contoh siswa dari sistem lama
 
         $categories = [
             ['slug' => 'jadwal-pelajaran', 'name' => 'Jadwal Pelajaran', 'color' => '#93c5fd', 'icon' => 'BookOpen'],
@@ -53,6 +54,7 @@ class EventCalendarSeeder extends Seeder
                 'desc' => 'Rangkuman agenda semester ini.',
                 'all_day' => true,
                 'important' => true,
+                'audience' => 'semua',
             ],
             [
                 'category' => 'ujian',
@@ -62,6 +64,7 @@ class EventCalendarSeeder extends Seeder
                 'start_hour' => 9,
                 'duration_h' => 2,
                 'important' => false,
+                'audience' => 'siswa',
             ],
             [
                 'category' => 'tugas',
@@ -69,6 +72,7 @@ class EventCalendarSeeder extends Seeder
                 'days' => 1,
                 'desc' => 'Kumpulkan PDF di LMS.',
                 'all_day' => true,
+                'audience' => 'siswa',
             ],
             [
                 'category' => 'agenda-sekolah',
@@ -77,6 +81,7 @@ class EventCalendarSeeder extends Seeder
                 'desc' => 'Wajib hadir, seragam lengkap.',
                 'start_hour' => 7,
                 'duration_h' => 1,
+                'audience' => 'semua',
             ],
             [
                 'category' => 'rapat-orang-tua',
@@ -85,6 +90,7 @@ class EventCalendarSeeder extends Seeder
                 'desc' => 'Pembahasan perkembangan belajar.',
                 'start_hour' => 13,
                 'duration_h' => 2,
+                'audience' => 'orangtua',
             ],
             [
                 'category' => 'ekskul',
@@ -93,6 +99,7 @@ class EventCalendarSeeder extends Seeder
                 'desc' => 'Latihan rutin di lapangan indoor.',
                 'start_hour' => 15,
                 'duration_h' => 2,
+                'audience' => 'siswa',
             ],
             [
                 'category' => 'libur',
@@ -100,6 +107,7 @@ class EventCalendarSeeder extends Seeder
                 'days' => 14,
                 'desc' => 'Tanggal merah, sekolah libur.',
                 'all_day' => true,
+                'audience' => 'semua',
             ],
             [
                 'category' => 'tryout',
@@ -109,6 +117,7 @@ class EventCalendarSeeder extends Seeder
                 'start_hour' => 8,
                 'duration_h' => 3,
                 'important' => true,
+                'audience' => 'siswa',
             ],
         ];
 
@@ -122,19 +131,40 @@ class EventCalendarSeeder extends Seeder
                 $end = $start->addHours($e['duration_h']);
             }
 
-            Event::query()->create([
-                'nouid' => $nouid,
-                'event_category_id' => $slugToId[$e['category']],
-                'title' => $e['title'],
-                'description' => $e['desc'] ?? null,
+            $event = Event::query()->create([
+                'judul' => $e['title'],
+                'desk' => $e['desc'] ?? null,
                 'start_at' => $start->toDateTimeString(),
                 'end_at' => $end?->toDateTimeString(),
-                'all_day' => (bool) ($e['all_day'] ?? false),
-                'location' => $e['location'] ?? null,
-                'status' => ($e['status'] ?? 'wajib'),
-                'is_important' => (bool) ($e['important'] ?? false),
+                'fullday' => (bool) ($e['all_day'] ?? false),
+                'lokasi' => $e['location'] ?? null,
+                'penting' => (bool) ($e['important'] ?? false),
+                'sifat' => ($e['status'] ?? 'opsional') === 'wajib' ? 1 : 0,
+                'kategori_id' => $slugToId[$e['category']],
+                'sta' => true,
                 'meta' => [],
             ]);
+
+            // Tambahkan target audiens
+            if ($e['audience'] === 'semua') {
+                EventTarget::create([
+                    'event_id' => $event->id,
+                    'target_type' => 0, // Global
+                    'target_id' => 0,
+                ]);
+            } elseif ($e['audience'] === 'siswa') {
+                EventTarget::create([
+                    'event_id' => $event->id,
+                    'target_type' => 4, // Siswa
+                    'target_id' => $idsis,
+                ]);
+            } elseif ($e['audience'] === 'orangtua') {
+                EventTarget::create([
+                    'event_id' => $event->id,
+                    'target_type' => 4, // Siswa (untuk orangtua, kaitkan dengan siswa)
+                    'target_id' => $idsis,
+                ]);
+            }
         }
     }
 }

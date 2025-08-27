@@ -4,14 +4,14 @@ namespace App\Models\Admin;
 
 use App\Models\BaseModel;
 use App\Traits\LogsChanges;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class EventCategory extends BaseModel
 {
-    use LogsChanges;
+    use SoftDeletes, LogsChanges;
 
     protected $connection = 'mai1';
-
     protected $table = 'event_categories';
 
     protected $fillable = [
@@ -21,8 +21,8 @@ class EventCategory extends BaseModel
         'icon',
     ];
 
-    public function events(): HasMany
+    public function events()
     {
-        return $this->hasMany(Event::class, 'event_category_id');
+        return $this->hasMany(Event::class, 'kategori_id');
     }
 }
