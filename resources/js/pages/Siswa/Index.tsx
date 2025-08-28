@@ -290,7 +290,10 @@ export default function SiswaDashboard() {
                                 />
                                 <MenuItems
                                     nouid={siswaData.nouid ?? auth?.user?.nouid}
+<<<<<<< HEAD
                                     menuItems={menuItems}
+=======
+>>>>>>> 5e35211622926a0b054c5ebd226c780a23e92e84
                                     onItemClick={setActiveItem}
                                 />
                             </>
