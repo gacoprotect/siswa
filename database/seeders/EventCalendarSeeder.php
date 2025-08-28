@@ -12,7 +12,7 @@ class EventCalendarSeeder extends Seeder
 {
     public function run(): void
     {
-        $idsis = 3363; // contoh siswa dari sistem lama
+        $students = [3363, 12]; // Multiple students
 
         $categories = [
             ['slug' => 'jadwal-pelajaran', 'name' => 'Jadwal Pelajaran', 'color' => '#93c5fd', 'icon' => 'BookOpen'],
@@ -47,81 +47,283 @@ class EventCalendarSeeder extends Seeder
         $now = CarbonImmutable::now();
 
         $events = [
+            // Global Events (target_type = 0) - Visible to all students
             [
-                'category' => 'pengumuman',
-                'title' => 'Pengumuman Kalender Semester',
-                'days' => 0,
-                'desc' => 'Rangkuman agenda semester ini.',
-                'all_day' => true,
-                'important' => true,
-                'audience' => 'semua',
+                'judul' => 'Pengumuman Kalender Semester',
+                'deskripsi' => 'Rangkuman agenda semester ini. Semua siswa wajib memperhatikan jadwal yang telah ditentukan.',
+                'tanggal_mulai' => $now->addDays(0)->format('Y-m-d H:i:s'),
+                'tanggal_berakhir' => $now->addDays(0)->format('Y-m-d H:i:s'),
+                'satu_hari_penuh' => true,
+                'tempat' => 'Sekolah',
+                'penting' => true,
+                'wajib' => false,
+                'kategori' => 'pengumuman',
+                'audience' => 'global',
             ],
             [
-                'category' => 'ujian',
-                'title' => 'Ujian Matematika Bab 1',
-                'days' => 3,
-                'desc' => 'Materi aljabar dan persamaan linear.',
-                'start_hour' => 9,
-                'duration_h' => 2,
-                'important' => false,
-                'audience' => 'siswa',
+                'judul' => 'Libur Sekolah',
+                'deskripsi' => 'Libur sekolah setelah UAS. Semua kegiatan sekolah ditiadakan.',
+                'tanggal_mulai' => $now->addDays(18)->format('Y-m-d H:i:s'),
+                'tanggal_berakhir' => $now->addDays(32)->format('Y-m-d H:i:s'),
+                'satu_hari_penuh' => true,
+                'tempat' => '-',
+                'penting' => true,
+                'wajib' => false,
+                'kategori' => 'libur',
+                'audience' => 'global',
             ],
             [
-                'category' => 'tugas',
-                'title' => 'Tugas IPA: Laporan Praktikum',
-                'days' => 1,
-                'desc' => 'Kumpulkan PDF di LMS.',
-                'all_day' => true,
-                'audience' => 'siswa',
+                'judul' => 'Hari Raya Idul Fitri',
+                'deskripsi' => 'Libur hari raya keagamaan. Selamat merayakan Idul Fitri.',
+                'tanggal_mulai' => $now->addDays(21)->format('Y-m-d H:i:s'),
+                'tanggal_berakhir' => $now->addDays(21)->format('Y-m-d H:i:s'),
+                'satu_hari_penuh' => true,
+                'tempat' => '-',
+                'penting' => true,
+                'wajib' => false,
+                'kategori' => 'keagamaan',
+                'audience' => 'global',
             ],
             [
-                'category' => 'agenda-sekolah',
-                'title' => 'Upacara Bendera',
-                'days' => 7,
-                'desc' => 'Wajib hadir, seragam lengkap.',
-                'start_hour' => 7,
-                'duration_h' => 1,
-                'audience' => 'semua',
+                'judul' => 'Upacara Bendera',
+                'deskripsi' => 'Upacara bendera rutin setiap Senin. Wajib hadir dengan seragam lengkap.',
+                'tanggal_mulai' => $now->addDays(7)->setTime(7, 0)->format('Y-m-d H:i:s'),
+                'tanggal_berakhir' => $now->addDays(7)->setTime(8, 0)->format('Y-m-d H:i:s'),
+                'satu_hari_penuh' => false,
+                'tempat' => 'Lapangan Upacara',
+                'penting' => true,
+                'wajib' => true,
+                'kategori' => 'agenda-sekolah',
+                'audience' => 'global',
             ],
             [
-                'category' => 'rapat-orang-tua',
-                'title' => 'Rapat Orang Tua/Wali',
-                'days' => 10,
-                'desc' => 'Pembahasan perkembangan belajar.',
-                'start_hour' => 13,
-                'duration_h' => 2,
-                'audience' => 'orangtua',
+                'judul' => 'Hari Kemerdekaan RI',
+                'deskripsi' => 'Upacara dan lomba-lomba dalam rangka memperingati HUT RI ke-79.',
+                'tanggal_mulai' => $now->addDays(25)->format('Y-m-d H:i:s'),
+                'tanggal_berakhir' => $now->addDays(25)->format('Y-m-d H:i:s'),
+                'satu_hari_penuh' => true,
+                'tempat' => 'Lapangan Sekolah',
+                'penting' => true,
+                'wajib' => true,
+                'kategori' => 'peringatan',
+                'audience' => 'global',
+            ],
+
+            // Level/Tingkatan Events (target_type = 1) - Visible to specific level
+            [
+                'judul' => 'Ujian Tengah Semester',
+                'deskripsi' => 'Ujian untuk semua mata pelajaran tingkat kelas yang sama. Wajib hadir tepat waktu.',
+                'tanggal_mulai' => $now->addDays(5)->setTime(8, 0)->format('Y-m-d H:i:s'),
+                'tanggal_berakhir' => $now->addDays(5)->setTime(12, 0)->format('Y-m-d H:i:s'),
+                'satu_hari_penuh' => false,
+                'tempat' => 'Ruang Kelas',
+                'penting' => true,
+                'wajib' => true,
+                'kategori' => 'ujian',
+                'audience' => 'level',
+                'target_id' => 1, // Tingkatan ID
             ],
             [
-                'category' => 'ekskul',
-                'title' => 'Ekskul Futsal',
-                'days' => 5,
-                'desc' => 'Latihan rutin di lapangan indoor.',
-                'start_hour' => 15,
-                'duration_h' => 2,
-                'audience' => 'siswa',
+                'judul' => 'Rapat Orang Tua Tingkat',
+                'deskripsi' => 'Pembahasan perkembangan belajar tingkat. Orang tua wajib hadir.',
+                'tanggal_mulai' => $now->addDays(10)->setTime(13, 0)->format('Y-m-d H:i:s'),
+                'tanggal_berakhir' => $now->addDays(10)->setTime(15, 0)->format('Y-m-d H:i:s'),
+                'satu_hari_penuh' => false,
+                'tempat' => 'Aula Sekolah',
+                'penting' => true,
+                'wajib' => true,
+                'kategori' => 'rapat-orang-tua',
+                'audience' => 'level',
+                'target_id' => 1, // Tingkatan ID
+            ],
+
+            // Class/Kelas Events (target_type = 3) - Visible to specific class
+            [
+                'judul' => 'Tugas Kelompok IPA',
+                'deskripsi' => 'Proyek sains kelas. Kerjakan dalam kelompok 4-5 orang.',
+                'tanggal_mulai' => $now->addDays(3)->format('Y-m-d H:i:s'),
+                'tanggal_berakhir' => $now->addDays(3)->format('Y-m-d H:i:s'),
+                'satu_hari_penuh' => true,
+                'tempat' => 'Laboratorium IPA',
+                'penting' => false,
+                'wajib' => true,
+                'kategori' => 'tugas',
+                'audience' => 'class',
+                'target_id' => 101, // Kelas ID
             ],
             [
-                'category' => 'libur',
-                'title' => 'Libur Nasional',
-                'days' => 14,
-                'desc' => 'Tanggal merah, sekolah libur.',
-                'all_day' => true,
-                'audience' => 'semua',
+                'judul' => 'Ekskul Kelas',
+                'deskripsi' => 'Kegiatan ekskul khusus kelas. Pilih sesuai minat dan bakat.',
+                'tanggal_mulai' => $now->addDays(8)->setTime(15, 0)->format('Y-m-d H:i:s'),
+                'tanggal_berakhir' => $now->addDays(8)->setTime(17, 0)->format('Y-m-d H:i:s'),
+                'satu_hari_penuh' => false,
+                'tempat' => 'Lapangan Olahraga',
+                'penting' => false,
+                'wajib' => false,
+                'kategori' => 'ekskul',
+                'audience' => 'class',
+                'target_id' => 101, // Kelas ID
+            ],
+
+            // Student-specific Events (target_type = 4) - Visible to specific students
+            [
+                'judul' => 'Tugas IPA: Laporan Praktikum',
+                'deskripsi' => 'Kumpulkan laporan praktikum dalam format PDF di LMS. Deadline ketat.',
+                'tanggal_mulai' => $now->addDays(1)->format('Y-m-d H:i:s'),
+                'tanggal_berakhir' => $now->addDays(1)->format('Y-m-d H:i:s'),
+                'satu_hari_penuh' => true,
+                'tempat' => 'LMS Online',
+                'penting' => true,
+                'wajib' => true,
+                'kategori' => 'tugas',
+                'audience' => 'student',
+                'target_id' => 3363, // Student ID
             ],
             [
-                'category' => 'tryout',
-                'title' => 'Tryout Ujian Nasional',
-                'days' => 12,
-                'desc' => 'Simulasi UNBK.',
-                'start_hour' => 8,
-                'duration_h' => 3,
-                'important' => true,
-                'audience' => 'siswa',
+                'judul' => 'Ujian Matematika Bab 1',
+                'deskripsi' => 'Materi aljabar dan persamaan linear. Bawa kalkulator dan alat tulis.',
+                'tanggal_mulai' => $now->addDays(3)->setTime(9, 0)->format('Y-m-d H:i:s'),
+                'tanggal_berakhir' => $now->addDays(3)->setTime(11, 0)->format('Y-m-d H:i:s'),
+                'satu_hari_penuh' => false,
+                'tempat' => 'Ruang Kelas 7A',
+                'penting' => true,
+                'wajib' => true,
+                'kategori' => 'ujian',
+                'audience' => 'student',
+                'target_id' => 3363, // Student ID
+            ],
+            [
+                'judul' => 'Konseling Siswa',
+                'deskripsi' => 'Sesi konseling dengan BK. Bahas masalah akademik dan personal.',
+                'tanggal_mulai' => $now->addDays(2)->setTime(10, 0)->format('Y-m-d H:i:s'),
+                'tanggal_berakhir' => $now->addDays(2)->setTime(11, 0)->format('Y-m-d H:i:s'),
+                'satu_hari_penuh' => false,
+                'tempat' => 'Ruang BK',
+                'penting' => true,
+                'wajib' => false,
+                'kategori' => 'bk',
+                'audience' => 'student',
+                'target_id' => 12, // Student ID
+            ],
+            [
+                'judul' => 'Tugas Bahasa Inggris',
+                'deskripsi' => 'Essay writing assignment. Minimal 500 kata dalam bahasa Inggris.',
+                'tanggal_mulai' => $now->addDays(4)->format('Y-m-d H:i:s'),
+                'tanggal_berakhir' => $now->addDays(4)->format('Y-m-d H:i:s'),
+                'satu_hari_penuh' => true,
+                'tempat' => 'Google Classroom',
+                'penting' => false,
+                'wajib' => true,
+                'kategori' => 'tugas',
+                'audience' => 'student',
+                'target_id' => 12, // Student ID
+            ],
+            [
+                'judul' => 'Tryout Ujian Nasional',
+                'deskripsi' => 'Simulasi UNBK. Persiapan untuk ujian nasional yang sebenarnya.',
+                'tanggal_mulai' => $now->addDays(12)->setTime(8, 0)->format('Y-m-d H:i:s'),
+                'tanggal_berakhir' => $now->addDays(12)->setTime(11, 0)->format('Y-m-d H:i:s'),
+                'satu_hari_penuh' => false,
+                'tempat' => 'Lab Komputer',
+                'penting' => true,
+                'wajib' => true,
+                'kategori' => 'tryout',
+                'audience' => 'student',
+                'target_id' => 3363, // Student ID
+            ],
+            [
+                'judul' => 'Pemeriksaan Kesehatan',
+                'deskripsi' => 'Pemeriksaan kesehatan rutin. Cek tinggi badan, berat badan, dan kesehatan umum.',
+                'tanggal_mulai' => $now->addDays(6)->setTime(9, 0)->format('Y-m-d H:i:s'),
+                'tanggal_berakhir' => $now->addDays(6)->setTime(10, 0)->format('Y-m-d H:i:s'),
+                'satu_hari_penuh' => false,
+                'tempat' => 'UKS',
+                'penting' => false,
+                'wajib' => true,
+                'kategori' => 'kesehatan',
+                'audience' => 'student',
+                'target_id' => 12, // Student ID
             ],
         ];
 
         foreach ($events as $e) {
+            $event = Event::query()->create([
+                'judul' => $e['judul'],
+                'desk' => $e['deskripsi'] ?? null,
+                'start_at' => $e['tanggal_mulai'],
+                'end_at' => $e['tanggal_berakhir'],
+                'fullday' => (bool) ($e['satu_hari_penuh'] ?? false),
+                'lokasi' => $e['tempat'] ?? null,
+                'penting' => (bool) ($e['penting'] ?? false),
+                'sifat' => ($e['wajib'] ?? false) ? 1 : 0,
+                'kategori_id' => $slugToId[$e['kategori']],
+                'sta' => true,
+                'meta' => [],
+            ]);
+
+            // Tambahkan target audiens berdasarkan hierarki
+            switch ($e['audience']) {
+                case 'global':
+                    // Global events (target_type = 0) - visible to all
+                    EventTarget::create([
+                        'event_id' => $event->id,
+                        'target_type' => 0,
+                        'target_id' => 0,
+                    ]);
+                    break;
+
+                case 'level':
+                    // Level/tingkatan events (target_type = 1)
+                    EventTarget::create([
+                        'event_id' => $event->id,
+                        'target_type' => 1,
+                        'target_id' => $e['target_id'],
+                    ]);
+                    break;
+
+                case 'class':
+                    // Class/kelas events (target_type = 3)
+                    EventTarget::create([
+                        'event_id' => $event->id,
+                        'target_type' => 3,
+                        'target_id' => $e['target_id'],
+                    ]);
+                    break;
+
+                case 'student':
+                    // Student-specific events (target_type = 4)
+                    EventTarget::create([
+                        'event_id' => $event->id,
+                        'target_type' => 4,
+                        'target_id' => $e['target_id'],
+                    ]);
+                    break;
+            }
+        }
+
+        // Create some events for multiple students
+        $multiStudentEvents = [
+            [
+                'category' => 'baksos',
+                'title' => 'Bakti Sosial Kelompok',
+                'days' => 15,
+                'desc' => 'Kegiatan bakti sosial bersama.',
+                'start_hour' => 8,
+                'duration_h' => 4,
+                'all_day' => false,
+            ],
+            [
+                'category' => 'lomba',
+                'title' => 'Lomba Antar Kelas',
+                'days' => 18,
+                'desc' => 'Kompetisi olahraga antar kelas.',
+                'start_hour' => 14,
+                'duration_h' => 3,
+                'all_day' => false,
+            ],
+        ];
+
+        foreach ($multiStudentEvents as $e) {
             $start = $now->addDays($e['days']);
             if (isset($e['start_hour'])) {
                 $start = $start->setTime($e['start_hour'], 0);
@@ -145,24 +347,12 @@ class EventCalendarSeeder extends Seeder
                 'meta' => [],
             ]);
 
-            // Tambahkan target audiens
-            if ($e['audience'] === 'semua') {
+            // Create targets for multiple students
+            foreach ($students as $studentId) {
                 EventTarget::create([
                     'event_id' => $event->id,
-                    'target_type' => 0, // Global
-                    'target_id' => 0,
-                ]);
-            } elseif ($e['audience'] === 'siswa') {
-                EventTarget::create([
-                    'event_id' => $event->id,
-                    'target_type' => 4, // Siswa
-                    'target_id' => $idsis,
-                ]);
-            } elseif ($e['audience'] === 'orangtua') {
-                EventTarget::create([
-                    'event_id' => $event->id,
-                    'target_type' => 4, // Siswa (untuk orangtua, kaitkan dengan siswa)
-                    'target_id' => $idsis,
+                    'target_type' => 4, // Student-specific
+                    'target_id' => $studentId,
                 ]);
             }
         }

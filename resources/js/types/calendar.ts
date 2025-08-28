@@ -17,6 +17,8 @@ export type CalendarEvent = {
         location?: string | null;
         status: 'wajib' | 'opsional';
         isImportant: boolean;
+        holidayName?: string | null;
+        isHoliday?: boolean;
         category?: {
             slug?: string;
             name?: string;

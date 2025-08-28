@@ -12,8 +12,6 @@ import MainCalendar from '@/components/calendar/MainCalendar'
 import MobileNavigation from '@/components/calendar/MobileNavigation'
 import type FullCalendar from '@fullcalendar/react'
 
-
-
 // using LocalExtendedProps imported from fcRenderers
 
 type PageProps = {
@@ -24,7 +22,14 @@ type PageProps = {
 }
 
 const CalendarIndex: React.FC = () => {
-    const { nouid, categories, events: eventsData, filters } = usePage<PageProps>().props
+    const pageProps = usePage<PageProps>().props
+
+    // Validate and sanitize props
+    const nouid = pageProps.nouid || ''
+    const categories = Array.isArray(pageProps.categories) ? pageProps.categories : []
+    const eventsData = Array.isArray(pageProps.events) ? pageProps.events : []
+    const filters = pageProps.filters || {}
+
     const isMobile = useIsMobile()
     const calendarRef = useRef<FullCalendar>(null)
     const [detailOpen, setDetailOpen] = useState(false)
@@ -46,23 +51,43 @@ const CalendarIndex: React.FC = () => {
         initialFilters: filters
     })
 
-    // Process events for FullCalendar
-    const fcEvents = mapEventsToFullCalendar(filteredEvents)
+    // Process events for FullCalendar with error handling
+    const fcEvents = React.useMemo(() => {
+        try {
+            return mapEventsToFullCalendar(filteredEvents)
+        } catch (error) {
+            console.error('Error processing events:', error)
+            return []
+        }
+    }, [filteredEvents])
 
-    // Process holidays for FullCalendar
-    const holidayEvents = mapHolidaysToFullCalendar(
-        holidayData.names,
-        rangeRef.current?.start,
-        rangeRef.current?.end
-    )
+    // Process holidays for FullCalendar with error handling
+    const holidayEvents = React.useMemo(() => {
+        try {
+            return mapHolidaysToFullCalendar(
+                holidayData.names,
+                rangeRef.current?.start,
+                rangeRef.current?.end
+            )
+        } catch (error) {
+            console.error('Error processing holidays:', error)
+            return []
+        }
+    }, [holidayData.names, rangeRef.current?.start, rangeRef.current?.end])
 
     // Combine regular events and holiday events
-    const allEvents = [...holidayEvents, ...fcEvents]
+    // If "libur" category is active, include external API holidays
+    const shouldIncludeHolidays = activeCats.length === 0 || activeCats.includes('libur')
+    const allEvents = shouldIncludeHolidays ? [...holidayEvents, ...fcEvents] : fcEvents
 
     // Handle event click
     const handleEventClick = (event: CalendarEvent) => {
-        setSelected(event)
-        setDetailOpen(true)
+        try {
+            setSelected(event)
+            setDetailOpen(true)
+        } catch (error) {
+            console.error('Error handling event click:', error)
+        }
     }
 
     return (

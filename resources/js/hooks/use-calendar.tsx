@@ -1,8 +1,12 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react'
 import { router } from '@inertiajs/react'
 import dayjs from 'dayjs'
+import 'dayjs/locale/id'
 import type { CalendarEvent, CalendarFilters } from '@/types/calendar'
 import type { DatesSetArg, ViewApi } from '@fullcalendar/core'
+
+// Set Indonesian locale
+dayjs.locale('id')
 
 // Extend Window interface untuk route function
 declare global {
@@ -36,6 +40,17 @@ type UseCalendarProps = {
 type HolidayData = {
     dates: Set<string>
     names: Map<string, string>
+}
+
+// Helper function to get route function safely
+const getRouteFunction = (): RouteFunction | null => {
+    if (typeof route !== 'undefined') {
+        return route
+    }
+    if (typeof window !== 'undefined' && window.route) {
+        return window.route
+    }
+    return null
 }
 
 export const useCalendar = ({ nouid, initialEvents, initialFilters }: UseCalendarProps) => {
@@ -88,16 +103,32 @@ export const useCalendar = ({ nouid, initialEvents, initialFilters }: UseCalenda
         if (last && last.start === start && last.end === end && last.catsKey === catsKey && last.search === searchKey) return
         lastFetchRef.current = { start, end, catsKey, search: searchKey }
 
-        // Pastikan router dan route tersedia sebelum menggunakannya
-        if (typeof router !== 'undefined' && router.get && (typeof route !== 'undefined' || typeof window.route !== 'undefined')) {
-            try {
-                const routeFn: RouteFunction = typeof route !== 'undefined' ? route : window.route!
-                const opts = { preserveScroll: true, preserveState: true, replace: true }
-                const url = routeFn('calendar.index', { nouid })
-                router.get(url, { start, end, search: q, categories: catsSorted }, opts)
-            } catch (error) {
-                console.warn('Failed to fetch calendar data:', error)
+        // Get route function safely
+        const routeFn = getRouteFunction()
+        if (!routeFn) {
+            console.warn('Route function not available')
+            return
+        }
+
+        // Check if router is available
+        if (typeof router === 'undefined' || !router.get) {
+            console.warn('Router not available')
+            return
+        }
+
+        try {
+            const opts = { preserveScroll: true, preserveState: true, replace: true }
+            const url = routeFn('calendar.index', { nouid })
+
+            // Validate URL before making request
+            if (!url || typeof url !== 'string') {
+                console.warn('Invalid URL generated:', url)
+                return
             }
+
+            router.get(url, { start, end, search: q, categories: catsSorted }, opts)
+        } catch (error) {
+            console.warn('Failed to fetch calendar data:', error)
         }
     }, [nouid])
 

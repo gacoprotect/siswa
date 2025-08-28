@@ -310,6 +310,27 @@
 .fc .fc-holiday-day {
     background-color: #fff1f2; /* rose-50 */
 }
+.fc .fc-holiday-day:hover {
+    background-color: #fee2e2;
+}
 .fc .fc-holiday-day .fc-daygrid-day-number {
     color: #dc2626; /* red-600 */
+}
+
+/* Sunday styling */
+.fc .fc-sunday-day {
+    background-color: #fef2f2; /* red-50 */
+}
+.fc .fc-sunday-day:hover {
+    background-color: #fee2e2; /* red-100 */
+}
+.fc .fc-sunday-day .fc-daygrid-day-number {
+    color: #dc2626; /* red-600 */
+    font-weight: 700;
+}
+
+/* Sunday column header */
+.fc .fc-col-header-cell.fc-day-sun .fc-col-header-cell-cushion {
+    color: #dc2626; /* red-600 */
+    font-weight: 700;
 }
