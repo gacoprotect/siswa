@@ -9,15 +9,6 @@ interface Props {
     setTambahTagihan: (v: SetTambahTagihan) => void;
 }
 
-interface ResponseForBill {
-    id: number;
-    tah: string;
-    bulid: number;
-    jumlah: number;
-    ket: string;
-    jen: number; // 0 = tagihan, 1 = pengurangan
-    sta: number;
-}
 
 interface DataTambahTagihan {
     tah: string;

@@ -2,9 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Trx\Tbank;
-use App\Models\Trx\Tpt;
-use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -20,6 +17,7 @@ class DatabaseSeeder extends Seeder
             TbankSeeder::class,
             TptSeeder::class,
             SnkSeeder::class,
+            EventCalendarSeeder::class,
             TagihanSetahunSeeder::class,
         ]);
     }

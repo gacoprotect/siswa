@@ -15,18 +15,22 @@ use App\Models\Spp\Tsalpenrut;
 use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
 class Indentitas extends BaseModel
 {
-    use LogsChanges;
     use HasFactory;
+    use LogsChanges;
 
     protected $connection = 'mai2';
+
     protected $table = 'tindentitas';
+
     protected $primaryKey = ['id'];
+
     protected $appends = ['active'];
+
     public $incrementing = false;
+
     protected $fillable = [
         'idmen',
         'idok',
@@ -48,8 +52,9 @@ class Indentitas extends BaseModel
         'tagihan',
         'transactions',
         'active',
-        'trx'
+        'trx',
     ];
+
     protected $casts = [
         'idmen' => 'integer',
         'idok' => 'integer',
@@ -61,59 +66,73 @@ class Indentitas extends BaseModel
     ];
 
     public $timestamps = true;
+
     const CREATED_AT = 'createdat';
+
     const UPDATED_AT = 'updatedat';
 
     public function siswa()
     {
         return $this->belongsTo(Siswa::class, 'idok', 'id');
     }
+
     public function kelsis()
     {
         return $this->belongsTo(Tkelsis::class, 'idok', 'ids');
     }
+
     public function kelsis1()
     {
         return $this->belongsTo(Tkelsis1::class, 'idok', 'ids');
     }
+
     public function daftarexcul()
     {
         return $this->belongsTo(Tdaftarexcul::class, 'idok', 'idsis');
     }
+
     public function stopexcul()
     {
         return $this->belongsTo(Tstopexcul::class, 'idok', 'idsis');
     }
+
     public function signature()
     {
         return $this->belongsTo(Tsignsnk::class, 'nouid', 'nouid');
     }
+
     public function registrasi()
     {
         return $this->belongsTo(Tregistrasi::class, 'nouid', 'nouid');
     }
+
     public function reg()
     {
         return $this->belongsTo(Tregistrasi::class, 'nouid', 'nouid');
     }
+
     public function trx()
     {
         return $this->hasMany(Ttrx::class, 'nouid', 'nouid');
     }
+
     public function tagihan()
     {
         return $this->hasMany(Tsalpenrut::class, 'idsis', 'idok');
     }
+
     public function active(): Attribute
     {
         return Attribute::get(function () {
             return $this->sta !== -1;
         });
     }
+
     public function getTotalTagihanAttribute()
     {
         return $this->tagihan->sum('jumlah');
     }
+
     public function paidBill()
     {
         return $this->hasMany(PaidBill::class, 'nouid', 'nouid');
@@ -123,13 +142,13 @@ class Indentitas extends BaseModel
     {
         $summary = [
             'active' => (bool) $this->active,
-            'pin' => !is_null($this->siswa->pin ?? null),
+            'pin' => ! is_null($this->siswa->pin ?? null),
             'reg' => $this->reg->sta ?? null,
             'sign' => $this->signature->sign ?? null,
             'version' => $this->signature->snk_version ?? null,
         ];
 
-        if (!empty($except)) {
+        if (! empty($except)) {
             $summary = array_diff_key($summary, array_flip($except));
         }
 

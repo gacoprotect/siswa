@@ -4,7 +4,7 @@ import React, { forwardRef, ReactNode, useEffect, useRef, useState, useCallback 
 import InputGroup from "../InputGroup";
 
 interface ModalProps {
-  title?: string;
+  title?: string | null | undefined;
   size?: "sm" | "md" | "lg" | "xl" | "full";
   isOpen: boolean;
   onClose: () => void;
@@ -141,7 +141,7 @@ export const Modal: React.FC<ModalProps> = ({
     >
       <div
         className={cn(
-          `bg-secondary text-secondary-foreground rounded-lg shadow-lg flex flex-col max-h-[90vh] ${sizeMap[size]}`,
+          `relative bg-secondary text-secondary-foreground rounded-lg shadow-lg flex flex-col max-h-[90vh] ${sizeMap[size]}`,
           className
         )}
       >
@@ -217,12 +217,12 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
   onClose,
 }) => {
   return (
-    <div className={`flex justify-between items-center p-4 border-b ${className}`}>
+    <div className={`flex justify-between items-center p-2 border-b ${className}`}>
       <h3 className="text-xl font-semibold">{children}</h3>
       {showCloseButton && (
         <button
           onClick={onClose}
-          className="text-red-500 hover:text-accent-foreground text-2xl"
+          className=" absolute top-2 right-2 text-red-500 hover:text-accent-foreground text-2xl"
           aria-label="Close"
         >
           <X />
@@ -251,5 +251,5 @@ interface ModalFooterProps {
   className?: string;
 }
 export const ModalFooter: React.FC<ModalFooterProps> = ({ children, className = "" }) => (
-  <div className={cn(`px-6 py-2 border-t flex justify-end space-x-2 `, className)}>{children}</div>
+  <div className={cn(`px-2 py-2 border-t flex justify-end space-x-2 `, className)}>{children}</div>
 );

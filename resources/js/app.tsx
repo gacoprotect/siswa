@@ -16,6 +16,7 @@ createInertiaApp({
     setup({ el, App, props }) {
         const root = createRoot(el);
         const RootWrapper = () => {
+           
             useEffect(() => {
                 const loader = document.getElementById('initial-loader');
                 if (loader) {
@@ -26,19 +27,19 @@ createInertiaApp({
             }, []);
 
             return <>
-            <ToastContainer
-                position="top-right"
-                autoClose={3000}
-                hideProgressBar={false}
-                newestOnTop={false}
-                closeOnClick
-                rtl={false}
-                pauseOnFocusLoss
-                draggable
-                pauseOnHover
-                theme="colored"
-            />
-            <App {...props} /></>;
+                <ToastContainer
+                    position="top-right"
+                    autoClose={3000}
+                    hideProgressBar={false}
+                    newestOnTop={false}
+                    closeOnClick
+                    rtl={false}
+                    pauseOnFocusLoss
+                    draggable
+                    pauseOnHover
+                    theme="colored"
+                />
+                <App {...props} /></>;
         };
 
         root.render(

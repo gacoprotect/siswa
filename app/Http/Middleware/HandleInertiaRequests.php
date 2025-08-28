@@ -43,7 +43,11 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'flash' => function () use ($request) {
+<<<<<<< HEAD
                return $request->session()->get('message');
+=======
+                return $request->session()->get('message');
+>>>>>>> b30ba79d6042419979edafb2837638211a75eb8c
             },
             'data' => function () use ($request) {
                 return $request->session()->get('data');
@@ -51,7 +55,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
-            'ziggy' => fn(): array => [
+            'ziggy' => fn (): array => [
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),
             ],
