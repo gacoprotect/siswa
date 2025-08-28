@@ -289,7 +289,7 @@ export default function SiswaDashboard() {
                                     onNavigate={navigateToPage}
                                 />
                                 <MenuItems
-                                    menuItems={menuItems}
+                                    nouid={siswaData.nouid ?? auth?.user?.nouid}
                                     onItemClick={setActiveItem}
                                 />
                             </>
