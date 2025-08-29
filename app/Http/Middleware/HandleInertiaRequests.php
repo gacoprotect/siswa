@@ -43,11 +43,13 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'name' => config('app.name'),
             'flash' => function () use ($request) {
-<<<<<<< HEAD
-               return $request->session()->get('message');
-=======
-                return $request->session()->get('message');
->>>>>>> b30ba79d6042419979edafb2837638211a75eb8c
+                $flash = $request->session()->get('message');
+                if ($flash) {
+                    $flash['timestamp'] = time() + 5;
+                    $request->session()->forget('message');
+                }
+
+                return $flash;
             },
             'data' => function () use ($request) {
                 return $request->session()->get('data');

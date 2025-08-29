@@ -1,8 +1,9 @@
 import { ConfirmDialog } from "@/components/ConfirmDialog ";
+import { useLoading } from "@/contexts/loading-context";
 import { Auth, DataSiswa } from "@/types";
 import { router } from "@inertiajs/react";
 import { AlertCircle } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { FaExchangeAlt, FaKey } from "react-icons/fa";
 import { FiLogOut } from "react-icons/fi";
 
@@ -14,15 +15,21 @@ interface PropsComponent {
     hasPined: boolean;
     onPinModalOpen: () => void;
     onSetupPinModalOpen: () => void;
-    onLogout: () => void;
 }
-const ActionButtons: React.FC<PropsComponent> = ({ auth, data, hasPined, onPinModalOpen, onSetupPinModalOpen, onLogout }) => {
+const ActionButtons: React.FC<PropsComponent> = ({ auth, data, hasPined, onPinModalOpen, onSetupPinModalOpen }) => {
     const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+    const { setLoading } = useLoading();
     const register = () => {
         router.get(route('register', data.nouid));
     };
-    const disabled = data.summary?.reg === 0;
+    const disabled = data.summary && 'reg' in data.summary && data.summary.reg === 0;
 
+    const handleLogout = useCallback(() => {
+        router.post(route('siswa.logout', data.nouid ?? auth?.user?.nouid), {}, {
+            onStart: () => setLoading(true),
+            onFinish: () => setLoading(false),
+        });
+    }, [data.nouid, auth?.user?.nouid, setLoading]);
     if (disabled) {
         return (
             <div className={'flex items-center justify-center gap-4 border-t-2 border-b-2 border-blue-500 bg-white p-2 px-6'}>
@@ -50,7 +57,7 @@ const ActionButtons: React.FC<PropsComponent> = ({ auth, data, hasPined, onPinMo
                         title="Konfirmasi Logout"
                         description="Anda yakin ingin keluar?"
                         confirmText="Ya, Keluar"
-                        onConfirm={onLogout}
+                        onConfirm={handleLogout}
                     />
                 </>
             ) : (
@@ -68,7 +75,7 @@ const ActionButtons: React.FC<PropsComponent> = ({ auth, data, hasPined, onPinMo
                 onClick={() => {
                     if (hasPined) {
                         onSetupPinModalOpen();
-                    } else if (!hasPined && data.summary?.reg === 1) {
+                    } else if (!hasPined && data.summary && 'reg' in data.summary && data.summary.reg === 1) {
                         onSetupPinModalOpen();
                     } else {
                         register();
@@ -78,7 +85,7 @@ const ActionButtons: React.FC<PropsComponent> = ({ auth, data, hasPined, onPinMo
                 disabled={disabled}
             >
                 <FaExchangeAlt className="text-lg" />
-                <span>{hasPined ? 'Ubah PIN' : ((!hasPined && data.summary?.reg === 1) ? 'Buat Pin' : 'daftar')}</span>
+                <span>{hasPined ? 'Ubah PIN' : ((!hasPined && data.summary && 'reg' in data.summary && data.summary.reg === 1) ? 'Buat Pin' : 'daftar')}</span>
             </button>
         </div>
     );

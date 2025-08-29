@@ -251,6 +251,8 @@ export interface BillData {
 export interface Flash {
     success: boolean | null;
     message: string | null;
+    timestamp: number;
+    expires_at?: number;
 }
 export interface Pelatih {
     name: string | null;

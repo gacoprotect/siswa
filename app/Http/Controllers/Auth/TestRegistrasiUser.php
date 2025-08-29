@@ -116,7 +116,7 @@ class TestRegistrasiUser extends Controller
         $reg = Tregistrasi::where('nouid', $nouid)->first();
 
         if (!$reg || in_array($reg->sta, [-2, 0, 1])) {
-            return Inertia::location(route('siswa.index', [
+            return Inertia::location(route('dashboard', [
                 'nouid' => $nouid,
                 'sta' => $reg->sta ?? null,
             ]));
@@ -150,7 +150,7 @@ class TestRegistrasiUser extends Controller
                     return back(400)->withErrors(['message' => 'Invalid simulation type']);
             }
 
-            return redirect()->intended(route('siswa.index', [
+            return redirect()->intended(route('dashboard', [
                 'nouid' => $v['nouid']
             ]));
         });

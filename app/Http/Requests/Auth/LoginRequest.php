@@ -9,10 +9,10 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Log;
 
 class LoginRequest extends FormRequest
 {
@@ -66,19 +66,19 @@ class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
 
         try {
-            $nouid = $this->input('nouid');
+            $nouid = $this->validated('nouid');
             $indentitas = Indentitas::where('nouid', $nouid)
                 ->with('siswa')
                 ->firstOrFail();
 
-            if (!$this->verifyPin($indentitas->siswa, $this->input('pin'))) {
+            if (! $this->verifyPin($indentitas->siswa, $this->validated('pin'))) {
                 $attempts = RateLimiter::attempts($this->throttleKey());
                 $remainingAttempts = self::MAX_ATTEMPTS - $attempts - 1;
                 RateLimiter::hit(
                     $this->throttleKey(),
                     self::THROTTLE_DECAY_MINUTES * 60 * 10
                 );
-                if ($remainingAttempts <= 0) {                    
+                if ($remainingAttempts <= 0) {
                     $phone = $indentitas->siswa->tel ?? null;
                     logger($phone);
                     if ($phone) {
@@ -96,14 +96,14 @@ class LoginRequest extends FormRequest
                     // 'max_attempts' => self::MAX_ATTEMPTS,
                     'message' => $remainingAttempts > 0
                         ? "PIN yang Anda Masukkan Salah. Sisa percobaan: {$remainingAttempts}"
-                        : "Terlalu banyak percobaan login"
+                        : 'Terlalu banyak percobaan login',
                 ];
 
                 Log::warning('Failed login attempt', [
                     'nouid' => $nouid,
-                    'ip' => $this->ip(),
+                    'ip' => request()->ip(),
                     'attempt' => $attempts + 1, // Menunjukkan attempt saat ini
-                    'remaining' => self::MAX_ATTEMPTS - ($attempts + 1)
+                    'remaining' => self::MAX_ATTEMPTS - ($attempts + 1),
                 ]);
                 throw ValidationException::withMessages($errorData);
             }
@@ -122,8 +122,8 @@ class LoginRequest extends FormRequest
         } catch (\Exception $e) {
             Log::error('Login error', [
                 'error' => $e->getMessage(),
-                'nouid' => $this->input('nouid'),
-                'trace' => $e->getTraceAsString()
+                'nouid' => $this->validated('nouid'),
+                'trace' => $e->getTraceAsString(),
             ]);
             throw ValidationException::withMessages([
                 'nouid' => 'Terjadi kesalahan saat proses login.',
@@ -138,8 +138,9 @@ class LoginRequest extends FormRequest
         } catch (\Exception $e) {
             Log::error('PIN verification failed', [
                 'error' => $e->getMessage(),
-                'nouid' => $this->input('nouid')
+                'nouid' => $this->validated('nouid'),
             ]);
+
             return false;
         }
     }
@@ -151,7 +152,7 @@ class LoginRequest extends FormRequest
      */
     public function ensureIsNotRateLimited(): void
     {
-        if (!RateLimiter::tooManyAttempts($this->throttleKey(), self::MAX_ATTEMPTS)) {
+        if (! RateLimiter::tooManyAttempts($this->throttleKey(), self::MAX_ATTEMPTS)) {
             return;
         }
 
@@ -167,15 +168,15 @@ class LoginRequest extends FormRequest
             // 'remaining' => 0,
             // 'max_attempts' => self::MAX_ATTEMPTS,
             // 'retry_after' => $seconds,
-            'message' => "Terlalu banyak percobaan login. Silakan coba lagi dalam {$seconds} detik."
+            'message' => "Terlalu banyak percobaan login. Silakan coba lagi dalam {$seconds} detik.",
         ];
         Log::warning('Login rate limited', [
             'key' => $this->throttleKey(),
             'total_attempts' => $attempts,
-            'ip' => $this->ip(),
-            'nouid' => $this->input('nouid'),
+            'ip' => request()->ip(),
+            'nouid' => $this->validated('nouid'),
             'retry_after_seconds' => $seconds,
-            'max_attempts' => self::MAX_ATTEMPTS
+            'max_attempts' => self::MAX_ATTEMPTS,
         ]);
 
         throw ValidationException::withMessages($errorData);
@@ -186,6 +187,6 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->input('nouid')) . '|' . $this->ip());
+        return Str::transliterate(Str::lower($this->validated('nouid')).'|'.request()->ip());
     }
 }

@@ -1,4 +1,5 @@
 import { ConfirmDialog } from "@/components/ConfirmDialog ";
+import { Blokir } from "@/components/blokir";
 import { Auth, DataSiswa } from "@/types";
 import { useEffect, useState } from "react";
 import { FaCog, FaGraduationCap, FaIdCard, FaUser } from "react-icons/fa";
@@ -7,11 +8,10 @@ import { FaCog, FaGraduationCap, FaIdCard, FaUser } from "react-icons/fa";
 interface PropsComponent {
     auth: Auth;
     siswaData: DataSiswa;
-    onBlockRequest: () => void;
 }
-const StudentInfo: React.FC<PropsComponent> = ({ auth, siswaData, onBlockRequest }) => {
+const StudentInfo: React.FC<PropsComponent> = ({ auth, siswaData }) => {
     const [menuOpen, setMenuOpen] = useState(false);
-    const [dialogOpen, setDialogOpen] = useState(false);
+    const [dialogOpen, setDialogOpen] = useState<'confirm' | 'blokir' | null>(null);
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -28,15 +28,15 @@ const StudentInfo: React.FC<PropsComponent> = ({ auth, siswaData, onBlockRequest
         <div className="relative flex w-full flex-col items-start rounded-t-lg bg-white p-4 px-6">
             <div className="flex items-center space-x-3">
                 <FaUser className="flex-shrink-0 text-xl text-primary" />
-                <h2 className="truncate text-3xl font-semibold text-primary">{auth.user?.namlen ?? siswaData.siswa.namlen ?? '******'}</h2>
+                <h2 className="truncate text-3xl font-semibold text-primary">{auth.user?.namlen ?? siswaData?.siswa?.namlen ?? '******'}</h2>
             </div>
             <div className="flex items-center space-x-3">
                 <FaIdCard className="flex-shrink-0 text-lg text-primary" />
-                <p className="text-primary md:text-lg">NIS: {auth.user?.nis ?? siswaData.siswa.nis ?? '*****'}</p>
+                <p className="text-primary md:text-lg">NIS: {auth.user?.nis ?? siswaData?.siswa?.nis ?? '*****'}</p>
             </div>
             <div className="flex items-center space-x-3">
                 <FaGraduationCap className="flex-shrink-0 text-lg text-primary" />
-                <p className="text-primary md:text-lg">Kelas: {auth.user?.kel ?? siswaData.siswa.kel ?? '***'}</p>
+                <p className="text-primary md:text-lg">Kelas: {auth.user?.kel ?? siswaData?.siswa?.kel ?? '***'}</p>
             </div>
 
             {/* Menu Gear */}
@@ -55,7 +55,7 @@ const StudentInfo: React.FC<PropsComponent> = ({ auth, siswaData, onBlockRequest
                             <button
                                 onClick={() => {
                                     setMenuOpen(false);
-                                    setDialogOpen(true);
+                                    setDialogOpen('confirm');
                                 }}
                                 className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
                             >
@@ -67,12 +67,17 @@ const StudentInfo: React.FC<PropsComponent> = ({ auth, siswaData, onBlockRequest
             </div>
 
             <ConfirmDialog
-                open={dialogOpen}
-                onOpenChange={setDialogOpen}
+                open={dialogOpen === 'confirm'}
+                onOpenChange={() => setDialogOpen}
                 title="Konfirmasi Blokir"
                 description="Apakah kamu yakin ingin memblokir kartu siswa ini?"
                 confirmText="Ya, Blokir"
-                onConfirm={onBlockRequest}
+                onConfirm={() => setDialogOpen('blokir')}
+            />
+            <Blokir
+                open={dialogOpen === 'blokir'}
+                onClose={() => setDialogOpen(null)}
+                setLoading={()=>{}}
             />
         </div>
     );

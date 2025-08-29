@@ -4,13 +4,12 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia; 
+use Inertia\Inertia;
 use Inertia\Response;
 
 class AuthenticatedSessionController extends Controller
@@ -29,38 +28,38 @@ class AuthenticatedSessionController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to render login page', [
                 'nouid' => $nouid ?? null,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             // Fallback to a simple error page if Inertia fails
             return Inertia::render('Error', [
                 'status' => 500,
-                'message' => 'Gagal memuat halaman login'
+                'message' => 'Gagal memuat halaman login',
             ]);
         }
     }
 
-    public function store(LoginRequest $request)
+    public function store(LoginRequest $loginRequest, string $nouid)
     {
         try {
-            $nouid = $request->route('nouid');
+            logger('User authenticate request', ['request' => request()->all()]);
 
-            $request->authenticate();
-            $request->session()->regenerate();
+            $loginRequest->authenticate();
+            request()->session()->regenerate();
             session(['current_nouid' => $nouid]);
 
             Log::info('User authenticated successfully', ['nouid' => $nouid]);
 
             // Redirect based on parameter or default
-            if (in_array($request->input('p'), ['riwayat', 'index'])) {
-                $redirectRoute = $request->input('p') === 'riwayat'
+            if (in_array(request()->input('p'), ['riwayat', 'index'])) {
+                $redirectRoute = request()->input('p') === 'riwayat'
                     ? 'transactions'
-                    : 'siswa.index';
+                    : 'dashboard';
 
                 return Inertia::location(route($redirectRoute, ['nouid' => $nouid]));
             }
 
-            return back()->with([
+            return back()->withMessage([
                 'success' => true,
                 'message' => 'Pin terverifikasi',
             ]);
@@ -72,15 +71,12 @@ class AuthenticatedSessionController extends Controller
 
             ]);
 
-            return back()->withErrors($e->errors())->withInput()->withMessage([
-                'success' => true,
-                'message' => $e->getMessage(),
-            ]);
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             Log::error('Login process Error', [
                 'nouid' => $nouid ?? null,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return back()->withErrors([
@@ -99,14 +95,14 @@ class AuthenticatedSessionController extends Controller
 
             Log::info('User logged out', ['nouid' => $nouid]);
 
-            return Inertia::location(route('siswa.index', ['nouid' => $nouid]));
+            return Inertia::location(route('dashboard', ['nouid' => $nouid]));
         } catch (\Exception $e) {
             Log::error('Logout failed', [
                 'nouid' => $nouid,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
-            return redirect()->intended(route('siswa.index', ['nouid' => $nouid]))
+            return redirect()->intended(route('dashboard', ['nouid' => $nouid]))
                 ->withErrors(['message' => 'Terjadi kesalahan saat logout']);
         }
     }

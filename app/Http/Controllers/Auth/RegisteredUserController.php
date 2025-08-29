@@ -7,86 +7,75 @@ use App\Models\Datmas\Indentitas;
 use App\Models\Saving\Timagable;
 use App\Models\Saving\Tregistrasi;
 use App\Models\Saving\Tsignsnk;
-use App\Models\Saving\Tsnk;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
-use App\Http\Controllers\Saving\SignatureController;
-use App\Services\AgreementService;
-use App\Services\DataValidatorService;
-use App\Services\TimagableService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 
 class RegisteredUserController extends Controller
 {
-    protected DataValidatorService $validator;
-    protected TimagableService $imageService;
-    protected AgreementService $agreement;
-
-    public function __construct(DataValidatorService $validator, TimagableService $imageService, AgreementService $agreement)
-    {
-        $this->validator = $validator;
-        $this->imageService = $imageService;
-        $this->agreement = $agreement;
-    }
-
-
     /**
      * Show the registration page.
      */
-
     public function index(Request $req, $nouid)
     {
         $redirect = $this->registered($nouid);
-        if ($redirect) return $redirect;
+        if ($redirect) {
+            return $redirect;
+        }
 
         $props = ['nouid' => $nouid];
 
         return Inertia::render('Register/Register', $props);
     }
+
     public function create(Request $req, $nouid)
     {
         $redirect = $this->registered($nouid);
-        if ($redirect) return $redirect;
+        if ($redirect) {
+            return $redirect;
+        }
 
-
-        $data = $req->validate([
-            'nouid' => 'required|string|exists:mai2.tindentitas,nouid',
-            'warneg' => 'required|string',
-            'nama' => 'required|string',
-            'nik' => 'required_if:warneg,ID|nullable|digits:16|numeric',
-            'paspor' => 'required_if:warneg,!ID|nullable|string',
-            'kabName' => 'required|string',
-        ]);
         $props = ['nouid' => $nouid];
+
+        // Only validate if query parameter 'q' is 'agreement'
         if ($req->query('q') === 'agreement') {
+            $data = $req->validate([
+                'nouid' => 'required|string|exists:mai2.tindentitas,nouid',
+                'warneg' => 'required|string',
+                'nama' => 'required|string',
+                'nik' => 'required_if:warneg,ID|nullable|digits:16|numeric',
+                'paspor' => 'required_if:warneg,!ID|nullable|string',
+                'kabName' => 'required|string',
+            ]);
+
             try {
                 if (empty($data)) {
                     return back()->withErrors(['data' => 'Terjadi kesalahan data tidak valid']);
                 }
                 $props = array_merge($props, $this->agreement->agreement($data));
             } catch (\Exception $e) {
-                logger()->error('Gagal membuat agreement: ' . $e->getMessage(), [
+                logger()->error('Gagal membuat agreement: '.$e->getMessage(), [
                     'data' => $data,
                     'exception' => $e,
                 ]);
+
                 return back()->withErrors(['agreement' => 'Terjadi kesalahan saat membuat agreement.']);
             }
         }
+
         return Inertia::render('Register/Register', $props);
     }
-
 
     private function registered($nouid)
     {
         $reg = Tregistrasi::where('nouid', $nouid)->first();
 
         if ($reg && in_array($reg->sta, [-2, 0, 1])) {
-            return Inertia::location(route('siswa.index', [
+            return Inertia::location(route('dashboard', [
                 'nouid' => $nouid,
                 'sta' => $reg->sta ?? null,
             ]));
@@ -95,13 +84,11 @@ class RegisteredUserController extends Controller
         return null;
     }
 
-
     /**
      * Handle an incoming registration request.
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-
     public function store(Request $req, $nouid)
     {
         logger('REGISTRATION REQUEST', ['data' => $req->except(['ktpFile', 'pasporFile'])]);
@@ -112,47 +99,47 @@ class RegisteredUserController extends Controller
 
             // Early return if registration already exists with status 0 or 1
             if ($isReg && in_array($reg->sta, [0, 1])) {
-                return Inertia::location(route('siswa.index', [
+                return Inertia::location(route('dashboard', [
                     'nouid' => $nouid,
-                    'sta' => $reg->sta
+                    'sta' => $reg->sta,
                 ]));
             }
 
             return DB::connection('mai4')->transaction(function () use ($req, $nouid, $reg, $isReg) {
                 // Common validation rules
                 $baseRules = [
-                    "nama" => "required|string|max:100",
-                    "warneg" => "required|string",
-                    "warnegName" => "required|string|max:100",
-                    "nik" => "nullable|numeric|digits:16",
-                    "kk" => "nullable|numeric|digits:16",
-                    "ktpFile" => "nullable|file|mimes:jpg,jpeg,png,pdf|max:2048",
-                    "paspor" => "nullable|string|max:50",
-                    "pasporFile" => "nullable|file|mimes:jpg,jpeg,png,pdf|max:2048",
-                    "alamat1" => "required|array",
-                    "alamat1.addr" => "required|string|max:255",
-                    "alamat1.rt" => "required|string|max:10",
-                    "alamat1.rw" => "required|string|max:10",
-                    "alamat1.kec" => "required|string|max:20",
-                    "alamat1.desa" => "required|string|max:20",
-                    "alamat1.kodpos" => "required|string|max:10",
-                    "alamat1.prov" => "required|string|max:10",
-                    "alamat1.kab" => "required|string|max:10",
-                    "temtin" => "required|boolean",
-                    "alamat2" => "required_if:temtin,1|array|nullable",
-                    "alamat2.addr" => "required_if:temtin,1|string|max:255",
-                    "alamat2.rt" => "required_if:temtin,1|string|max:10",
-                    "alamat2.rw" => "required_if:temtin,1|string|max:10",
-                    "alamat2.kec" => "required_if:temtin,1|string|max:20",
-                    "alamat2.desa" => "required_if:temtin,1|string|max:20",
-                    "alamat2.kodpos" => "required_if:temtin,1|string|max:10",
-                    "alamat2.prov" => "required_if:temtin,1|string|max:10",
-                    "alamat2.kab" => "required_if:temtin,1|string|max:10",
-                    "hub" => "required|string|in:0,1,2",
-                    "tel" => "required|string|max:16|regex:/^[0-9]+$/",
-                    "email" => "required|email:rfc,dns|max:100",
-                    "sign" => "required|string|size:64",
-                    "payload" => "required|string",
+                    'nama' => 'required|string|max:100',
+                    'warneg' => 'required|string',
+                    'warnegName' => 'required|string|max:100',
+                    'nik' => 'nullable|numeric|digits:16',
+                    'kk' => 'nullable|numeric|digits:16',
+                    'ktpFile' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+                    'paspor' => 'nullable|string|max:50',
+                    'pasporFile' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+                    'alamat1' => 'required|array',
+                    'alamat1.addr' => 'required|string|max:255',
+                    'alamat1.rt' => 'required|string|max:10',
+                    'alamat1.rw' => 'required|string|max:10',
+                    'alamat1.kec' => 'required|string|max:20',
+                    'alamat1.desa' => 'required|string|max:20',
+                    'alamat1.kodpos' => 'required|string|max:10',
+                    'alamat1.prov' => 'required|string|max:10',
+                    'alamat1.kab' => 'required|string|max:10',
+                    'temtin' => 'required|boolean',
+                    'alamat2' => 'required_if:temtin,1|array|nullable',
+                    'alamat2.addr' => 'required_if:temtin,1|string|max:255',
+                    'alamat2.rt' => 'required_if:temtin,1|string|max:10',
+                    'alamat2.rw' => 'required_if:temtin,1|string|max:10',
+                    'alamat2.kec' => 'required_if:temtin,1|string|max:20',
+                    'alamat2.desa' => 'required_if:temtin,1|string|max:20',
+                    'alamat2.kodpos' => 'required_if:temtin,1|string|max:10',
+                    'alamat2.prov' => 'required_if:temtin,1|string|max:10',
+                    'alamat2.kab' => 'required_if:temtin,1|string|max:10',
+                    'hub' => 'required|string|in:0,1,2',
+                    'tel' => 'required|string|max:16|regex:/^[0-9]+$/',
+                    'email' => 'required|email:rfc,dns|max:100',
+                    'sign' => 'required|string|size:64',
+                    'payload' => 'required|string',
                 ];
 
                 $validated = $req->validate($baseRules);
@@ -177,7 +164,7 @@ class RegisteredUserController extends Controller
                     $snk_version = $decryptedPayload['snk_version'] ?? '1.0.0';
                 } catch (\Exception $e) {
                     throw ValidationException::withMessages([
-                        'payload' => 'Invalid payload encryption'
+                        'payload' => 'Invalid payload encryption',
                     ]);
                 }
 
@@ -197,7 +184,7 @@ class RegisteredUserController extends Controller
                     'tel' => formatPhoneNumber($req->tel),
                     'email' => $req->email,
                     'sta' => 0,
-                    'updated_by' => Auth::guard('web')->id() ?? 0
+                    'updated_by' => Auth::guard('web')->id() ?? 0,
                 ];
                 try {
                     if ($isReg && $reg->sta === -1) {
@@ -209,7 +196,7 @@ class RegisteredUserController extends Controller
                         $registrasi = Tregistrasi::create($regData);
                     }
                 } catch (\Exception $e) {
-                    throw ValidationException::withMessages(['message' => 'Terjadi kesalahan' . $e->getMessage()]);
+                    throw ValidationException::withMessages(['message' => 'Terjadi kesalahan'.$e->getMessage()]);
                 }
 
                 // File upload handling
@@ -218,7 +205,7 @@ class RegisteredUserController extends Controller
 
                 if ($req->hasFile($fileField)) {
                     $file = $req->file($fileField);
-                    $filename = "{$fileType}_{$nouid}_" . time() . '.' . $file->extension();
+                    $filename = "{$fileType}_{$nouid}_".time().'.'.$file->extension();
                     $path = $file->storeAs('doc/reg', $filename, env('FILESYSTEM_DISK'));
 
                     logger('File Upload Debug', [
@@ -227,7 +214,7 @@ class RegisteredUserController extends Controller
                         'extension' => $file->extension(),
                         'size' => $file->getSize(),
                         'mimeType' => $file->getMimeType(),
-                        'storagePath' => $path
+                        'storagePath' => $path,
                     ]);
 
                     $fileData = [
@@ -237,7 +224,7 @@ class RegisteredUserController extends Controller
                         'mime_type' => $file->getMimeType(),
                         'size' => $file->getSize(),
                         'imagable_id' => $registrasi->id,
-                        'imagable_type' => $registrasi::class
+                        'imagable_type' => $registrasi::class,
                     ];
                     try {
                         if ($isReg) {
@@ -255,7 +242,7 @@ class RegisteredUserController extends Controller
                             Timagable::create($fileData);
                         }
                     } catch (\Exception $e) {
-                        throw ValidationException::withMessages(['message' => 'Terjadi kesalahan' . $e->getMessage()]);
+                        throw ValidationException::withMessages(['message' => 'Terjadi kesalahan'.$e->getMessage()]);
                     }
                 }
 
@@ -277,13 +264,13 @@ class RegisteredUserController extends Controller
                         logger('Create Tsignsnk', ['data' => $ts]);
                     }
                 } catch (\Exception $e) {
-                    throw ValidationException::withMessages(['message' => 'Terjadi kesalahan' . $e->getMessage()]);
+                    throw ValidationException::withMessages(['message' => 'Terjadi kesalahan'.$e->getMessage()]);
                 }
 
-                return Inertia::location(route('siswa.index', [
+                return Inertia::location(route('dashboard', [
                     'nouid' => $nouid,
                     'success' => true,
-                    'message' => 'Registrasi berhasil'
+                    'message' => 'Registrasi berhasil',
                 ]));
             });
         } catch (ValidationException $e) {
@@ -292,10 +279,11 @@ class RegisteredUserController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return back()
                 ->withErrors($e->validator)
                 ->withInput()
-                ->with('error', 'Validasi gagal: ' . $e->getMessage());
+                ->with('error', 'Validasi gagal: '.$e->getMessage());
         } catch (\Exception $e) {
             logger()->error('Registration Error', [
                 'nouid' => $nouid,
@@ -306,7 +294,7 @@ class RegisteredUserController extends Controller
             return back()
                 ->withInput()
                 ->with('error', env('APP_DEBUG')
-                    ? 'Error: ' . $e->getMessage()
+                    ? 'Error: '.$e->getMessage()
                     : 'Terjadi kesalahan sistem');
         }
     }
@@ -314,7 +302,7 @@ class RegisteredUserController extends Controller
     public function verifphone(Request $request, $nouid)
     {
         $request->validate([
-            'number' => 'required|string|regex:/^[0-9]+$/|min:10|max:15'
+            'number' => 'required|string|regex:/^[0-9]+$/|min:10|max:15',
         ]);
 
         $phone = formatPhoneNumber($request->number);
@@ -322,18 +310,18 @@ class RegisteredUserController extends Controller
             ->where('nouid', $nouid)
             ->firstOrFail();
 
-
-        if (!$indentitas->siswa) {
+        if (! $indentitas->siswa) {
             return back()->withErrors(['tel' => 'Data siswa tidak ditemukan']);
         }
 
-        //apakah user telah memiliki tel di kolom tel tabel tsiswa?
+        // apakah user telah memiliki tel di kolom tel tabel tsiswa?
         if ($indentitas->siswa->tel !== null) {
         }
         // Update tel
         $indentitas->siswa->tel = $phone;
         $indentitas->siswa->save();
     }
+
     public function setupPin(Request $request, $nouid): \Inertia\Response|\Illuminate\Http\RedirectResponse
     {
         logger('RegisteredUserController', ['request' => $request->all(), 'nouid' => $nouid]);
@@ -341,7 +329,7 @@ class RegisteredUserController extends Controller
         $validated = $request->validate([
             'pin' => 'required|digits:6|numeric|confirmed',
             'pin_confirmation' => 'required|digits:6',
-            'phone' => 'sometimes|string|regex:/^[0-9]+$/|min:10|max:15'
+            'phone' => 'sometimes|string|regex:/^[0-9]+$/|min:10|max:15',
         ]);
 
         try {
@@ -356,7 +344,7 @@ class RegisteredUserController extends Controller
                     ?? optional($indentitas->siswa)->tel
                     ?? optional($indentitas->registrasi)->tel;
 
-                if (!$indentitas->siswa && !$phone) {
+                if (! $indentitas->siswa && ! $phone) {
                     return back()->withErrors(['pin' => 'Data siswa tidak ditemukan']);
                 }
 
@@ -364,7 +352,7 @@ class RegisteredUserController extends Controller
                 if ($indentitas->siswa) {
                     $indentitas->siswa->update([
                         'pin' => $validated['pin'],
-                        'tel' => formatPhoneNumber($phone)
+                        'tel' => formatPhoneNumber($phone),
                     ]);
                 }
 
@@ -374,29 +362,32 @@ class RegisteredUserController extends Controller
                 Auth::login($indentitas->siswa);
                 session(['current_nouid' => $nouid]);
 
-                return redirect()->intended(route('siswa.index', ['nouid' => $nouid]));
+                return redirect()->intended(route('dashboard', ['nouid' => $nouid]));
             });
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             logger()->error('Indentitas not found', ['nouid' => $nouid, 'error' => $e->getMessage()]);
+
             return back()->withErrors(['pin' => 'Data identitas tidak ditemukan']);
         } catch (\Exception $e) {
             logger()->error('Error saving data', ['error' => $e->getMessage()]);
+
             return back()->withErrors(['pin' => 'Gagal menyimpan data. Silakan coba lagi.']);
         }
     }
+
     public function showFile($filename)
     {
-        $filePath = 'doc/reg/' . $filename;
+        $filePath = 'doc/reg/'.$filename;
 
-        if (!Storage::disk('private')->exists($filePath)) {
+        if (! Storage::disk('private')->exists($filePath)) {
             abort(404);
         }
 
         return response()->file(
-            storage_path('app/private/' . $filePath),
+            storage_path('app/private/'.$filePath),
             [
                 // 'Content-Type' => Storage::disk('private')->mimeType($filePath),
-                'Content-Disposition' => 'inline; filename="' . $filename . '"'
+                'Content-Disposition' => 'inline; filename="'.$filename.'"',
             ]
         );
     }

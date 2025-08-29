@@ -8,36 +8,46 @@ export const useToast = () => {
     const { errors, flash } = usePage<SharedData>().props;
     const { error: logError, log } = useLogger();
     const initializedRef = useRef(false);
+    const shownFlashRef = useRef<Set<string>>(new Set());
 
-    // // Memoize errors untuk optimasi performa
-    // const processedErrors = useMemo(() => {
-    //     if (!errors) return [];
+    // Memoize errors untuk optimasi performa
+    const processedErrors = useMemo(() => {
+        if (!errors) return [];
 
-    //     return Object.values(errors)
-    //         .flat()
-    //         .filter((err): err is string => typeof err === 'string' && err.length > 0);
-    // }, [errors]);
+        return Object.values(errors)
+            .flat()
+            .filter((err): err is string => typeof err === 'string' && err.length > 0);
+    }, [errors]);
 
     // Handle errors
     useEffect(() => {
-        if (Object.keys(errors).length > 0) {
+        if (processedErrors.length === 0) return;
 
-            const toastId = `err-${errors.message}`;
+        processedErrors.forEach((err) => {
+            const toastId = `err-${err}`;
 
             if (!toast.isActive(toastId)) {
-                toast.error(errors.message, { toastId });
+                toast.error("Terjadi Kesalahan", { toastId });
+                logError(err, { toastId });
             }
-            logError(errors, { toastId });
-        }
-    }, [errors, logError]);
+        });
+    }, [processedErrors, logError]);
 
     // Handle flash messages
     useEffect(() => {
         if (!flash?.message) return;
 
-        const { message, success } = flash;
-        const toastId = `flash-${message}`;
+        const { message, success, timestamp } = flash;
+        const currentTime = Math.floor(Date.now() / 1000);
+        if (timestamp < currentTime) {
+            return;
+        }
 
+        const flashKey = `${message}-${timestamp}`;
+        const toastId = `flash-${flashKey}`;
+
+        // Cek apakah flash message ini sudah ditampilkan sebelumnya
+        if (shownFlashRef.current.has(flashKey)) return;
         if (toast.isActive(toastId)) return;
 
         if (success === true) {
@@ -49,6 +59,8 @@ export const useToast = () => {
             toast.error(message, { toastId });
             logError(message);
         }
+
+        shownFlashRef.current.add(flashKey);
     }, [flash, log, logError]);
 
     // Initialize toast hanya sekali

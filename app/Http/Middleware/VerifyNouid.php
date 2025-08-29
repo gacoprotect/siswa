@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Datmas\Indentitas;
+use App\Models\Saving\Tregistrasi;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,35 +17,63 @@ class VerifyNouid
         try {
             $nouid = $request->route('nouid');
 
-            // 1. Skip middleware for login routes
-            if ($request->routeIs('siswa.index') || $request->routeIs('siswa.login')) {
+            // 1. Skip middleware for login routes and dashboard
+            if ($request->routeIs('dashboard') || $request->routeIs('siswa.login') || $request->routeIs('login')) {
                 return $next($request);
             }
 
             // 2. Verify nouid exists
-            $ident = Indentitas::where('nouid', $nouid)->firstOrFail();
-            if (!$ident) {
+            $ident = Indentitas::where('nouid', $nouid)->first();
+            if (! $ident) {
                 Log::warning('Student data not found', ['nouid' => $nouid]);
-                abort(404, 'Data siswa tidak ditemukan');
+
+                return redirect()->route('register.create', ['nouid' => $nouid])
+                    ->withErrors(['message' => 'Data siswa tidak ditemukan']);
             }
-            if (!$ident->active) {
+
+            // 3. Check if user is registered
+            if ($ident->reg === 0) {
+                // Check if user has registration record in Tregistrasi table
+                $reg = Tregistrasi::where('nouid', $nouid)->first();
+
+                if ($reg && in_array($reg->sta, [-2, -1, 0, 1])) {
+                    // User has registration record, redirect to dashboard
+                    Log::info('User has registration record, redirecting to dashboard', [
+                        'nouid' => $nouid,
+                        'reg_status' => $reg->sta,
+                    ]);
+
+                    return redirect()->route('dashboard', ['nouid' => $nouid]);
+                }
+
+                // User not registered, redirect to register
+                Log::info('User not registered, redirecting to register', ['nouid' => $nouid]);
+
+                return redirect()->route('register.create', ['nouid' => $nouid])
+                    ->withErrors(['message' => 'Silakan daftar terlebih dahulu']);
+            }
+
+            if (! $ident->active) {
                 Auth::guard('siswa')->logout();
-                Log::info('Redirecting to login - unauthenticated', ['nouid' => $nouid]);
+                Log::info('User account inactive, redirecting to login', ['nouid' => $nouid]);
+
                 return $this->redirectToLogin($nouid);
             }
-            // 3. Handle non-authenticated user
-            if (!Auth::guard('siswa')->check()) {
-                Log::info('Redirecting to login - unauthenticated', ['nouid' => $nouid]);
+            // 4. Handle non-authenticated user
+            if (! Auth::guard('siswa')->check()) {
+                Log::info('User not authenticated, redirecting to login', ['nouid' => $nouid]);
+
                 return $this->redirectToLogin($nouid);
             }
 
-            // 4. Verify session nouid match
+            // 5. Verify session nouid match
             if (session('current_nouid') !== $nouid) {
                 Log::warning('Invalid session detected', [
                     'session_nouid' => session('current_nouid'),
-                    'route_nouid' => $nouid
+                    'route_nouid' => $nouid,
                 ]);
                 Auth::guard('siswa')->logout();
+
                 return $this->redirectToLogin($nouid)
                     ->withErrors(['message' => 'Sesi tidak valid']);
             }
@@ -54,7 +83,7 @@ class VerifyNouid
             Log::error('VerifyNouid middleware failed', [
                 'nouid' => $nouid ?? null,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return $this->redirectToLogin($nouid ?? '')
@@ -64,6 +93,7 @@ class VerifyNouid
 
     protected function redirectToLogin(string $nouid)
     {
-        return redirect()->route('siswa.index', ['nouid' => $nouid]);
+        // User registered but not authenticated, redirect to dashboard (login page)
+        return redirect()->route('dashboard', ['nouid' => $nouid]);
     }
 }
