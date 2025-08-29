@@ -5,20 +5,29 @@ namespace App\Models\Saving;
 use App\Models\BaseModel;
 use App\Traits\LogsChanges;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
 class Tbank extends BaseModel
 {
-    use LogsChanges;
     use HasFactory;
+    use LogsChanges;
 
     protected $connection = 'mai4';
+
     protected $table = 'tbank';
+
     protected $primaryKey = 'id';
+
     public $timestamps = true;
+
     protected $fillable = [
         'id',
         'code',
-        'bank'
+        'bank',
+        'va_code',
+        'sta',
+    ];
+
+    protected $casts = [
+        'sta' => 'boolean',
     ];
 }

@@ -22,6 +22,9 @@ return new class extends Migration
             $table->id();
             $table->string('code')->unique(); // misal 'bca'
             $table->string('bank');           // misal: 'Bank Central Asia'
+            $table->unsignedBigInteger('va_code')->nullable();
+            $table->boolean('sta')->default(false);
+
             $table->timestamps();
         });
 
