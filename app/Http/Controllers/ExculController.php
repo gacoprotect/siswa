@@ -233,7 +233,7 @@ class ExculController extends Controller
                     return back(400)->withErrors(['message' => 'Invalid simulation type']);
             }
 
-            return redirect()->intended(route('siswa.index', [
+            return redirect()->intended(route('dashboard', [
                 'nouid' => $v['nouid'],
                 'page' => 'index',
                 'tab' => 'kegiatan'

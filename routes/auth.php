@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['web', 'menu.access'])->group(function () {
+Route::middleware(['web'])->group(function () {
     Route::prefix('u/{nouid}')->group(function () {
         // Guest routes (unauthenticated users)
         Route::middleware(['guest'])->group(function () {

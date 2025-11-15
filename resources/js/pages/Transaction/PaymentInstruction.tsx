@@ -19,7 +19,7 @@ const PaymentInstruction: React.FC<PaymentDataResponse> = ({ order_id, transacti
 
     const expiry = dayjs(transaction.expiry_time);
 
-    useToast(usePage<SharedData>().props);
+    useToast();
     useEffect(() => {
         if (!order_id || transaction.status === 'success') {
             router.visit(route('siswa.index', nouid));
@@ -218,9 +218,8 @@ const PaymentInstruction: React.FC<PaymentDataResponse> = ({ order_id, transacti
                                                 setSimulating(true);
                                                 handleSimulate(e, transaction.va_number);
                                             }}
-                                            className={`flex items-center space-x-2 rounded-lg px-4 py-2 font-bold text-white ${
-                                                simulating ? 'bg-cyan-700' : 'bg-cyan-900 hover:bg-cyan-800'
-                                            } transition-colors disabled:opacity-70`}
+                                            className={`flex items-center space-x-2 rounded-lg px-4 py-2 font-bold text-white ${simulating ? 'bg-cyan-700' : 'bg-cyan-900 hover:bg-cyan-800'
+                                                } transition-colors disabled:opacity-70`}
                                         >
                                             {simulating ? (
                                                 <>
@@ -258,9 +257,8 @@ const PaymentInstruction: React.FC<PaymentDataResponse> = ({ order_id, transacti
                             <button
                                 disabled={transaction.status === 'canceled'}
                                 onClick={handleCancel}
-                                className={`rounded-lg px-4 py-2 font-bold text-white transition-colors ${
-                                    transaction.status === 'canceled' ? 'cursor-not-allowed bg-red-300' : 'bg-red-700 hover:bg-red-800'
-                                }`}
+                                className={`rounded-lg px-4 py-2 font-bold text-white transition-colors ${transaction.status === 'canceled' ? 'cursor-not-allowed bg-red-300' : 'bg-red-700 hover:bg-red-800'
+                                    }`}
                             >
                                 Batalkan Transaksi
                             </button>

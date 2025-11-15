@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['web', 'verify.nouid', 'menu.access'])->group(function () {
+Route::middleware(['web', 'verify.nouid'])->group(function () {
     Route::prefix('u/{nouid}')->name('payment.')->group(function () {
         // Topup routes
         Route::prefix('/topup')->name('topup.')->group(function () {
@@ -62,15 +62,3 @@ Route::middleware(['web', 'verify.nouid', 'menu.access'])->group(function () {
     });
 });
 
-// Transaction routes with specific middleware (from trx.php)
-Route::prefix('u/{nouid}')->middleware(['web', 'verify.nouid', 'menu.access'])->group(function () {
-    Route::prefix('/trx')->name('trx.')->group(function () {
-        Route::get('/topup', [TopupController::class, 'index'])->name('topup.index');
-        Route::post('/topup', [TopupController::class, 'store'])->name('topup.store');
-
-        Route::get('/intruction', [TransactionController::class, 'intruction'])->name('intruction');
-        Route::post('/cancel/{order_id}', [TransactionController::class, 'cancel'])->name('cancel');
-        Route::get('/invoice/{order_id}', [TransactionController::class, 'invoice'])->name('invoice');
-        Route::get('/history', [TransactionController::class, 'history'])->name('history');
-    });
-});

@@ -9,8 +9,6 @@ use Inertia\Response;
 
 class CalendarController extends Controller
 {
-    public function __construct(private readonly CalendarService $calendar) {}
-
     public function index(Request $request, string $nouid): Response
     {
         $start = $request->has('start') ? (string) $request->input('start') : null;

@@ -4,7 +4,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { FaArrowAltCircleLeft, FaSpinner } from 'react-icons/fa';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { TagihanParam } from '../Siswa/Index';
+import { TagihanParam } from '../Siswa/Index-unused';
 
 interface TagihanItem {
     id: number;

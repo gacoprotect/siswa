@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Admin\Tkelas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class TestController extends Controller
@@ -27,16 +29,18 @@ class TestController extends Controller
             'activeTab' => $req->query('tab'),
 
             // props ini hanya dikirim jika diminta
-            'infoUmum' => fn() => $req->query('tab') === 'infoUmum' ? $this->getInfo() : null,
-            'grafik'   => fn() => $req->query('tab') === 'grafik' ? $this->getGrafik() : null,
-            'riwayat'  => fn() => $req->query('tab') === 'riwayat' ? $this->getRiwayat($req->query('filter')) : null,
+            'infoUmum' => fn () => $req->query('tab') === 'infoUmum' ? $this->getInfo() : null,
+            'grafik' => fn () => $req->query('tab') === 'grafik' ? $this->getGrafik() : null,
+            'riwayat' => fn () => $req->query('tab') === 'riwayat' ? $this->getRiwayat($req->query('filter')) : null,
 
         ]);
     }
+
     public function home()
     {
         return Inertia::render('test/home');
     }
+
     public function filterRiwayat(Request $req)
     {
         $keyword = $req->query('filter');
@@ -45,14 +49,13 @@ class TestController extends Controller
             ['id' => 1, 'nama' => 'SPP Januari', 'total' => 500000],
             ['id' => 2, 'nama' => 'SPP Februari', 'total' => 500000],
             ['id' => 3, 'nama' => 'Seragam', 'total' => 200000],
-        ])->filter(fn($item) => !$keyword || str_contains(strtolower($item['nama']), strtolower($keyword)));
+        ])->filter(fn ($item) => ! $keyword || str_contains(strtolower($item['nama']), strtolower($keyword)));
 
         return Inertia::render('Test/FilterRiwayat', [
             'filter' => $keyword,
             'riwayat' => $riwayat->values()->all(),
         ]);
     }
-
 
     private function getInfo()
     {
@@ -76,7 +79,7 @@ class TestController extends Controller
             ['id' => 1, 'nama' => 'SPP Januari', 'total' => 500000],
             ['id' => 2, 'nama' => 'SPP Februari', 'total' => 500000],
             ['id' => 3, 'nama' => 'Seragam', 'total' => 200000],
-        ])->filter(fn($item) => !$keyword || str_contains(strtolower($item['nama']), strtolower($keyword)))
+        ])->filter(fn ($item) => ! $keyword || str_contains(strtolower($item['nama']), strtolower($keyword)))
             ->values()
             ->all();
     }
@@ -91,5 +94,36 @@ class TestController extends Controller
             ->get();
 
         return response()->json($excul);
+    }
+
+    public function service(string $nouid, Request $req)
+    {
+        try {
+            $payload = [
+                'amount' => 200000,
+                'va_number' => 2222081808856626,
+            ];
+
+            Log::info('Service GET - Session Data:', ['data' => $req->method()]);
+
+            return Inertia::render('test/service', $this->trx->topup($payload, $nouid));
+
+        } catch (\Throwable $th) {
+            return back()->withErrors([
+                'message' => $th->getMessage(),
+            ]);
+        } catch (ValidationException $e) {
+            if (config('app.debug')) {
+                dd($e);
+            }
+
+            return back()->withErrors($e->errors())->withInput();
+        } catch (\Exception $e) {
+            if (config('app.debug')) {
+                dd($e);
+            }
+
+            return abort(404, 'Data siswa tidak ditemukan');
+        }
     }
 }

@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['web', 'verify.nouid', 'menu.access'])->group(function () {
+Route::middleware(['web', 'verify.nouid'])->group(function () {
     Route::prefix('u/{nouid}')->name('admin.')->group(function () {
         // Bill management routes
         Route::resource('bill', BillController::class);

@@ -19,14 +19,6 @@ use Illuminate\Validation\ValidationException;
 
 class SiswaController extends Controller
 {
-    protected $izinService;
-    protected $tagihan;
-
-    public function __construct(IzinService $izinService, TagihanService $tagihan)
-    {
-        $this->izinService = $izinService;
-        $this->tagihan = $tagihan;
-    }
     public function index(Request $req, $nouid)
     {
         $req->validate([
@@ -88,7 +80,7 @@ class SiswaController extends Controller
                         // ] : []),
                     ],
                     ...(($page === 'index' && in_array($tab, ['tagihan', 'pindah'])) ? $this->tagihan->getTagihan($nouid) : []),
-                    ...(($page === 'index' && $tab === 'izin') ? $this->izinService->getByStudentId($ident->idok) : []),
+                    ...(($page === 'index' && $tab === 'izin') ? $this->izin->getByStudentId($ident->idok) : []),
                 ];
             } else {
                 $data = [
@@ -115,7 +107,7 @@ class SiswaController extends Controller
     public function logout(Request $request, $nouid)
     {
         Auth::guard('siswa')->logout();
-        return redirect()->route('siswa.index', ['nouid' => $nouid]);
+        return redirect()->route('dashboard', ['nouid' => $nouid]);
     }
 
     public function blocked(Request $request, $nouid): RedirectResponse
@@ -123,7 +115,7 @@ class SiswaController extends Controller
         try {
             $identitas = Indentitas::where('nouid', $nouid)->first()->update(['sta' => -1]);
 
-            return redirect()->intended(route('siswa.index', ['nouid' => $nouid]));
+            return redirect()->intended(route('dashboard', ['nouid' => $nouid]));
         } catch (\Throwable $th) {
 
             return back()->withErrors(['message' => 'Failed to block the user'])->with([

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { FaFileInvoice, FaFileInvoiceDollar, FaHistory } from 'react-icons/fa';
 import TambahTagihan from './TambahTagihan';
 import RiwayatTagihan from './RiwayatTagihan';
-import { TagihanParam } from '../Siswa/Index';
+import { TagihanParam } from '../Siswa/Index-unused';
 import { usePage } from '@inertiajs/react';
 import { Loading } from '@/components/loading-screen';
 

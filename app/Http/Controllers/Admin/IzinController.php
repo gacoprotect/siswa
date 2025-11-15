@@ -13,15 +13,6 @@ use Inertia\Inertia;
 
 class IzinController extends Controller
 {
-    protected IzinService $izinService;
-    protected DataValidatorService $validator;
-
-    public function __construct(IzinService $izinService, DataValidatorService $validator)
-    {
-        $this->izinService = $izinService;
-        $this->validator = $validator;
-    }
-
     /**
      * Store a new izin record
      *
@@ -36,7 +27,7 @@ class IzinController extends Controller
             $validated = $this->validator->tizin($request->all());
             $files = $request->hasFile('dok') ? $request->file('dok') : null;
 
-            $this->izinService->create($validated, $files);
+            $this->izin->create($validated, $files);
 
             return back()->withMessage([
                 'success' => true,

@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['web', 'verify.nouid', 'menu.access'])->group(function () {
+Route::middleware(['web', 'verify.nouid'])->group(function () {
     Route::prefix('u/{nouid}')->name('student.')->group(function () {
         // Dashboard
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');

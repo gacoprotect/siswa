@@ -22,7 +22,7 @@ class TransactionController extends Controller
     public function index(Request $request, $nouid)
     {
         if (!Auth::check()) {
-            return redirect()->intended(route('siswa.index', $nouid));
+            return redirect()->intended(route('dashboard', $nouid));
         }
 
         $trx = Ttrx::where('nouid', $nouid)
@@ -364,7 +364,7 @@ class TransactionController extends Controller
             });
 
             return redirect()
-                ->route('siswa.index', ['nouid' => $nouid])
+                ->route('dashboard', ['nouid' => $nouid])
                 ->with(['success' => true, 'message' => 'Transaksi berhasil dibatalkan']);
         } catch (ValidationException $e) {
             return back()

@@ -29,7 +29,7 @@ export default function Welcome() {
                         </p>
                         <div className="pt-6 flex flex-col sm:flex-row gap-4 justify-center">
                             <Button asChild variant="secondary" size="lg" className="shadow-md hover:shadow-lg transition-all">
-                                <Link href={route('siswa.index', "a7095648")}>Coba Sekarang</Link>
+                                <Link href={route('dashboard', "a7095648")} prefetch>Coba Sekarang</Link>
                             </Button>
                             <Button asChild variant="outline" size="lg" className="bg-transparent text-white border-white hover:bg-white/10">
                                 <Link href="#payment-methods">Metode Pembayaran</Link>

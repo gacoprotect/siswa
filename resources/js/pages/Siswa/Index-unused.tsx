@@ -9,18 +9,18 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FaFileInvoiceDollar, FaFootballBall, FaUserGraduate } from 'react-icons/fa';
 import { route } from 'ziggy-js';
 import TagihanContent from '../Tagihan/TagihanContent';
-import Topup from '../Topup';
+import Topup from '../Transaction/Topup';
 import PaymentPage from '../Transaction/Tagihan';
 import DataSiswaContent from './DataSiswaContent';
 import Excul from './Excul';
 import PinPage from './Pin';
 import SetupPinPage from './SetupPin';
-import ActiveContent from '@/components/siswa/dashboard/active-content';
-import StudentInfo from '@/components/siswa/dashboard/student-info';
-import ActionButtons from '@/components/siswa/dashboard/action-buttons';
-import BalanceSection from '@/components/siswa/dashboard/balance-section';
-import MenuItems from '@/components/siswa/dashboard/menu-items';
-import RegistrationStatus from '@/components/siswa/dashboard/registration-status';
+import ActiveContent from '@/components/dashboard/active-content';
+import StudentInfo from '@/components/dashboard/student-info';
+import ActionButtons from '@/components/dashboard/action-buttons';
+import BalanceSection from '@/components/dashboard/balance-section';
+import MenuItems from '@/components/dashboard/menu-items';
+import RegistrationStatus from '@/components/dashboard/registration-status';
 import { useAppConfig } from '@/hooks/use-app-config';
 import { MdMail } from 'react-icons/md';
 import Izin from './Izin';
@@ -290,11 +290,7 @@ export default function SiswaDashboard() {
                                 />
                                 <MenuItems
                                     nouid={siswaData.nouid ?? auth?.user?.nouid}
-<<<<<<< HEAD
-                                    menuItems={menuItems}
-=======
->>>>>>> 5e35211622926a0b054c5ebd226c780a23e92e84
-                                    onItemClick={setActiveItem}
+                                    setLoading={(v) => setIsLoading(v)}
                                 />
                             </>
                         )}

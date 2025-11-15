@@ -16,7 +16,7 @@ createInertiaApp({
     setup({ el, App, props }) {
         const root = createRoot(el);
         const RootWrapper = () => {
-           
+
             useEffect(() => {
                 const loader = document.getElementById('initial-loader');
                 if (loader) {
