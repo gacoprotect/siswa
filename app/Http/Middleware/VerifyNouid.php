@@ -18,7 +18,7 @@ class VerifyNouid
             $nouid = $request->route('nouid');
 
             // 1. Skip middleware for login routes and dashboard
-            if ($request->routeIs('dashboard') || $request->routeIs('siswa.login') || $request->routeIs('login')) {
+            if ($request->routeIs('student.dashboard') || $request->routeIs('siswa.login') || $request->routeIs('login')) {
                 return $next($request);
             }
 
