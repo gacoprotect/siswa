@@ -42,20 +42,9 @@ const REGION_HIERARCHY: Record<RegionLevel, RegionApiLevel | null> = {
     desa: 'kelurahan',
 };
 
-const LEVEL_MAPPING: Record<RegionApiLevel, RegionLevel> = {
-    provinsi: 'prov',
-    kabupaten: 'kab',
-    kecamatan: 'kec',
-    kelurahan: 'desa',
-};
 
 const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => {
-    const [loading, setLoading] = useState<Record<RegionLevel, boolean>>({
-        prov: false,
-        kab: false,
-        kec: false,
-        desa: false,
-    });
+    const [loading, setLoading] = useState<Map<string, boolean>>(new Map());
 
     const [regions, setRegions] = useState<Record<RegionApiLevel, RegionOption[]>>({
         provinsi: [],
@@ -86,26 +75,34 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
      */
     const fetchRegions = useCallback(async (level: RegionApiLevel, parentId?: string): Promise<void> => {
         const cacheKey = parentId ? `${level}-${parentId}` : level;
-        const loadingKey = LEVEL_MAPPING[level];
 
         // Check cache first
         if (regionCache.current.has(cacheKey)) {
             const cached = regionCache.current.get(cacheKey)!;
-            setRegions((prev) => ({ ...prev, [level]: cached }));
+            // Only update regions state for provinsi (no parentId)
+            // Child regions are accessed via cache lookup in getRegionsForAddress
+            if (!parentId) {
+                setRegions((prev) => ({ ...prev, [level]: cached }));
+            }
             return;
         }
 
-        // Abort previous request for this level if exists
-        const prevController = abortControllers.current.get(level);
+        // Abort previous request for this cacheKey if exists
+        const prevController = abortControllers.current.get(cacheKey);
         if (prevController) {
             prevController.abort();
         }
 
         // Create new abort controller
         const controller = new AbortController();
-        abortControllers.current.set(level, controller);
+        abortControllers.current.set(cacheKey, controller);
 
-        setLoading((prev) => ({ ...prev, [loadingKey]: true }));
+        // Set loading state for this specific cacheKey (not just level)
+        setLoading((prev) => {
+            const newMap = new Map(prev);
+            newMap.set(cacheKey, true);
+            return newMap;
+        });
 
         try {
             const params = parentId ? { kod: parentId } : {};
@@ -119,13 +116,18 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
                     nama: String(item.nama),
                 }));
 
-                // Cache the result
+                // Always cache the result
                 regionCache.current.set(cacheKey, newRegions);
 
-                setRegions((prev) => ({
-                    ...prev,
-                    [level]: newRegions,
-                }));
+                // Only update regions state for provinsi (root level, no parentId)
+                // Child regions (kabupaten, kecamatan, kelurahan) are accessed via cache lookup
+                // This prevents cross-address interference
+                if (!parentId) {
+                    setRegions((prev) => ({
+                        ...prev,
+                        [level]: newRegions,
+                    }));
+                }
             }
         } catch (error) {
             if (axios.isCancel(error)) {
@@ -134,8 +136,13 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
             console.error(`Error fetching ${level}:`, error);
             // Optionally set error state here for UI feedback
         } finally {
-            abortControllers.current.delete(level);
-            setLoading((prev) => ({ ...prev, [loadingKey]: false }));
+            abortControllers.current.delete(cacheKey);
+            // Clear loading state for this specific cacheKey
+            setLoading((prev) => {
+                const newMap = new Map(prev);
+                newMap.delete(cacheKey);
+                return newMap;
+            });
         }
     }, []);
 
@@ -164,6 +171,8 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
             const updatedAddress: Address = { ...currentAddress, [level]: value };
 
             // Reset dependent levels based on hierarchy
+            // Only reset address data, don't reset regions state globally
+            // Regions will be filtered in getRegionsForAddress based on parent ID
             const resetLevels: Record<RegionLevel, RegionLevel[]> = {
                 prov: ['kab', 'kec', 'desa'],
                 kab: ['kec', 'desa'],
@@ -173,16 +182,13 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
 
             resetLevels[level].forEach((resetLevel) => {
                 updatedAddress[resetLevel] = '';
-                const apiLevel = REGION_HIERARCHY[resetLevel];
-                if (apiLevel) {
-                    setRegions((prev) => ({ ...prev, [apiLevel]: [] }));
-                }
             });
 
             // Update UI immediately (optimistic update)
             onChange(addressType, updatedAddress);
 
             // Fetch next level in background (non-blocking)
+            // Regions will be cached and available for both addresses
             if (value) {
                 const nextLevel: Record<RegionLevel, RegionApiLevel | null> = {
                     prov: 'kabupaten',
@@ -222,15 +228,30 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
 
     /**
      * Get regions for specific address type
+     * Uses cache lookup based on parent ID to prevent cross-address interference
      */
     const getRegionsForAddress = useCallback(
         (addressType: AddressType) => {
             const address = data[addressType];
+
+            // Get provinsi from shared state (always same)
+            const provinsiOptions = regions.provinsi;
+
+            // Get child regions from cache based on parent ID
+            // This ensures alamat1 and alamat2 don't interfere with each other
+            const getCachedRegions = (level: RegionApiLevel, parentId?: string): RegionOption[] => {
+                if (!parentId) return [];
+                const cacheKey = `${level}-${parentId}`;
+                // Only use cache, don't fallback to shared regions state
+                // This prevents cross-address interference
+                return regionCache.current.get(cacheKey) || [];
+            };
+
             return {
-                provinsi: regions.provinsi,
-                kabupaten: address.prov ? regions.kabupaten : [],
-                kecamatan: address.kab ? regions.kecamatan : [],
-                kelurahan: address.kec ? regions.kelurahan : [],
+                provinsi: provinsiOptions,
+                kabupaten: address.prov ? getCachedRegions('kabupaten', address.prov) : [],
+                kecamatan: address.kab ? getCachedRegions('kecamatan', address.kab) : [],
+                kelurahan: address.kec ? getCachedRegions('kelurahan', address.kec) : [],
             };
         },
         [data, regions],
@@ -241,9 +262,20 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
      */
     const isRegionDisabled = useCallback(
         (addressType: AddressType, level: RegionLevel): boolean => {
-            if (loading[level]) return true;
-
             const address = data[addressType];
+
+            // Check loading state for this specific address's parent context
+            const getLoadingKey = (): string | null => {
+                if (level === 'prov') return 'provinsi';
+                if (level === 'kab' && address.prov) return `kabupaten-${address.prov}`;
+                if (level === 'kec' && address.kab) return `kecamatan-${address.kab}`;
+                if (level === 'desa' && address.kec) return `kelurahan-${address.kec}`;
+                return null;
+            };
+
+            const loadingKey = getLoadingKey();
+            if (loadingKey && loading.get(loadingKey)) return true;
+
             const dependencies: Record<RegionLevel, RegionLevel | null> = {
                 prov: null,
                 kab: 'prov',
@@ -266,7 +298,19 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
             const addressRegions = getRegionsForAddress(addressType);
             const apiLevel = REGION_HIERARCHY[level]!;
             const options = addressRegions[apiLevel];
-            const isLoading = loading[level];
+
+            // Check loading state for this specific address's parent context
+            const address = data[addressType];
+            const getLoadingKey = (): string | null => {
+                if (level === 'prov') return 'provinsi';
+                if (level === 'kab' && address.prov) return `kabupaten-${address.prov}`;
+                if (level === 'kec' && address.kab) return `kecamatan-${address.kab}`;
+                if (level === 'desa' && address.kec) return `kelurahan-${address.kec}`;
+                return null;
+            };
+
+            const loadingKey = getLoadingKey();
+            const isLoading = loadingKey ? loading.get(loadingKey) || false : false;
             const disabled = isRegionDisabled(addressType, level);
             const fieldKey = `${addressType}.${level}`;
 
