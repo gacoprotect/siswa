@@ -75,7 +75,7 @@ class RegisteredUserController extends Controller
         $reg = Tregistrasi::where('nouid', $nouid)->first();
 
         if ($reg && in_array($reg->sta, [-2, 0, 1])) {
-            return Inertia::location(route('dashboard', [
+            return Inertia::location(route('student.dashboard', [
                 'nouid' => $nouid,
                 'sta' => $reg->sta ?? null,
             ]));
@@ -99,7 +99,7 @@ class RegisteredUserController extends Controller
 
             // Early return if registration already exists with status 0 or 1
             if ($isReg && in_array($reg->sta, [0, 1])) {
-                return Inertia::location(route('dashboard', [
+                return Inertia::location(route('student.dashboard', [
                     'nouid' => $nouid,
                     'sta' => $reg->sta,
                 ]));
@@ -267,7 +267,7 @@ class RegisteredUserController extends Controller
                     throw ValidationException::withMessages(['message' => 'Terjadi kesalahan'.$e->getMessage()]);
                 }
 
-                return Inertia::location(route('dashboard', [
+                return Inertia::location(route('student.dashboard', [
                     'nouid' => $nouid,
                     'success' => true,
                     'message' => 'Registrasi berhasil',
@@ -362,7 +362,7 @@ class RegisteredUserController extends Controller
                 Auth::login($indentitas->siswa);
                 session(['current_nouid' => $nouid]);
 
-                return redirect()->intended(route('dashboard', ['nouid' => $nouid]));
+                return redirect()->intended(route('student.dashboard', ['nouid' => $nouid]));
             });
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             logger()->error('Indentitas not found', ['nouid' => $nouid, 'error' => $e->getMessage()]);
