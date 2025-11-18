@@ -1,5 +1,5 @@
 import axios from 'axios';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import InputGroup from '../InputGroup';
 import { SelectInput } from '../SelectInput';
 import Section from './section';
@@ -31,37 +31,96 @@ interface RegionOption {
     nama: string;
 }
 
+type AddressType = 'alamat1' | 'alamat2';
+type RegionLevel = 'prov' | 'kab' | 'kec' | 'desa';
+type RegionApiLevel = 'provinsi' | 'kabupaten' | 'kecamatan' | 'kelurahan';
+
+const REGION_HIERARCHY: Record<RegionLevel, RegionApiLevel | null> = {
+    prov: 'provinsi',
+    kab: 'kabupaten',
+    kec: 'kecamatan',
+    desa: 'kelurahan',
+};
+
+const LEVEL_MAPPING: Record<RegionApiLevel, RegionLevel> = {
+    provinsi: 'prov',
+    kabupaten: 'kab',
+    kecamatan: 'kec',
+    kelurahan: 'desa',
+};
+
 const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => {
-    const [loading, setLoading] = useState({
+    const [loading, setLoading] = useState<Record<RegionLevel, boolean>>({
         prov: false,
         kab: false,
         kec: false,
         desa: false,
     });
-    const [regions, setRegions] = useState({
-        provinsi: [] as RegionOption[],
-        kabupaten: [] as RegionOption[],
-        kecamatan: [] as RegionOption[],
-        kelurahan: [] as RegionOption[],
-    });
-    const [currentAddressType, setCurrentAddressType] = useState<'alamat1' | 'alamat2'>('alamat1');
-    const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
 
+    const [regions, setRegions] = useState<Record<RegionApiLevel, RegionOption[]>>({
+        provinsi: [],
+        kabupaten: [],
+        kecamatan: [],
+        kelurahan: [],
+    });
+
+    const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+    const regionCache = useRef<Map<string, RegionOption[]>>(new Map());
+    const abortControllers = useRef<Map<string, AbortController>>(new Map());
+
+    // Initialize provinces on mount
     useEffect(() => {
         fetchRegions('provinsi');
+
+        return () => {
+            // Cleanup: abort all pending requests
+            const controllers = abortControllers.current;
+            controllers.forEach((controller) => controller.abort());
+            controllers.clear();
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const fetchRegions = async (level: 'provinsi' | 'kabupaten' | 'kecamatan' | 'kelurahan', parentId?: string) => {
-        const key = level === 'provinsi' ? 'prov' : level === 'kabupaten' ? 'kab' : level === 'kecamatan' ? 'kec' : 'desa';
+    /**
+     * Fetch regions from API with caching and error handling
+     */
+    const fetchRegions = useCallback(async (level: RegionApiLevel, parentId?: string): Promise<void> => {
+        const cacheKey = parentId ? `${level}-${parentId}` : level;
+        const loadingKey = LEVEL_MAPPING[level];
 
-        setLoading((prev) => ({ ...prev, [key]: true }));
+        // Check cache first
+        if (regionCache.current.has(cacheKey)) {
+            const cached = regionCache.current.get(cacheKey)!;
+            setRegions((prev) => ({ ...prev, [level]: cached }));
+            return;
+        }
+
+        // Abort previous request for this level if exists
+        const prevController = abortControllers.current.get(level);
+        if (prevController) {
+            prevController.abort();
+        }
+
+        // Create new abort controller
+        const controller = new AbortController();
+        abortControllers.current.set(level, controller);
+
+        setLoading((prev) => ({ ...prev, [loadingKey]: true }));
 
         try {
             const params = parentId ? { kod: parentId } : {};
-            const response = await axios.get(route('api.data.wilayah', params));
+            const response = await axios.get(route('api.data.wilayah', params), {
+                signal: controller.signal,
+            });
 
-            if (response.data.success) {
-                const newRegions = Array.isArray(response.data.data) ? response.data.data.map((item: any) => ({ id: item.id, nama: item.nama })) : [];
+            if (response.data?.success && Array.isArray(response.data.data)) {
+                const newRegions: RegionOption[] = response.data.data.map((item: RegionOption) => ({
+                    id: String(item.id),
+                    nama: String(item.nama),
+                }));
+
+                // Cache the result
+                regionCache.current.set(cacheKey, newRegions);
 
                 setRegions((prev) => ({
                     ...prev,
@@ -69,73 +128,151 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
                 }));
             }
         } catch (error) {
+            if (axios.isCancel(error)) {
+                return; // Request was cancelled, ignore
+            }
             console.error(`Error fetching ${level}:`, error);
+            // Optionally set error state here for UI feedback
         } finally {
-            setLoading((prev) => ({ ...prev, [key]: false }));
+            abortControllers.current.delete(level);
+            setLoading((prev) => ({ ...prev, [loadingKey]: false }));
         }
-    };
+    }, []);
 
+    /**
+     * Mark field as touched
+     */
+    const markTouched = useCallback((field: string) => {
+        setTouchedFields((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
+    }, []);
+
+    /**
+     * Convert error string to InputGroup error format
+     */
+    const getInputGroupError = useCallback((errorKey: string, error?: string): Record<string, string[]> | undefined => {
+        return error ? { [errorKey]: [error] } : undefined;
+    }, []);
+
+    /**
+     * Handle region selection change
+     */
     const handleRegionChange = useCallback(
-        async (addressType: 'alamat1' | 'alamat2', level: 'prov' | 'kab' | 'kec' | 'desa', value: string, name?: string) => {
-            setCurrentAddressType(addressType);
-            setTouchedFields((prev) => ({ ...prev, [`${addressType}.${level}`]: true }));
+        (addressType: AddressType, level: RegionLevel, value: string) => {
+            markTouched(`${addressType}.${level}`);
 
-            // Mulai dengan update dasar
-            let updatedAddress: Address = {
-                ...data[addressType],
-                [level]: value,
-                ...(name ? { [`${level}Name`]: name } : {}),
+            const currentAddress = data[addressType];
+            const updatedAddress: Address = { ...currentAddress, [level]: value };
+
+            // Reset dependent levels based on hierarchy
+            const resetLevels: Record<RegionLevel, RegionLevel[]> = {
+                prov: ['kab', 'kec', 'desa'],
+                kab: ['kec', 'desa'],
+                kec: ['desa'],
+                desa: [],
             };
 
-            // Reset child levels
-            if (level === 'prov') {
-                updatedAddress = { ...updatedAddress, kab: '', kec: '', desa: '' };
-                setRegions((prev) => ({ ...prev, kabupaten: [], kecamatan: [], kelurahan: [] }));
-                if (value) await fetchRegions('kabupaten', value);
-            } else if (level === 'kab') {
-                updatedAddress = { ...updatedAddress, kec: '', desa: '' };
-                setRegions((prev) => ({ ...prev, kecamatan: [], kelurahan: [] }));
-                if (value) await fetchRegions('kecamatan', value);
-            } else if (level === 'kec') {
-                updatedAddress = { ...updatedAddress, desa: '' };
-                setRegions((prev) => ({ ...prev, kelurahan: [] }));
-                if (value) await fetchRegions('kelurahan', value);
-            }
+            resetLevels[level].forEach((resetLevel) => {
+                updatedAddress[resetLevel] = '';
+                const apiLevel = REGION_HIERARCHY[resetLevel];
+                if (apiLevel) {
+                    setRegions((prev) => ({ ...prev, [apiLevel]: [] }));
+                }
+            });
 
-            // Hanya panggil onChange sekali
+            // Update UI immediately (optimistic update)
             onChange(addressType, updatedAddress);
+
+            // Fetch next level in background (non-blocking)
+            if (value) {
+                const nextLevel: Record<RegionLevel, RegionApiLevel | null> = {
+                    prov: 'kabupaten',
+                    kab: 'kecamatan',
+                    kec: 'kelurahan',
+                    desa: null,
+                };
+
+                const fetchLevel = nextLevel[level];
+                if (fetchLevel) {
+                    // Don't await - let it run in background
+                    fetchRegions(fetchLevel, value).catch((error) => {
+                        // Only log if not cancelled
+                        if (!axios.isCancel(error)) {
+                            console.error(`Error fetching ${fetchLevel}:`, error);
+                        }
+                    });
+                }
+            }
         },
-        [data, onChange],
+        [data, onChange, fetchRegions, markTouched],
     );
 
+    /**
+     * Handle address field changes
+     */
     const handleAddressChange = useCallback(
-        (addressType: 'alamat1' | 'alamat2', field: keyof Address, value: string) => {
-            setTouchedFields((prev) => ({ ...prev, [`${addressType}.${field}`]: true }));
+        (addressType: AddressType, field: keyof Address, value: string) => {
+            markTouched(`${addressType}.${field}`);
             onChange(addressType, {
                 ...data[addressType],
                 [field]: value,
             });
         },
-        [data, onChange],
+        [data, onChange, markTouched],
     );
 
-    const renderRegionSelect = useCallback(
-        (addressType: 'alamat1' | 'alamat2', level: 'prov' | 'kab' | 'kec' | 'desa', label: string, options: RegionOption[], required = false) => {
-            const value = data[addressType][level] || '';
-            const isLoading = loading[level as keyof typeof loading];
-            const disabled =
-                isLoading ||
-                (level === 'kab' && !data[addressType].prov) ||
-                (level === 'kec' && !data[addressType].kab) ||
-                (level === 'desa' && !data[addressType].kec);
+    /**
+     * Get regions for specific address type
+     */
+    const getRegionsForAddress = useCallback(
+        (addressType: AddressType) => {
+            const address = data[addressType];
+            return {
+                provinsi: regions.provinsi,
+                kabupaten: address.prov ? regions.kabupaten : [],
+                kecamatan: address.kab ? regions.kecamatan : [],
+                kelurahan: address.kec ? regions.kelurahan : [],
+            };
+        },
+        [data, regions],
+    );
 
+    /**
+     * Check if region field should be disabled
+     */
+    const isRegionDisabled = useCallback(
+        (addressType: AddressType, level: RegionLevel): boolean => {
+            if (loading[level]) return true;
+
+            const address = data[addressType];
+            const dependencies: Record<RegionLevel, RegionLevel | null> = {
+                prov: null,
+                kab: 'prov',
+                kec: 'kab',
+                desa: 'kec',
+            };
+
+            const dependency = dependencies[level];
+            return dependency ? !address[dependency] : false;
+        },
+        [data, loading],
+    );
+
+    /**
+     * Render region select input
+     */
+    const renderRegionSelect = useCallback(
+        (addressType: AddressType, level: RegionLevel, label: string, required = false) => {
+            const value = data[addressType][level] || '';
+            const addressRegions = getRegionsForAddress(addressType);
+            const apiLevel = REGION_HIERARCHY[level]!;
+            const options = addressRegions[apiLevel];
+            const isLoading = loading[level];
+            const disabled = isRegionDisabled(addressType, level);
             const fieldKey = `${addressType}.${level}`;
-            // const showError = touchedFields[fieldKey] || errors?.[fieldKey];
 
             const selectOptions = options.map((option) => ({
                 value: option.id,
                 label: option.nama,
-                disabled: false,
             }));
 
             return (
@@ -145,48 +282,37 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
                     allowEmpty
                     label={label}
                     value={value}
-                    onChange={(val) => {
-                        const selectedOption = options.find((opt) => opt.id === val);
-                        handleRegionChange(addressType, level, val, selectedOption?.nama);
-                    }}
+                    onChange={(val) => handleRegionChange(addressType, level, val)}
                     options={isLoading ? [] : selectOptions}
-                    placeholder={isLoading ? 'Loading...' : `-- Pilih --`}
+                    placeholder={isLoading ? 'Loading...' : '-- Pilih --'}
                     disabled={disabled}
                     required={required}
                     errors={errors}
-                    // triggerClassName={showError ? 'border-destructive' : ''}
-                    // onBlur={() => setTouchedFields(prev => ({ ...prev, [fieldKey]: true }))}
                 />
             );
         },
-        [data, loading, touchedFields, errors, handleRegionChange],
+        [data, loading, errors, getRegionsForAddress, isRegionDisabled, handleRegionChange],
     );
 
+    /**
+     * Render address fields section
+     */
     const renderAddressFields = useCallback(
-        (prefix: string, addressType: 'alamat1' | 'alamat2', title?: string) => {
-            const required = title?.includes('*');
-            const currentRegions =
-                addressType === currentAddressType
-                    ? regions
-                    : {
-                          provinsi: regions.provinsi,
-                          kabupaten: data[addressType].prov ? regions.kabupaten : [],
-                          kecamatan: data[addressType].kab ? regions.kecamatan : [],
-                          kelurahan: data[addressType].kec ? regions.kelurahan : [],
-                      };
+        (prefix: string, addressType: AddressType, title?: string) => {
+            const required = Boolean(title?.includes('*'));
 
             return (
                 <div className="space-y-4 rounded-lg bg-gray-50 p-4">
                     {title && <h3 className="text-sm font-bold text-red-700">{title}</h3>}
 
                     <div className="grid grid-cols-2 gap-4">
-                        {renderRegionSelect(addressType, 'prov', 'Provinsi', currentRegions.provinsi, required)}
-                        {renderRegionSelect(addressType, 'kab', 'Kabupaten/Kota', currentRegions.kabupaten, required)}
+                        {renderRegionSelect(addressType, 'prov', 'Provinsi', required)}
+                        {renderRegionSelect(addressType, 'kab', 'Kabupaten/Kota', required)}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        {renderRegionSelect(addressType, 'kec', 'Kecamatan', currentRegions.kecamatan, required)}
-                        {renderRegionSelect(addressType, 'desa', 'Desa/Kelurahan', currentRegions.kelurahan, required)}
+                        {renderRegionSelect(addressType, 'kec', 'Kecamatan', required)}
+                        {renderRegionSelect(addressType, 'desa', 'Desa/Kelurahan', required)}
                     </div>
 
                     <InputGroup
@@ -196,10 +322,10 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
                         placeholder="Jl. Contoh No. 123"
                         value={data[addressType].addr}
                         onChange={(value) => handleAddressChange(addressType, 'addr', value as string)}
-                        onBlur={() => setTouchedFields((prev) => ({ ...prev, [`${addressType}.addr`]: true }))}
+                        onBlur={() => markTouched(`${addressType}.addr`)}
                         required={required}
                         type="text"
-                        errors={errors?.[`${addressType}.addr`]}
+                        errors={getInputGroupError(`${addressType}.addr`, errors?.[`${addressType}.addr`])}
                         touched={touchedFields[`${addressType}.addr`]}
                     />
 
@@ -211,10 +337,10 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
                             placeholder="001"
                             value={data[addressType].rt}
                             onChange={(value) => handleAddressChange(addressType, 'rt', value as string)}
-                            onBlur={() => setTouchedFields((prev) => ({ ...prev, [`${addressType}.rt`]: true }))}
+                            onBlur={() => markTouched(`${addressType}.rt`)}
                             required={required}
                             type="number"
-                            errors={errors?.[`${addressType}.rt`]}
+                            errors={getInputGroupError(`${addressType}.rt`, errors?.[`${addressType}.rt`])}
                             touched={touchedFields[`${addressType}.rt`]}
                             maxLength={3}
                             max={3}
@@ -227,11 +353,12 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
                             placeholder="002"
                             value={data[addressType].rw}
                             onChange={(value) => handleAddressChange(addressType, 'rw', value as string)}
-                            onBlur={() => setTouchedFields((prev) => ({ ...prev, [`${addressType}.rw`]: true }))}
+                            onBlur={() => markTouched(`${addressType}.rw`)}
                             required={required}
                             type="number"
-                            errors={errors?.[`${addressType}.rw`]}
+                            errors={getInputGroupError(`${addressType}.rw`, errors?.[`${addressType}.rw`])}
                             touched={touchedFields[`${addressType}.rw`]}
+                            maxLength={3}
                             max={3}
                         />
 
@@ -242,26 +369,46 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
                             placeholder="12345"
                             value={data[addressType].kodpos}
                             onChange={(value) => handleAddressChange(addressType, 'kodpos', value as string)}
-                            onBlur={() => setTouchedFields((prev) => ({ ...prev, [`${addressType}.kodpos`]: true }))}
+                            onBlur={() => markTouched(`${addressType}.kodpos`)}
                             required={required}
                             type="number"
-                            errors={errors?.[`${addressType}.kodpos`]}
+                            errors={getInputGroupError(`${addressType}.kodpos`, errors?.[`${addressType}.kodpos`])}
                             touched={touchedFields[`${addressType}.kodpos`]}
-                            max={3}
+                            maxLength={5}
+                            max={99999}
                         />
                     </div>
                 </div>
             );
         },
-        [currentAddressType, data, errors, handleAddressChange, regions, renderRegionSelect, touchedFields],
+        [data, errors, touchedFields, renderRegionSelect, handleAddressChange, markTouched, getInputGroupError],
     );
+
+    // Memoize residence options
+    const residenceOptions = useMemo(
+        () => [
+            { value: '0', label: 'Sesuai KTP' },
+            { value: '1', label: 'Alamat Lain' },
+        ],
+        [],
+    );
+
+    // Memoize should show address 1
+    const shouldShowAddress1 = useMemo(() => {
+        if (step === 'WNA') return true;
+        return data.temtin !== '';
+    }, [step, data.temtin]);
+
+    // Memoize address 1 title
+    const address1Title = useMemo(() => {
+        return step === 'WNA' ? 'Alamat Domisili *' : '*Alamat Sesuai KTP';
+    }, [step]);
 
     return (
         <Section title="Alamat">
             <div className="space-y-4">
-                {step === 'WNA'
-                    ? renderAddressFields('alamat-domisili', 'alamat1', 'Alamat Domisili *')
-                    : data.temtin !== '' && renderAddressFields('alamat-ktp', 'alamat1', '*Alamat Sesuai KTP')}
+                {shouldShowAddress1 && renderAddressFields(step === 'WNA' ? 'alamat-domisili' : 'alamat-ktp', 'alamat1', address1Title)}
+
                 {step === 'WNI' && (
                     <SelectInput
                         name="temtin"
@@ -270,20 +417,17 @@ const AlamatForm: React.FC<AlamatProps> = ({ step, data, onChange, errors }) => 
                         label="Dimana Anda Tinggal?"
                         value={data.temtin}
                         onChange={(value) => {
-                            setTouchedFields((prev) => ({ ...prev, temtin: true }));
+                            markTouched('temtin');
                             onChange('temtin', value);
                         }}
                         placeholder="-- Pilih --"
-                        options={[
-                            { value: '0', label: 'Sesuai KTP' },
-                            { value: '1', label: 'Alamat Lain' },
-                        ]}
+                        options={residenceOptions}
                         required
                         errors={errors}
                         triggerClassName={errors?.['temtin'] ? 'border-destructive' : ''}
-                        // onBlur={() => setTouchedFields(prev => ({ ...prev, temtin: true }))}
                     />
                 )}
+
                 {data.temtin === '1' && renderAddressFields('alamat-tinggal', 'alamat2', '*Alamat Tempat Tinggal')}
             </div>
         </Section>
