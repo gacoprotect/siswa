@@ -16,42 +16,42 @@ const MenuItems: React.FC<PropsComponent> = ({ nouid, setLoading }) => {
             tab: 'tagihan',
             icon: <FaFileInvoiceDollar className="h-10 w-10 text-indigo-500" />,
             color: 'border-green-700 bg-green-50 hover:bg-green-100',
-            uri: route('tagihan.index', nouid)
+            uri: route('payment.tagihan.index', nouid)
         },
         {
             title: 'Data Siswa',
             tab: 'siswa',
             icon: <FaUserGraduate className="h-10 w-10 text-indigo-500" />,
             color: 'border-amber-700 bg-amber-50 hover:bg-amber-100',
-            uri: route('tagihan.index', nouid)
+            uri: route('payment.tagihan.index', nouid)
         },
         {
             title: 'Kegiatan',
             tab: 'kegiatan',
             icon: <FaFootballBall className="h-10 w-10 text-indigo-500" />,
             color: 'border-rose-700 bg-rose-50 hover:bg-rose-100',
-            uri: route('tagihan.index', nouid)
+            uri: route('payment.tagihan.index', nouid)
         },
         {
             title: 'Izin',
             tab: 'izin',
             icon: <MdMail className="h-10 w-10 text-indigo-500" />,
             color: 'border-rose-700 bg-rose-50 hover:bg-rose-100',
-            uri: route('tagihan.index', nouid)
+            uri: route('payment.tagihan.index', nouid)
         },
         {
             title: 'Pindah Sekolah',
             tab: 'pindah',
             icon: <FaFileArchive className="h-10 w-10 text-indigo-500 -indigo-500" />,
             color: 'border-rose-700 bg-rose-50 hover:bg-rose-100',
-            uri: route('tagihan.index', nouid)
+            uri: route('payment.tagihan.index', nouid)
         },
         {
             title: 'Kalender',
             tab: 'calendar',
             icon: <FaCalendarAlt className="h-10 w-10 text-indigo-500" />,
             color: 'border-rose-700 bg-rose-50 hover:bg-rose-100',
-            uri: route('calendar.index', nouid)
+            uri: route('student.calendar.index', nouid)
         },
     ], [nouid]);
 

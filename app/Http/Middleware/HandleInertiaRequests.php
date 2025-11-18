@@ -44,11 +44,6 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'flash' => function () use ($request) {
                 $flash = $request->session()->get('message');
-                if ($flash) {
-                    $flash['timestamp'] = time() + 5;
-                    $request->session()->forget('message');
-                }
-
                 return $flash;
             },
             'data' => function () use ($request) {
