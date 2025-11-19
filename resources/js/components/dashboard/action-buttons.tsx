@@ -1,13 +1,11 @@
-import { ConfirmDialog } from "@/components/ConfirmDialog ";
-import { useLoading } from "@/contexts/loading-context";
-import { Auth, DataSiswa } from "@/types";
-import { router } from "@inertiajs/react";
-import { AlertCircle } from "lucide-react";
-import { useCallback, useState } from "react";
-import { FaExchangeAlt, FaKey } from "react-icons/fa";
-import { FiLogOut } from "react-icons/fi";
-
-
+import { ConfirmDialog } from '@/components/ConfirmDialog ';
+import { useLoading } from '@/contexts/loading-context';
+import { Auth, DataSiswa } from '@/types';
+import { router } from '@inertiajs/react';
+import { AlertCircle } from 'lucide-react';
+import { useCallback, useState } from 'react';
+import { FaExchangeAlt, FaKey, FaLock } from 'react-icons/fa';
+import { FiLogOut } from 'react-icons/fi';
 
 interface PropsComponent {
     auth: Auth;
@@ -25,10 +23,14 @@ const ActionButtons: React.FC<PropsComponent> = ({ auth, data, hasPined, onPinMo
     const disabled = data.summary && 'reg' in data.summary && data.summary.reg === 0;
 
     const handleLogout = useCallback(() => {
-        router.post(route('siswa.logout', data.nouid ?? auth?.user?.nouid), {}, {
-            onStart: () => setLoading(true),
-            onFinish: () => setLoading(false),
-        });
+        router.post(
+            route('siswa.logout', data.nouid ?? auth?.user?.nouid),
+            {},
+            {
+                onStart: () => setLoading(true),
+                onFinish: () => setLoading(false),
+            },
+        );
     }, [data.nouid, auth?.user?.nouid, setLoading]);
     if (disabled) {
         return (
@@ -61,14 +63,30 @@ const ActionButtons: React.FC<PropsComponent> = ({ auth, data, hasPined, onPinMo
                     />
                 </>
             ) : (
-                <button
-                    onClick={onPinModalOpen}
-                    className="flex items-center justify-center space-x-2 rounded-xl border border-indigo-100 bg-white px-4 py-3 text-indigo-600 shadow-sm transition-colors hover:bg-indigo-50"
-                    disabled={disabled}
-                >
-                    <FaKey className="text-lg" />
-                    <span>Masukan PIN</span>
-                </button>
+                (() => {
+                    const pinButtonDisabled = disabled || !hasPined;
+                    return (
+                        <div className="relative w-full">
+                            <button
+                                onClick={onPinModalOpen}
+                                className={`flex w-full items-center justify-center space-x-2 rounded-xl border border-indigo-100 px-4 py-3 text-indigo-600 shadow-sm transition-colors ${
+                                    pinButtonDisabled ? 'bg-gray-200 text-gray-400' : 'bg-white hover:bg-indigo-50'
+                                }`}
+                                disabled={pinButtonDisabled}
+                            >
+                                <FaKey className="text-lg" />
+                                <span>Masukan PIN</span>
+                            </button>
+                            {pinButtonDisabled && (
+                                <div className="pointer-events-none absolute inset-0 rounded-xl bg-gray-600/40">
+                                    <div className="flex h-full w-full items-center justify-center">
+                                        <FaLock className="text-xl text-white" />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()
             )}
 
             <button
@@ -85,7 +103,9 @@ const ActionButtons: React.FC<PropsComponent> = ({ auth, data, hasPined, onPinMo
                 disabled={disabled}
             >
                 <FaExchangeAlt className="text-lg" />
-                <span>{hasPined ? 'Ubah PIN' : ((!hasPined && data.summary && 'reg' in data.summary && data.summary.reg === 1) ? 'Buat Pin' : 'daftar')}</span>
+                <span>
+                    {hasPined ? 'Ubah PIN' : !hasPined && data.summary && 'reg' in data.summary && data.summary.reg === 1 ? 'Buat Pin' : 'daftar'}
+                </span>
             </button>
         </div>
     );

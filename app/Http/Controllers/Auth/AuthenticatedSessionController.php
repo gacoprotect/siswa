@@ -54,7 +54,7 @@ class AuthenticatedSessionController extends Controller
             if (in_array(request()->input('p'), ['riwayat', 'index'])) {
                 $redirectRoute = request()->input('p') === 'riwayat'
                     ? 'transactions'
-                    : 'dashboard';
+                    : 'student.dashboard';
 
                 return Inertia::location(route($redirectRoute, ['nouid' => $nouid]));
             }
@@ -95,14 +95,14 @@ class AuthenticatedSessionController extends Controller
 
             Log::info('User logged out', ['nouid' => $nouid]);
 
-            return Inertia::location(route('dashboard', ['nouid' => $nouid]));
+            return Inertia::location(route('student.dashboard', ['nouid' => $nouid]));
         } catch (\Exception $e) {
             Log::error('Logout failed', [
                 'nouid' => $nouid,
                 'error' => $e->getMessage(),
             ]);
 
-            return redirect()->intended(route('dashboard', ['nouid' => $nouid]))
+            return redirect()->intended(route('student.dashboard', ['nouid' => $nouid]))
                 ->withErrors(['message' => 'Terjadi kesalahan saat logout']);
         }
     }

@@ -49,7 +49,7 @@ const DashboardContent: React.FC = () => {
         if (!loading) {
             verifyPinForExecute(() => {
                 setOpenModal(null);
-                router.visit(route('dashboard', data.nouid), {
+                router.visit(route('student.dashboard', data.nouid), {
                     preserveState: true,
                     preserveScroll: true,
                     onBefore: () => setLoading(true),
@@ -63,7 +63,7 @@ const DashboardContent: React.FC = () => {
         if (!APP_DEBUG || !siswaSummary || siswaSummary.reg !== 0) return null;
 
         const handleSimulation = (type: string) => {
-            router.get(route('simulasi.reg', { sim: type, nouid: data.nouid ?? auth?.user?.nouid }));
+            router.get(route('test.simulasi.registrasi.show', { sim: type, nouid: data.nouid ?? auth?.user?.nouid }));
         };
 
         return (

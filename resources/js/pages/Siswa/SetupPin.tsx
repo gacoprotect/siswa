@@ -206,7 +206,7 @@ const SetupPinPage = ({ setHasPined, hasPin, open, onClose }: { setHasPined: () 
                     ))}
                 </div>
 
-                {errors.message && <div className="text-center text-sm text-red-500">{errors.message}</div>}
+                {(errors.message || errors.otp) && <div className="text-center text-sm text-red-500">{(errors.message || errors.otp)}</div>}
 
                 <div className="text-center">
                     {countdown > 0 ? (
