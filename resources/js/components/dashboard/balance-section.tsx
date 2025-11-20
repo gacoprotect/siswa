@@ -9,7 +9,7 @@ const BalanceSection: React.FC<PropsComponent> = ({ formattedSaldo }) => {
     const { setLoading } = useLoading();
     const { verifyPinForExecute, pinHook } = usePinContext();
     const redirect = (page: string) => {
-        router.visit(route(`${page}.index`, pinHook?.data.nouid), {
+        router.visit(route(`payment.${page}.index`, pinHook?.data.nouid), {
             preserveState: true,
             preserveScroll: true,
             onBefore: () => setLoading(true),
