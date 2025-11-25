@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\TestRegistrasiUser;
 use App\Http\Controllers\ExculController;
+use App\Http\Controllers\Test\SnapTestController;
 use App\Http\Controllers\Test\TestController;
 use Illuminate\Support\Facades\Route;
 

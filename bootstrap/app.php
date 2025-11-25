@@ -1,10 +1,8 @@
 <?php
 
+use App\Http\Middleware\CustomHeader;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
-use App\Http\Middleware\VerifyNouid;
-use App\Http\Middleware\VerifyNouidSession;
-use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        // Add timestamp header to all requests and responses
+        $middleware->append(CustomHeader::class);
+
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,
@@ -28,9 +29,21 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'verify.nouid' => \App\Http\Middleware\VerifyNouid::class,
-            'auth.siswa' => \Illuminate\Auth\Middleware\Authenticate::class.':siswa',
+            'auth.siswa' => \Illuminate\Auth\Middleware\Authenticate::class . ':siswa',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Use ExceptionHandlerService for all exceptions
+        $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+            $handler = app(\App\Services\Exception\ExceptionHandlerService::class);
+            return $handler->handle($e, $request);
+        });
+
+        // Report exceptions that should be reported
+        $exceptions->report(function (\Throwable $e) {
+            $handler = app(\App\Services\Exception\ExceptionHandlerService::class);
+            if ($handler->shouldReport($e)) {
+                // Exception will be logged by the handler
+            }
+        });
     })->create();
