@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0c4c347647ee233c0ac19d89c833ae17",
+    "content-hash": "8dcc03aa22a59c762afc69a88f7f1ac5",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -682,50 +682,6 @@
                 }
             ],
             "time": "2023-10-12T05:21:21+00:00"
-        },
-        {
-            "name": "gaco/ocbc-snap",
-            "version": "dev-master",
-            "dist": {
-                "type": "path",
-                "url": "../project/ocbc-snap",
-                "reference": "c1df5c7e8a999c817388eb2c594755a1054953a1"
-            },
-            "require": {
-                "ext-openssl": "*",
-                "guzzlehttp/guzzle": "^7.0",
-                "illuminate/config": "^12.0",
-                "illuminate/http": "^12.0",
-                "illuminate/support": "^12.0",
-                "php": ">=8.1"
-            },
-            "require-dev": {
-                "laravel/pint": "^1.25",
-                "phpunit/phpunit": "^10.0"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "Gaco\\OcbcSnap\\OcbcServiceProvider"
-                    ],
-                    "aliases": {
-                        "OcbcSnap": "Gaco\\OcbcSnap\\Facades\\OcbcSnap"
-                    }
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "Gaco\\OcbcSnap\\": "src/"
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "OCBC SNAP Payment Integration Library",
-            "transport-options": {
-                "relative": true
-            }
         },
         {
             "name": "graham-campbell/result-type",
@@ -2767,16 +2723,16 @@
         },
         {
             "name": "nette/utils",
-            "version": "v4.0.8",
+            "version": "v4.0.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nette/utils.git",
-                "reference": "c930ca4e3cf4f17dcfb03037703679d2396d2ede"
+                "reference": "505a30ad386daa5211f08a318e47015b501cad30"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nette/utils/zipball/c930ca4e3cf4f17dcfb03037703679d2396d2ede",
-                "reference": "c930ca4e3cf4f17dcfb03037703679d2396d2ede",
+                "url": "https://api.github.com/repos/nette/utils/zipball/505a30ad386daa5211f08a318e47015b501cad30",
+                "reference": "505a30ad386daa5211f08a318e47015b501cad30",
                 "shasum": ""
             },
             "require": {
@@ -2850,9 +2806,9 @@
             ],
             "support": {
                 "issues": "https://github.com/nette/utils/issues",
-                "source": "https://github.com/nette/utils/tree/v4.0.8"
+                "source": "https://github.com/nette/utils/tree/v4.0.9"
             },
-            "time": "2025-08-06T21:43:34+00:00"
+            "time": "2025-10-31T00:45:47+00:00"
         },
         {
             "name": "nikic/php-parser",
@@ -2998,6 +2954,81 @@
                 }
             ],
             "time": "2025-11-20T02:34:59+00:00"
+        },
+        {
+            "name": "otnansirk/php-snap-bi",
+            "version": "1.x-dev",
+            "dist": {
+                "type": "path",
+                "url": "../project/php-snap-bi",
+                "reference": "efcc9403515e19f5689a9d56aa56b69809e3738f"
+            },
+            "require": {
+                "ext-curl": "*",
+                "nesbot/carbon": "^3.0",
+                "php": ">=8.2",
+                "ramsey/uuid": "^4.7"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^10.3",
+                "psy/psysh": "^0.11.20"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Otnansirk\\SnapBI\\": "src/"
+                },
+                "files": [
+                    "src/helper.php"
+                ]
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Otnansirk\\SnapBI\\": [
+                        "tests/",
+                        "tests/Integration",
+                        "tests/Unit",
+                        "tests/Fixtures"
+                    ]
+                }
+            },
+            "scripts": {
+                "test": [
+                    "XDEBUG_MODE=coverage phpunit"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Otnansirk",
+                    "email": "iam.otnansirk@gmail.com"
+                }
+            ],
+            "description": "This is a standard national open API Payments wrapper for PHP",
+            "keywords": [
+                "php",
+                "php-snap-bca",
+                "php-snap-bi",
+                "php-snap-bri",
+                "php-snap-dana",
+                "php-snap-mandiri",
+                "sdk-snap-bca",
+                "sdk-snap-bri",
+                "sdk-snap-dana",
+                "sdk-snap-mandiri",
+                "snap-bi"
+            ],
+            "support": {
+                "forum": "https://github.com/otnansirk/php-snap-bi/discussions",
+                "issues": "https://github.com/otnansirk/php-snap-bi/issues",
+                "source": "https://github.com/otnansirk/php-snap-bi",
+                "docs": "https://php-snap-bi.gitbook.io/docs"
+            },
+            "transport-options": {
+                "relative": true
+            }
         },
         {
             "name": "phpoption/phpoption",
@@ -9969,7 +10000,7 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "gaco/ocbc-snap": 20
+        "otnansirk/php-snap-bi": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,
