@@ -66,6 +66,7 @@
         "@fullcalendar/timegrid": "^6.1.15",
         "@fullcalendar/list": "^6.1.15",
         "@fullcalendar/interaction": "^6.1.15",
+        "@fullcalendar/react": "^6.1.15",
         "dompurify": "^3.2.6",
         "framer-motion": "^12.18.1",
         "globals": "^15.14.0",
