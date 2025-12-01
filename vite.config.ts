@@ -19,8 +19,11 @@ export default defineConfig({
         host: '0.0.0.0', // agar bisa diakses oleh domain
         port: 5173,
         cors: true,
+        // Menggunakan subdomain terpisah untuk Vite (via Cloudflare Tunnel)
+        origin: 'https://vite-siswa-dev.gaco.my.id',
         hmr: {
-            host: 'siswa.gaco', // arahkan ke domain dev kamu
+            host: 'vite-siswa-dev.gaco.my.id',
+            protocol: 'wss', // WebSocket Secure karena melalui HTTPS
         },
     },
     

@@ -153,3 +153,10 @@ function isdebug(): bool
 {
     return config('app.debug') === true;
 }
+
+function debugLog(string $message, array $context = []): void
+{
+    if (isdebug()) {
+        logger()->debug($message, $context);
+    }
+}
