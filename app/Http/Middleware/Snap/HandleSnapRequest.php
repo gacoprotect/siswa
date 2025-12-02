@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware\Snap;
 
+use App\Enums\SnapService;
 use App\Helpers\SnapHelper;
 use Closure;
 use Gaco\SnapBi\SnapBi;
@@ -27,8 +28,8 @@ class HandleSnapRequest
     public function handle(Request $request, Closure $next): Response
     {
         // Validasi headers untuk semua snap endpoints
-        $serviceName = SnapHelper::getService($request);
-        return $this->validateHeaders($request, $next, $serviceName);
+        $service = SnapHelper::getService($request);
+        return $this->validateHeaders($request, $next, $service);
     }
 
 
@@ -36,14 +37,14 @@ class HandleSnapRequest
     /**
      * Validasi headers
      */
-    protected function validateHeaders(Request $request, Closure $next, string $serviceName): Response
+    protected function validateHeaders(Request $request, Closure $next, SnapService $service): Response
     {
         // 1. Validasi Content-Type
         if (!$request->isJson() && $request->header('Content-Type') !== 'application/json') {
             return $this->errorResponse($request, 401, 0, null, 'Signature', 'Invalid Content-Type header. Must be application/json');
         }
         // 2. Validasi required headers berdasarkan service
-        $requiredHeaders = SnapHelper::getRequiredHeaders($serviceName);
+        $requiredHeaders = SnapHelper::getRequiredHeaders($service);
         $missingHeaders = [];
 
         foreach ($requiredHeaders as $header) {
@@ -59,7 +60,7 @@ class HandleSnapRequest
         // 3. Validasi format X-TIMESTAMP (ISO 8601)
         $timestamp = $request->header('X-TIMESTAMP');
         if (!SnapHelper::isValidTimestamp($timestamp)) {
-            return $this->errorResponse($request, 401, 0, null, 'Signature', 'Invalid X-TIMESTAMP format. Must be ISO 8601 format (yyyy-MM-ddTHH:mm:ss.SSSTZD)');
+            return $this->errorResponse($request, 401, 0, null, 'Signature', 'Invalid X-TIMESTAMP: ' . $timestamp . '. Must be valid ISO 8601 format (e.g., 2020-12-21T14:56:11.123+07:00 or 2020-12-21T14:56:11+07:00).');
         }
 
         // 5. Detect bank dari X-CLIENT-KEY
@@ -79,11 +80,81 @@ class HandleSnapRequest
             $snapBi = SnapBi($bank);
 
             // Token endpoint menggunakan auth signature, service endpoint menggunakan service signature
-            if ($serviceName === 'token') {
-                $isValid = $snapBi->signature()->auth()->verify($request, $signature);
+            if ($service === SnapService::TOKEN) {
+                // Extract payload untuk auth signature verification
+                $clientId = $request->header('X-CLIENT-KEY');
+                $timestamp = $request->header('X-TIMESTAMP');
+
+                $isValid = $snapBi->signature()->auth()->verify(
+                    $clientId,
+                    $timestamp,
+                    $signature
+                );
             } else {
-                // Untuk service endpoints, perlu access token dari Authorization header
-                $isValid = $snapBi->signature()->service()->verify($request);
+                $method = $request->method();
+                $requestPath = $request->path();
+                // Gunakan $service (enum) bukan $serviceName, dan normalisasi path dari request
+                $path = \App\Helpers\SnapHelper::normalizePath($requestPath);
+                $rawBody = $request->getContent();
+                $body = !empty($rawBody) ? json_decode($rawBody, true) : [];
+
+                // Jika decode gagal, fallback ke request->all()
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    $body = $request->all();
+                }
+
+                $accessToken = $request->bearerToken() ?? '';
+
+                $isValid = $snapBi->signature()->service()->verify(
+                    $method,
+                    $path,
+                    $body,
+                    $timestamp,
+                    $accessToken,
+                    $signature
+                );
+
+                // Debug logging jika verification gagal (hanya di development)
+                if (!$isValid && config('app.debug')) {
+                    // Recreate signature untuk debug comparison
+                    $expectedSignature = $snapBi->signature()->service()->create(
+                        $method,
+                        $path,
+                        $body,
+                        $timestamp,
+                        $accessToken
+                    );
+
+                    // Debug: Calculate body hash untuk melihat apakah sama dengan yang digunakan di utilities
+                    $bodyMinified = json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                    $bodyHash = strtolower(bin2hex(hash('sha256', $bodyMinified, true)));
+
+                    // Debug: Build stringToSign untuk melihat apakah sama dengan yang digunakan di utilities
+                    $stringToSign = implode(':', [
+                        $method,
+                        $path,
+                        $accessToken,
+                        $bodyHash,
+                        $timestamp
+                    ]);
+
+                    Log::debug('Service signature verification failed', [
+                        'method' => $method,
+                        'path_used' => $path,
+                        'path_from_request' => $requestPath,
+                        'body' => $body,
+                        'body_raw' => $rawBody,
+                        'body_minified' => $bodyMinified,
+                        'body_hash' => $bodyHash,
+                        'timestamp' => $timestamp,
+                        'access_token' => $accessToken,
+                        'access_token_length' => strlen($accessToken),
+                        'string_to_sign' => $stringToSign,
+                        'provided_signature' => $signature,
+                        'expected_signature' => $expectedSignature,
+                        'signatures_match' => hash_equals($expectedSignature, $signature),
+                    ]);
+                }
             }
 
             if (!$isValid) {
@@ -92,7 +163,7 @@ class HandleSnapRequest
         } catch (\Exception $e) {
             Log::error('Signature verification failed', [
                 'bank' => $bank,
-                'service' => $serviceName,
+                'service' => $service->value,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -129,7 +200,7 @@ class HandleSnapRequest
         ?string $reason = '',
         ?string $info = ''
     ): JsonResponse {
-        $serviceName = SnapHelper::getService($request);
+        $service = SnapHelper::getService($request);
         $isDebug = config('app.debug');
 
         // Untuk keamanan: fieldName dan reason hanya digunakan di debug mode
@@ -138,6 +209,7 @@ class HandleSnapRequest
         $responseReason = $isDebug ? ($reason ?: null) : null;
 
         // Menggunakan cara baru yang lebih mudah: error(httpCode, caseCode, fieldName, reason)
+        $serviceName = $service->value;
         $response = SnapBi()->$serviceName()->response()->error($httpCode, $caseCode, $responseFieldName, $responseReason);
 
         // Log semua detail error dalam 1 log (termasuk detail yang tidak ditampilkan di response)
@@ -146,7 +218,7 @@ class HandleSnapRequest
             'info' => $info,
             'path' => $request->path(),
             'method' => $request->method(),
-            'service' => $serviceName,
+            'service' => $service->value,
             'http_code' => $httpCode,
             'case_code' => $caseCode,
             'response_code' => $responseData['responseCode'] ?? null,

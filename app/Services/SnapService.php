@@ -125,7 +125,7 @@ class SnapService
      */
     public function updateStatusVa(): JsonResponse
     {
-        return SnapBi()->updateStatusVa()->response()->success([
+        return SnapBi()->updateStatus()->response()->success([
             'virtualAccountData' => [
                 "partnerServiceId" => config('snap.provider.OCBC.biller_id'),
                 "customerNo" => "1234567890",
