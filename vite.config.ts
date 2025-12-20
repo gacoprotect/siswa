@@ -23,6 +23,7 @@ export default defineConfig({
         origin: 'https://vite-siswa-dev.gaco.my.id',
         hmr: {
             host: 'vite-siswa-dev.gaco.my.id',
+            // host: 'siswa-dev.gaco',
             protocol: 'wss', // WebSocket Secure karena melalui HTTPS
         },
     },

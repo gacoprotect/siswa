@@ -689,7 +689,7 @@
             "dist": {
                 "type": "path",
                 "url": "../project/snap-bi",
-                "reference": "cfda881c55a717739a01a9b9e68f9c2922e70c7e"
+                "reference": "058550435db2adadb7a921ee9215004e1f03b169"
             },
             "require": {
                 "illuminate/contracts": "^11.0|^12.0",

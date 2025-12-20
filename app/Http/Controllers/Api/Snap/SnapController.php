@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Api\Snap;
 
-use App\Services\SnapService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Services\Snap\SnapService;
 
 class SnapController extends Controller
 {
+
+
     protected $snapService;
 
     public function __construct(SnapService $snapService)
@@ -16,11 +19,11 @@ class SnapController extends Controller
     }
 
     /**
-     * Generate B2B Access Token
+     * Generate B2B Access Token dengan token management dan rate limiting
      */
-    public function token(): JsonResponse
+    public function token(Request $request): JsonResponse
     {
-        return $this->snapService->generateToken();
+        return $this->snapService->generateToken($request);
     }
 
     /**

@@ -5,7 +5,10 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['snap'])->prefix('v1')->name('snap.')->group(function () {
-    Route::post('access-token/b2b', [SnapController::class, 'token'])->name('token');
+    // Rate limit khusus untuk endpoint access-token/b2b
+    Route::post('access-token/b2b', [SnapController::class, 'token'])
+        ->middleware(\App\Http\Middleware\Snap\RateLimitTokenEndpoint::class)
+        ->name('token');
 
     Route::prefix('transfer-va')->group(function () {
         Route::post('inquiry', [SnapController::class, 'inquiry'])->name('inquiry');

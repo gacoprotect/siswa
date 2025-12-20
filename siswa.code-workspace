@@ -2,6 +2,13 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "../project/snap-bi"
+		},
+		{
+			"path": "../project/php-snap-bi"
 		}
-	]
+	],
+	"settings": {}
 }

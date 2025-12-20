@@ -1,23 +1,83 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Snap;
 
-use App\Exceptions\GeneralJsonException;
-use Gaco\SnapBi\SnapBi;
+use App\Helpers\SnapHelper;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class SnapService
 {
+
     /**
-     * Generate B2B Access Token
+     * Generate token baru dan simpan ke database untuk tracking
      */
-    public function generateToken(): JsonResponse
+    public function generateToken(Request $request): JsonResponse
     {
-        return SnapBi()->token()->response()->success([
-            'accessToken' => '0b1be4d0-7b8c-4206-966d-e202ca43ed35',
-            'tokenType' => 'bearer',
-            'expiresIn' => '900'
-        ]);
+        // Detect bank dari request
+        $bank = SnapHelper::detectBank($request);
+        if (!$bank) {
+            return SnapBi()->token()->response()->error(401, 0, 'X-CLIENT-KEY', 'Invalid X-CLIENT-KEY. Bank not found or not registered');
+        }
+
+        try {
+            $clientId = $request->header('X-CLIENT-KEY');
+            $timestamp = currentTimestamp()->toIso8601String();
+
+            // Generate access token (UUID atau random string)
+            // Untuk inbound API, kita generate token sendiri (bukan dari B2B API)
+            $accessToken = \Illuminate\Support\Str::uuid()->toString();
+            $expiresIn = 900; // 15 menit
+            $expiresAt = now()->addSeconds($expiresIn);
+
+            // Deactivate semua token lama untuk bank dan client_id yang sama
+            \App\Models\SnapToken::forBank($bank, $clientId)
+                ->active()
+                ->update(['is_active' => false]);
+
+            // Simpan token baru ke database untuk tracking
+            $token = \App\Models\SnapToken::create([
+                'bank' => strtolower($bank),
+                'client_id' => $clientId,
+                'ip' => $request->ip(),
+                'meta' => [
+                    'user_agent' => $request->userAgent(),
+                    'headers' => [
+                        'X-CLIENT-KEY' => $request->header('X-CLIENT-KEY'),
+                        'X-TIMESTAMP' => $request->header('X-TIMESTAMP'),
+                        'X-SIGNATURE' => $request->header('X-SIGNATURE'),
+                        'CHANNEL-ID' => $request->header('CHANNEL-ID'),
+                        'X-PARTNER-ID' => $request->header('X-PARTNER-ID'),
+                    ],
+                ],
+                'access_token' => $accessToken,
+                'token_type' => 'bearer',
+                'expires_in' => $expiresIn,
+                'expires_at' => $expiresAt,
+                'is_active' => true,
+                'last_used_at' => now(),
+            ]);
+
+            \Illuminate\Support\Facades\Log::info('Snap B2B token generated (inbound)', [
+                'bank' => $bank,
+                'client_id' => $clientId,
+                'access_token' => substr($accessToken, 0, 20) . '...',
+                'expires_at' => $expiresAt->toIso8601String(),
+            ]);
+
+            return SnapBi($bank)->token()->response()->success([
+                'accessToken' => $accessToken,
+                'tokenType' => 'bearer',
+                'expiresIn' => (string) $expiresIn
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to generate B2B token', [
+                'bank' => $bank,
+                'error' => $e->getMessage(),
+            ]);
+
+            return SnapBi($bank)->token()->response()->error(500, 0, null, 'Failed to generate access token: ' . $e->getMessage());
+        }
     }
 
     /**
